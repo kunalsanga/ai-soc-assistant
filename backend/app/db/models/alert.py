@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Text
+from sqlalchemy import Column, Integer, String, DateTime, Text, Float, ForeignKey
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.db.database import Base
@@ -26,7 +26,7 @@ class Analysis(Base):
     __tablename__ = "analyses"
 
     id = Column(Integer, primary_key=True, index=True)
-    alert_id = Column(Integer, sqlalchemy.ForeignKey("alerts.id"))
+    alert_id = Column(Integer, ForeignKey("alerts.id"))
     summary = Column(Text)
     severity_assessment = Column(String)
     explanation = Column(Text)
@@ -43,12 +43,12 @@ class Evidence(Base):
     __tablename__ = "evidence"
 
     id = Column(Integer, primary_key=True, index=True)
-    analysis_id = Column(Integer, sqlalchemy.ForeignKey("analyses.id"))
+    analysis_id = Column(Integer, ForeignKey("analyses.id"))
     source = Column(String)
     document_id = Column(String)
     title = Column(String)
     content = Column(Text)
-    relevance_score = Column(sqlalchemy.Float)
+    relevance_score = Column(Float)
     citation = Column(String)
 
     analysis = relationship("Analysis", back_populates="evidence")
@@ -57,7 +57,7 @@ class Feedback(Base):
     __tablename__ = "feedback"
     
     id = Column(Integer, primary_key=True, index=True)
-    analysis_id = Column(Integer, sqlalchemy.ForeignKey("analyses.id"))
+    analysis_id = Column(Integer, ForeignKey("analyses.id"))
     rating = Column(Integer)
     comment = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

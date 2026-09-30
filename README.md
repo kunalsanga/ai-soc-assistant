@@ -37,10 +37,60 @@ graph TD
 
 ## Repository Structure
 
-- `/backend` - FastAPI server, DB models, RAG/LLM placeholder interfaces.
+- `/backend` - FastAPI server, DB models, Wazuh integration, RAG/LLM modules.
 - `/frontend` - React application with modern dark-mode dashboard.
 - `/knowledge` - Directory for storing knowledge base files (MITRE, NVD).
 - `/scripts` - Utilities for data ingestion and maintenance.
+
+## Wazuh Integration & Alert Flow (implemented)
+
+Wazuh runs **externally** (VM/lab) — this project only consumes its API.
+In development the app runs with an explicitly-mocked Wazuh client, so no
+live Wazuh server is required:
+
+```
+WAZUH (external)                 MockWazuhClient (dev only)
+        |                                |
+WazuhClient (raw JSON alerts)  <--------+
+        |
+normalize_wazuh_alert()  →  NormalizedSecurityAlert (internal contract)
+        |
+AlertService.sync_alerts()  →  dedupe on external_alert_id  →  PostgreSQL
+        |
+GET /api/v1/alerts  →  React dashboard
+```
+
+Key modules (backend):
+- `app/wazuh/client.py` — `BaseWazuhClient` / `MockWazuhClient` / `RealWazuhClient` + factory
+- `app/wazuh/http.py` — authenticated HTTP transport (token lifecycle, never logs secrets)
+- `app/wazuh/service.py` — fetch → normalize → dedupe → persist
+- `app/wazuh/schemas.py` — `NormalizedSecurityAlert` (raw Wazuh JSON is preserved in `raw_wazuh_data`)
+- `app/security/normalization.py` — deterministic raw→normalized mapping
+
+### Switching from mock to a real Wazuh server
+
+Set in `backend/.env` (never commit it):
+
+```
+WAZUH_MODE=real
+WAZUH_BASE_URL=https://<wazuh-server>:55000
+WAZUH_USERNAME=<user>
+WAZUH_PASSWORD=<password>
+WAZUH_VERIFY_SSL=true   # set false only for self-signed lab certs
+```
+
+Then `POST /api/v1/alerts/sync` ingests live alerts (idempotent). Errors are
+explicit: `WazuhAuthenticationError` (bad credentials),
+`WazuhConnectionError` (server unreachable), `WazuhResponseError` (unexpected
+API response) — never a generic 500.
+
+## Testing
+
+```bash
+cd backend
+python -m pytest tests/unit          # no external services required
+python -m pytest tests/integration   # requires PostgreSQL (auto-skips offline)
+```
 
 ## Local Setup
 
