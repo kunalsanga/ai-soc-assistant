@@ -18,7 +18,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.db.models.alert import Alert
+from app.security.context import ContextExtractor
 from app.security.normalization import normalize_wazuh_alert
+from app.security.pipeline import SecurityContextPipeline
+from app.security.preprocessing import preprocess_alert
+from app.security.retrieval_queries import RetrievalQueryBuilder
+from app.security.schemas import RetrievalQuerySet, SecurityContext
 from app.wazuh.client import BaseWazuhClient, get_wazuh_client
 from app.wazuh.exceptions import WazuhError
 from app.wazuh.schemas import NormalizedSecurityAlert, SyncResult
@@ -49,8 +54,13 @@ def _normalized_alert_to_db_fields(alert: NormalizedSecurityAlert) -> dict:
 
 
 class AlertService:
-    def __init__(self, client: BaseWazuhClient | None = None):
+    def __init__(
+        self,
+        client: BaseWazuhClient | None = None,
+        context_pipeline: SecurityContextPipeline | None = None,
+    ):
         self._client = client
+        self._context_pipeline = context_pipeline or SecurityContextPipeline()
 
     async def _get_client(self) -> BaseWazuhClient:
         if self._client is None:
@@ -164,3 +174,20 @@ class AlertService:
             )
         normalized.id = row.id
         return normalized
+
+    def get_security_context(
+        self, alert: NormalizedSecurityAlert
+    ) -> tuple[SecurityContext, RetrievalQuerySet]:
+        """Run the Phase 3 pipeline: preprocess → context → retrieval queries.
+
+        Pure in-memory composition (no DB writes, no network). Kept off the
+        API surface for now; later phases consume these objects directly.
+        """
+        preprocessed = preprocess_alert(alert)
+        context = self._context_pipeline.extract_context(preprocessed)
+        queries = self._context_pipeline.build_queries(context)
+        return context, queries
+
+
+# Convenience re-export for orchestrators that only need the extractor.
+__all__ = ["AlertService", "ContextExtractor", "RetrievalQueryBuilder"]
