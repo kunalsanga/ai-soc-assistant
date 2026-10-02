@@ -242,3 +242,38 @@ class QdrantIndex:
     def upsert_chunk(self, chunk: KnowledgeChunk) -> None:
         """Convenience single-chunk upsert."""
         self.upsert_chunks([chunk])
+
+    def search(
+        self,
+        query_vector: List[float],
+        top_k: int = 5,
+        score_threshold: Optional[float] = None,
+    ) -> List[Dict[str, Any]]:
+        """Search the collection for the closest vectors.
+        
+        Returns a list of dicts containing 'score' and 'payload'.
+        """
+        if not self._collection_ready:
+            self.ensure_collection()
+            
+        client = self._get_client()
+        
+        try:
+            results = client.search(
+                collection_name=self._collection,
+                query_vector=query_vector,
+                limit=top_k,
+                score_threshold=score_threshold,
+                with_payload=True,
+            )
+            
+            # Extract score and payload to keep Qdrant types from leaking too much
+            return [
+                {
+                    "score": hit.score,
+                    "payload": hit.payload or {},
+                }
+                for hit in results
+            ]
+        except Exception as exc:  # noqa: BLE001
+            raise VectorStoreError(f"Qdrant search failed: {exc}") from exc
