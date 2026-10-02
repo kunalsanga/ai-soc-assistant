@@ -1,3 +1,4 @@
-from .retriever import BaseRetriever, PlaceholderRetriever
+from .retriever import Retriever, RetrieverError
+from .schemas import Evidence, EvidenceSet
 
-__all__ = ["BaseRetriever", "PlaceholderRetriever"]
+__all__ = ["Retriever", "RetrieverError", "Evidence", "EvidenceSet"]

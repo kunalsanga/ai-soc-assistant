@@ -29,6 +29,10 @@ class Settings(BaseSettings):
     CHUNK_OVERLAP: int = 150
     EMBEDDING_BATCH_SIZE: int = 64
     
+    # --- Retrieval (Phase 4B) ----------------------------------------------
+    RETRIEVAL_TOP_K: int = 5
+    RETRIEVAL_SCORE_THRESHOLD: float = 0.0
+    
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=True, extra="ignore")
 
 settings = Settings()
