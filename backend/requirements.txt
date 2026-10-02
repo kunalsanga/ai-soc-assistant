@@ -7,5 +7,6 @@ alembic
 psycopg2-binary
 asyncpg
 httpx
+qdrant-client
 pytest
 python-dotenv
