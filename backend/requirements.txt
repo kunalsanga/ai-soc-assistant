@@ -2,11 +2,13 @@ fastapi
 uvicorn[standard]
 pydantic
 pydantic-settings
-sqlalchemy
+sqlalchemy[asyncio]
 alembic
 psycopg2-binary
 asyncpg
+greenlet
 httpx
 qdrant-client
 pytest
+pytest-asyncio
 python-dotenv

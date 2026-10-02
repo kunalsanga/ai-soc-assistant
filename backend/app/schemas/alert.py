@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, List, Dict, Any
+from typing import Optional, List
 from datetime import datetime
 
 class AlertBase(BaseModel):
@@ -25,7 +25,20 @@ class Alert(AlertBase):
     class Config:
         from_attributes = True
 
+class EvidenceCreate(BaseModel):
+    """Input schema for creating a single Evidence item."""
+
+    source: str
+    document_id: str
+    title: str
+    content: str
+    relevance_score: float
+    citation: str
+
+
 class EvidenceSchema(BaseModel):
+    """Response schema for a persisted Evidence item."""
+
     id: int
     analysis_id: int
     source: str
@@ -38,16 +51,43 @@ class EvidenceSchema(BaseModel):
     class Config:
         from_attributes = True
 
+class AnalysisCreate(BaseModel):
+    """Input schema for creating an Analysis record.
+
+    All content fields are Optional because an analysis may be created in a
+    'pending' state before the LLM pipeline runs, or with partial results.
+    The alert_id is NOT included here — it is supplied as a path parameter
+    or function argument by the service layer.
+    """
+
+    summary: Optional[str] = None
+    severity_assessment: Optional[str] = None
+    explanation: Optional[str] = None
+    recommended_investigation: Optional[str] = None
+    confidence: Optional[str] = None
+    model_name: Optional[str] = None
+    analysis_type: Optional[str] = None
+    evidence: List[EvidenceCreate] = []
+
+
 class AnalysisSchema(BaseModel):
+    """Response schema for a persisted Analysis record.
+
+    All content fields are Optional because the DB columns are nullable and
+    an analysis may be stored in a 'pending' state without content yet.
+    This matches the frontend TypeScript interface where all Analysis fields
+    are already declared as optional.
+    """
+
     id: int
     alert_id: int
-    summary: str
-    severity_assessment: str
-    explanation: str
-    recommended_investigation: str
-    confidence: str
-    model_name: str
-    analysis_type: str
+    summary: Optional[str] = None
+    severity_assessment: Optional[str] = None
+    explanation: Optional[str] = None
+    recommended_investigation: Optional[str] = None
+    confidence: Optional[str] = None
+    model_name: Optional[str] = None
+    analysis_type: Optional[str] = None
     created_at: datetime
     evidence: List[EvidenceSchema] = []
 
