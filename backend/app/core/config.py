@@ -13,10 +13,6 @@ class Settings(BaseSettings):
     WAZUH_VERIFY_SSL: bool = True
     WAZUH_MODE: str = "mock"  # "mock" | "real" — mock keeps dev workin without a live Wazuh
     
-    LLM_API_KEY: str = ""
-    LLM_BASE_URL: str = ""
-    LLM_MODEL: str = ""
-    
     QDRANT_URL: str = ""
     QDRANT_API_KEY: str = ""
     QDRANT_COLLECTION: str = "security_knowledge"
@@ -32,6 +28,14 @@ class Settings(BaseSettings):
     # --- Retrieval (Phase 4B) ----------------------------------------------
     RETRIEVAL_TOP_K: int = 5
     RETRIEVAL_SCORE_THRESHOLD: float = 0.0
+    
+    # --- LLM Analysis (Phase 5) --------------------------------------------
+    LLM_PROVIDER: str = "mock"
+    LLM_MODEL: str = "mock-model"
+    LLM_BASE_URL: str = ""
+    LLM_API_KEY: str = ""
+    LLM_TEMPERATURE: float = 0.0
+    LLM_MAX_TOKENS: int = 2000
     
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=True, extra="ignore")
 
