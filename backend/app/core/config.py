@@ -19,6 +19,15 @@ class Settings(BaseSettings):
     
     QDRANT_URL: str = ""
     QDRANT_API_KEY: str = ""
+    QDRANT_COLLECTION: str = "security_knowledge"
+
+    # --- Knowledge base (Phase 4A) -----------------------------------------
+    KNOWLEDGE_DATA_DIR: str = "knowledge"
+    EMBEDDING_MODEL: str = "local-hashing"  # "local-hashing" | future providers
+    EMBEDDING_DIMENSION: int = 256
+    CHUNK_SIZE: int = 1200
+    CHUNK_OVERLAP: int = 150
+    EMBEDDING_BATCH_SIZE: int = 64
     
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=True, extra="ignore")
 

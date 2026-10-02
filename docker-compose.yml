@@ -1,6 +1,17 @@
 version: '3.8'
 
+volumes:
+  postgres_data:
+
 services:
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
   db:
     image: postgres:15
     volumes:
@@ -37,3 +48,4 @@ services:
 
 volumes:
   postgres_data:
+  qdrant_data:
