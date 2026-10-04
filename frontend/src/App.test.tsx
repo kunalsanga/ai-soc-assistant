@@ -3,8 +3,8 @@ import { render, screen } from '@testing-library/react';
 import App from './App';
 
 describe('App Routing', () => {
-  it('renders the Dashboard by default', () => {
+  it('renders the Security Operations Center dashboard by default', () => {
     render(<App />);
-    expect(screen.getByText('SOC Overview')).toBeInTheDocument();
+    expect(screen.getByText('Security Operations Center')).toBeInTheDocument();
   });
 });
