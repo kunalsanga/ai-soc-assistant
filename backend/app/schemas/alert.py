@@ -8,7 +8,7 @@ class AlertBase(BaseModel):
     severity: int
     rule_id: str
     rule_description: str
-    agent_name: str
+    agent_name: Optional[str] = None
     source_ip: Optional[str] = None
     destination_ip: Optional[str] = None
     username: Optional[str] = None

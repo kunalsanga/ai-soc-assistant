@@ -259,9 +259,9 @@ class QdrantIndex:
         client = self._get_client()
         
         try:
-            results = client.search(
+            response = client.query_points(
                 collection_name=self._collection,
-                query_vector=query_vector,
+                query=query_vector,
                 limit=top_k,
                 score_threshold=score_threshold,
                 with_payload=True,
@@ -273,7 +273,7 @@ class QdrantIndex:
                     "score": hit.score,
                     "payload": hit.payload or {},
                 }
-                for hit in results
+                for hit in response.points
             ]
         except Exception as exc:  # noqa: BLE001
             raise VectorStoreError(f"Qdrant search failed: {exc}") from exc
