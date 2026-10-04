@@ -108,7 +108,7 @@ class AnalysisService:
             alert_id,
             len(data.evidence),
         )
-        return analysis
+        return await self.get_analysis_by_id(db, analysis.id, load_evidence=True)
 
     # ------------------------------------------------------------------
     # Analysis — read

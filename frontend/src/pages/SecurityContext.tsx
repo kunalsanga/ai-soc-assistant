@@ -12,11 +12,56 @@ import PageHeader from '../components/common/PageHeader';
 import SeverityBadge from '../components/common/SeverityBadge';
 import MockDataDisclaimer from '../components/common/MockDataDisclaimer';
 
-const SecurityContext: React.FC = () => {
-  const [selectedAlertId, setSelectedAlertId] = useState<number>(1);
+import { alertService } from '../services/api';
+import type { Alert, SecurityContext as SecurityContextType } from '../types/alert';
 
-  const selectedAlert = mockAlerts.find((a) => a.id === selectedAlertId) || mockAlerts[0];
-  const context = getSecurityContextForAlert(selectedAlertId);
+const SecurityContext: React.FC = () => {
+  const [selectedAlertId, setSelectedAlertId] = useState<number | null>(null);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [context, setContext] = useState<SecurityContextType | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isUsingMock, setIsUsingMock] = useState(false);
+
+  React.useEffect(() => {
+    alertService.getAlerts().then(data => {
+      if (data && data.length > 0) {
+        setAlerts(data);
+        setSelectedAlertId(data[0].id);
+        setIsUsingMock(false);
+      } else {
+        setAlerts(mockAlerts);
+        setSelectedAlertId(mockAlerts[0].id);
+        setIsUsingMock(true);
+      }
+    }).catch(() => {
+      setAlerts(mockAlerts);
+      setSelectedAlertId(mockAlerts[0].id);
+      setIsUsingMock(true);
+    });
+  }, []);
+
+  React.useEffect(() => {
+    if (selectedAlertId) {
+      setLoading(true);
+      alertService.getSecurityContext(selectedAlertId).then(data => {
+        setContext(data);
+        setIsUsingMock(false);
+      }).catch(() => {
+        setContext(getSecurityContextForAlert(selectedAlertId));
+        // Only set to mock if alerts are also mock, or just keep it real for the rest
+      }).finally(() => setLoading(false));
+    }
+  }, [selectedAlertId]);
+
+  const selectedAlert = alerts.find((a) => a.id === selectedAlertId) || mockAlerts[0];
+
+  if (!context || loading) {
+    return (
+      <div className="card p-12 text-center text-zinc-400">
+        Loading context...
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -32,11 +77,11 @@ const SecurityContext: React.FC = () => {
           <div className="flex items-center gap-2">
             <label className="text-xs text-zinc-400 font-mono">Inspect Alert:</label>
             <select
-              value={selectedAlertId}
+              value={selectedAlertId || ''}
               onChange={(e) => setSelectedAlertId(Number(e.target.value))}
               className="bg-[#0c101a] border border-zinc-700 rounded-lg px-3 py-1.5 text-xs text-cyan-300 font-mono focus:outline-none focus:border-cyan-500"
             >
-              {mockAlerts.map((alert) => (
+              {alerts.map((alert) => (
                 <option key={alert.id} value={alert.id}>
                   #{alert.id} — {alert.rule_description.slice(0, 36)}...
                 </option>
@@ -46,10 +91,12 @@ const SecurityContext: React.FC = () => {
         }
       />
 
-      <MockDataDisclaimer
-        label="MOCK / DEVELOPMENT DATA"
-        detail="Contextual enrichment simulated for development baseline alerts. Live context extraction pipeline integration pending."
-      />
+      {isUsingMock && (
+        <MockDataDisclaimer
+          label="MOCK / DEVELOPMENT DATA"
+          detail="Contextual enrichment simulated for development baseline alerts. Live context extraction pipeline integration pending."
+        />
+      )}
 
       {/* Target Alert Header Banner */}
       <div className="card p-4 bg-[#090d16] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-zinc-800">

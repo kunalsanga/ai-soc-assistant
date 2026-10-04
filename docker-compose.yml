@@ -2,6 +2,7 @@ version: '3.8'
 
 volumes:
   postgres_data:
+  qdrant_data:
 
 services:
   qdrant:
@@ -46,6 +47,3 @@ services:
       - ./frontend:/app
       - /app/node_modules
 
-volumes:
-  postgres_data:
-  qdrant_data:

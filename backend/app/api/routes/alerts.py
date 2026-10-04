@@ -25,6 +25,7 @@ from app.schemas.alert import (
     AnalysisCreate,
     AnalysisSchema,
 )
+from app.security.schemas import SecurityContextModel
 from app.services.analysis import AnalysisService
 from app.services.exceptions import AlertNotFoundError, AnalysisNotFoundError
 from app.wazuh.client import MockWazuhClient
@@ -51,6 +52,24 @@ async def get_alert(alert_id: int, db: AsyncSession = Depends(get_db)):
     if not alert:
         raise HTTPException(status_code=404, detail="Alert not found")
     return alert
+
+@router.get("/{alert_id}/security-context", response_model=SecurityContextModel)
+async def get_security_context(alert_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Alert).where(Alert.id == alert_id))
+    alert = result.scalar_one_or_none()
+    if not alert:
+        raise HTTPException(status_code=404, detail="Alert not found")
+        
+    service = AlertService()
+    try:
+        from app.security.normalization import normalize_wazuh_alert
+        import json
+        raw_dict = json.loads(alert.raw_data) if alert.raw_data else {}
+        normalized = normalize_wazuh_alert(raw_dict)
+        context, _ = service.get_security_context(normalized)
+        return context
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate security context: {str(e)}")
 
 
 # ---------------------------------------------------------------------------

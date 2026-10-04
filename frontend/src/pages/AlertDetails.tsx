@@ -51,12 +51,16 @@ const AlertDetails: React.FC = () => {
         setAlert(fallback);
       }
 
-      // Check for backend analysis first, fallback to mock analysis
       try {
         if (id) {
           const fetchedAnalysis = await alertService.getAnalysis(id);
           if (fetchedAnalysis && fetchedAnalysis.summary) {
             setAnalysis(fetchedAnalysis);
+            if (fetchedAnalysis.evidence && fetchedAnalysis.evidence.length > 0) {
+              setEvidenceList(fetchedAnalysis.evidence);
+            } else {
+              setEvidenceList(getEvidenceForAlert(numericId));
+            }
           } else {
             setAnalysis(getMockAnalysisForAlert(numericId));
           }
@@ -65,9 +69,18 @@ const AlertDetails: React.FC = () => {
         setAnalysis(getMockAnalysisForAlert(numericId));
       }
 
-      // Load security context and evidence
-      setContext(getSecurityContextForAlert(numericId));
-      setEvidenceList(getEvidenceForAlert(numericId));
+      try {
+        if (id) {
+          const fetchedContext = await alertService.getSecurityContext(id);
+          setContext(fetchedContext);
+        } else {
+          setContext(getSecurityContextForAlert(numericId));
+        }
+      } catch {
+        setContext(getSecurityContextForAlert(numericId));
+      }
+
+
       setLoading(false);
     };
 
@@ -81,6 +94,11 @@ const AlertDetails: React.FC = () => {
       const res = await alertService.analyzeAlert(alert.id);
       if (res && res.summary) {
         setAnalysis(res);
+        if (res.evidence && res.evidence.length > 0) {
+          setEvidenceList(res.evidence);
+        } else {
+          setEvidenceList(getEvidenceForAlert(alert.id));
+        }
       } else {
         setAnalysis(getMockAnalysisForAlert(alert.id));
       }

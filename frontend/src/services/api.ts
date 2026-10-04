@@ -38,7 +38,13 @@ export const alertService = {
 
   /** POST /alerts/:id/analyze — trigger AI analysis */
   analyzeAlert: async (id: string | number): Promise<Analysis> => {
-    const response = await apiClient.post(`/alerts/${id}/analyze`);
+    const response = await apiClient.post(`/alerts/${id}/analyze?mode=evidence_aware`);
+    return response.data;
+  },
+
+  /** GET /alerts/:id/security-context */
+  getSecurityContext: async (id: string | number) => {
+    const response = await apiClient.get(`/alerts/${id}/security-context`);
     return response.data;
   },
 

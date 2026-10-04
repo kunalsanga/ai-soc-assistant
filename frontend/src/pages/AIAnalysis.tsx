@@ -12,26 +12,103 @@ import {
 } from 'lucide-react';
 import { mockAlerts } from '../data/mockAlerts';
 import { getMockAnalysisForAlert } from '../data/mockAnalysis';
-import type { Analysis } from '../types/alert';
+import { alertService } from '../services/api';
+import type { Alert, Analysis } from '../types/alert';
 import PageHeader from '../components/common/PageHeader';
 import SeverityBadge from '../components/common/SeverityBadge';
 import ConfidenceMeter from '../components/common/ConfidenceMeter';
 import MockDataDisclaimer from '../components/common/MockDataDisclaimer';
 
 const AIAnalysis: React.FC = () => {
-  const [selectedAlertId, setSelectedAlertId] = useState<number>(1);
+  const [selectedAlertId, setSelectedAlertId] = useState<number | null>(null);
   const [analystDecision, setAnalystDecision] = useState<string | null>(null);
   const [isReanalyzing, setIsReanalyzing] = useState(false);
+  
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [analysis, setAnalysis] = useState<Analysis | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isUsingMock, setIsUsingMock] = useState(false);
+  const [isTimeout, setIsTimeout] = useState(false);
 
-  const selectedAlert = mockAlerts.find((a) => a.id === selectedAlertId) || mockAlerts[0];
-  const analysis = getMockAnalysisForAlert(selectedAlertId);
+  React.useEffect(() => {
+    alertService.getAlerts().then(data => {
+      if (data && data.length > 0) {
+        setAlerts(data);
+        setSelectedAlertId(data[0].id);
+        setIsUsingMock(false);
+      } else {
+        setAlerts(mockAlerts);
+        setSelectedAlertId(mockAlerts[0].id);
+        setIsUsingMock(true);
+      }
+    }).catch(() => {
+      setAlerts(mockAlerts);
+      setSelectedAlertId(mockAlerts[0].id);
+      setIsUsingMock(true);
+    });
+  }, []);
 
-  const handleReanalyze = () => {
-    setIsReanalyzing(true);
-    setTimeout(() => {
-      setIsReanalyzing(false);
-    }, 600);
+  const loadAnalysis = async (alertId: number) => {
+    setLoading(true);
+    setIsTimeout(false);
+    try {
+      const data = await alertService.getAnalysis(alertId);
+      if (data && data.summary) {
+        setAnalysis(data);
+        setIsUsingMock(false);
+      } else {
+        setAnalysis(getMockAnalysisForAlert(alertId));
+      }
+    } catch (e: any) {
+      if (e.code === 'ECONNABORTED' || e.message?.includes('timeout') || e.response?.status === 504) {
+        setIsTimeout(true);
+        setAnalysis(null);
+      } else {
+        setAnalysis(getMockAnalysisForAlert(alertId));
+      }
+    } finally {
+      setLoading(false);
+    }
   };
+
+  React.useEffect(() => {
+    if (selectedAlertId) {
+      loadAnalysis(selectedAlertId);
+    }
+  }, [selectedAlertId]);
+
+  const selectedAlert = alerts.find((a) => a.id === selectedAlertId) || mockAlerts[0];
+
+  const handleReanalyze = async () => {
+    if (!selectedAlertId) return;
+    setIsReanalyzing(true);
+    setIsTimeout(false);
+    try {
+      const res = await alertService.analyzeAlert(selectedAlertId);
+      if (res && res.summary) {
+        setAnalysis(res);
+        setIsUsingMock(false);
+      } else {
+        setAnalysis(getMockAnalysisForAlert(selectedAlertId));
+      }
+    } catch (e: any) {
+      if (e.code === 'ECONNABORTED' || e.message?.includes('timeout') || e.response?.status === 504 || e.response?.status === 500) {
+        setIsTimeout(true);
+      }
+    } finally {
+      setIsReanalyzing(false);
+    }
+  };
+
+  if (!alerts.length || (!analysis && !isTimeout && loading)) {
+    return (
+      <div className="card p-12 text-center text-zinc-400">
+        Loading analysis context...
+      </div>
+    );
+  }
+
+
 
   return (
     <div className="space-y-6">
@@ -44,22 +121,28 @@ const AIAnalysis: React.FC = () => {
           { label: 'AI Analysis' },
         ]}
         badge={
-          <span className="font-mono text-xs text-cyan-400 bg-cyan-950/80 px-2.5 py-0.5 rounded-full border border-cyan-800/40">
-            Model: {analysis.model_name || 'SecOps-RAG-Mistral-7B'}
-          </span>
+          analysis ? (
+            <span className="font-mono text-xs text-cyan-400 bg-cyan-950/80 px-2.5 py-0.5 rounded-full border border-cyan-800/40">
+              Model: {analysis.model_name || 'SecOps-RAG-Mistral-7B'}
+            </span>
+          ) : isTimeout ? (
+            <span className="font-mono text-xs text-rose-400 bg-rose-950/80 px-2.5 py-0.5 rounded-full border border-rose-800/40">
+              Analysis Unavailable
+            </span>
+          ) : null
         }
         actions={
           <div className="flex items-center gap-2">
             <label className="text-xs text-zinc-400 font-mono">Select Incident:</label>
             <select
-              value={selectedAlertId}
+              value={selectedAlertId || ''}
               onChange={(e) => {
                 setSelectedAlertId(Number(e.target.value));
                 setAnalystDecision(null);
               }}
               className="bg-[#0c101a] border border-zinc-700 rounded-lg px-3 py-1.5 text-xs text-cyan-300 font-mono focus:outline-none focus:border-cyan-500"
             >
-              {mockAlerts.map((alert) => (
+              {alerts.map((alert) => (
                 <option key={alert.id} value={alert.id}>
                   Alert #{alert.id} — {alert.rule_description.slice(0, 36)}...
                 </option>
@@ -69,10 +152,12 @@ const AIAnalysis: React.FC = () => {
         }
       />
 
-      <MockDataDisclaimer
-        label="MOCK / DEVELOPMENT DATA"
-        detail="AI analysis generated using pre-configured incident templates. Live LLM inference and RAG pipeline integration pending."
-      />
+      {isUsingMock && (
+        <MockDataDisclaimer
+          label="MOCK / DEVELOPMENT DATA"
+          detail="AI analysis generated using pre-configured incident templates. Live LLM inference and RAG pipeline integration pending."
+        />
+      )}
 
       {/* Tripartite Division: 1. OBSERVED  2. AI ANALYSIS  3. ANALYST DECISION */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -133,7 +218,28 @@ const AIAnalysis: React.FC = () => {
 
         {/* SECTION 2: AI ANALYSIS (Reasoning & Grounded Synthesis) */}
         <div className="lg:col-span-8 space-y-4">
-          <div className="card p-6 space-y-5 border-cyan-500/30 bg-[#0c101a]">
+          {isTimeout ? (
+            <div className="card p-12 flex flex-col items-center justify-center space-y-4 border-rose-500/30">
+              <AlertTriangle className="w-12 h-12 text-rose-400" />
+              <div className="text-center">
+                <h3 className="text-sm font-semibold text-zinc-200">AI Analysis Unavailable / Timed Out</h3>
+                <p className="text-xs text-zinc-400 mt-1 max-w-md">
+                  The LLM inference engine (Ollama/Qwen3) exceeded the 60-second timeout threshold or failed to respond.
+                </p>
+              </div>
+              <button
+                onClick={handleReanalyze}
+                disabled={isReanalyzing}
+                className="btn btn-secondary text-xs flex items-center gap-1.5 mt-2"
+              >
+                <Sparkles className={`w-3.5 h-3.5 ${isReanalyzing ? 'animate-spin text-cyan-400' : 'text-cyan-400'}`} />
+                <span>{isReanalyzing ? 'Retrying Inference...' : 'Retry Analysis'}</span>
+              </button>
+            </div>
+          ) : !analysis ? (
+            <div className="card p-12 text-center text-zinc-400">Loading analysis...</div>
+          ) : (
+            <div className="card p-6 space-y-5 border-cyan-500/30 bg-[#0c101a]">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-zinc-800 pb-4">
               <div>
                 <div className="flex items-center gap-2">
@@ -316,6 +422,7 @@ const AIAnalysis: React.FC = () => {
               )}
             </div>
           </div>
+          )}
         </div>
       </div>
     </div>
