@@ -30,9 +30,9 @@ class Settings(BaseSettings):
     RETRIEVAL_SCORE_THRESHOLD: float = 0.0
     
     # --- LLM Analysis (Phase 5) --------------------------------------------
-    LLM_PROVIDER: str = "mock"
-    LLM_MODEL: str = "mock-model"
-    LLM_BASE_URL: str = ""
+    LLM_PROVIDER: str = "ollama"
+    LLM_MODEL: str = "qwen3:8b"
+    LLM_BASE_URL: str = "http://localhost:11434"
     LLM_API_KEY: str = ""
     LLM_TEMPERATURE: float = 0.0
     LLM_MAX_TOKENS: int = 2000
