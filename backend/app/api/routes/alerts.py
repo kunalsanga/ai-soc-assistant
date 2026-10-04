@@ -57,46 +57,55 @@ async def get_alert(alert_id: int, db: AsyncSession = Depends(get_db)):
 # Analysis — POST  /{alert_id}/analyze
 # ---------------------------------------------------------------------------
 
+def get_orchestrator() -> "app.services.orchestrator.SOCAnalysisOrchestrator":
+    from app.core.config import settings
+    from app.services.orchestrator import SOCAnalysisOrchestrator
+    from app.wazuh.service import AlertService
+    from app.services.analysis import AnalysisService
+    from app.llm.providers.ollama import OllamaLLMProvider
+    from app.llm.providers.mock import MockLLMProvider
+    from app.rag.retriever import Retriever
+    from app.rag.knowledge.vectorstore.qdrant import QdrantIndex
+    from app.rag.knowledge.embeddings.hashing import HashingEmbeddingProvider
+
+    if settings.LLM_PROVIDER == "ollama":
+        llm_provider = OllamaLLMProvider(base_url=settings.LLM_BASE_URL, model=settings.LLM_MODEL)
+    else:
+        llm_provider = MockLLMProvider(model=settings.LLM_MODEL)
+
+    embedding_provider = HashingEmbeddingProvider(dimension=settings.EMBEDDING_DIMENSION)
+    index = QdrantIndex(
+        url=settings.QDRANT_URL or "http://localhost:6333",
+        collection=settings.QDRANT_COLLECTION,
+        api_key=settings.QDRANT_API_KEY,
+        embedding_provider=embedding_provider
+    )
+    retriever = Retriever(index=index, embedding_provider=embedding_provider)
+
+    return SOCAnalysisOrchestrator(
+        alert_service=AlertService(),
+        analysis_service=AnalysisService(),
+        llm_provider=llm_provider,
+        retriever=retriever
+    )
+
 @router.post("/{alert_id}/analyze", response_model=AnalysisSchema)
 async def analyze_alert(
     alert_id: int,
+    mode: str = "evidence_aware",
     db: AsyncSession = Depends(get_db),
 ):
-    """Create an Analysis for the given alert.
-
-    The AI/LLM pipeline is not yet connected; this endpoint persists a
-    'stub' analysis record so the full data flow (persist → retrieve → display)
-    can be exercised end-to-end before the real LLM is integrated.
-
-    When Kunal's LLM pipeline is ready, replace the stub AnalysisCreate below
-    with the actual output from:
-      normalized = await AlertService(...).get_normalized_alert(db, alert_id)
-      context, queries = alert_service.get_security_context(normalized)
-      evidence  = retriever.retrieve(queries)
-      llm_result = await llm_client.analyze(normalized, evidence)
-    """
-    service = AnalysisService()
+    """Create an Analysis for the given alert using the full AI pipeline."""
+    from app.services.orchestrator import AnalysisMode
+    
     try:
-        analysis = await service.create_analysis(
-            db=db,
-            alert_id=alert_id,
-            data=AnalysisCreate(
-                summary="AI analysis pipeline not yet connected.",
-                severity_assessment="pending",
-                explanation=(
-                    "This is a stub analysis created to validate the "
-                    "end-to-end data flow. It will be replaced by real "
-                    "LLM output in a future phase."
-                ),
-                recommended_investigation=(
-                    "No automated recommendation available yet. "
-                    "Analyst should review the alert manually."
-                ),
-                confidence="0.0",
-                model_name="stub",
-                analysis_type="stub",
-            ),
-        )
+        analysis_mode = AnalysisMode(mode)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Invalid mode: {mode}")
+        
+    orchestrator = get_orchestrator()
+    try:
+        analysis = await orchestrator.analyze_alert(db=db, alert_id=alert_id, mode=analysis_mode)
     except AlertNotFoundError as exc:
         raise HTTPException(status_code=404, detail=exc.message)
 

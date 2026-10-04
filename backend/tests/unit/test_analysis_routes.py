@@ -91,7 +91,7 @@ class TestAnalyzeAlertEndpoint:
         app.dependency_overrides[get_db] = lambda: _db_override(mock_db)
 
         with patch(
-            "app.api.routes.alerts.AnalysisService.create_analysis",
+            "app.services.orchestrator.SOCAnalysisOrchestrator.analyze_alert",
             new_callable=AsyncMock,
             return_value=analysis,
         ):
@@ -117,7 +117,7 @@ class TestAnalyzeAlertEndpoint:
         app.dependency_overrides[get_db] = lambda: _db_override(mock_db)
 
         with patch(
-            "app.api.routes.alerts.AnalysisService.create_analysis",
+            "app.services.orchestrator.SOCAnalysisOrchestrator.analyze_alert",
             new_callable=AsyncMock,
             side_effect=AlertNotFoundError("Alert with id=999 does not exist."),
         ):
@@ -139,7 +139,7 @@ class TestAnalyzeAlertEndpoint:
         app.dependency_overrides[get_db] = lambda: _db_override(mock_db)
 
         with patch(
-            "app.api.routes.alerts.AnalysisService.create_analysis",
+            "app.services.orchestrator.SOCAnalysisOrchestrator.analyze_alert",
             new_callable=AsyncMock,
             return_value=analysis,
         ):
@@ -166,7 +166,7 @@ class TestAnalyzeAlertEndpoint:
         app.dependency_overrides[get_db] = lambda: _db_override(mock_db)
 
         with patch(
-            "app.api.routes.alerts.AnalysisService.create_analysis",
+            "app.services.orchestrator.SOCAnalysisOrchestrator.analyze_alert",
             new_callable=AsyncMock,
             return_value=analysis,
         ):
@@ -191,7 +191,7 @@ class TestAnalyzeAlertEndpoint:
         app.dependency_overrides[get_db] = lambda: _db_override(mock_db)
 
         with patch(
-            "app.api.routes.alerts.AnalysisService.create_analysis",
+            "app.services.orchestrator.SOCAnalysisOrchestrator.analyze_alert",
             new_callable=AsyncMock,
             return_value=analysis,
         ) as mock_create:
@@ -397,7 +397,7 @@ class TestRouteOrderingSanity:
         app.dependency_overrides[get_db] = lambda: _db_override(mock_db)
 
         with patch(
-            "app.api.routes.alerts.AnalysisService.create_analysis",
+            "app.services.orchestrator.SOCAnalysisOrchestrator.analyze_alert",
             new_callable=AsyncMock,
             side_effect=AlertNotFoundError("Alert with id=1 does not exist."),
         ):
