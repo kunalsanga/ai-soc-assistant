@@ -2,8 +2,16 @@
 
 Consumes a RetrievalQuerySet, executes similarity search against Qdrant,
 and produces a ranked EvidenceSet with full provenance.
+
+Hybrid identifier handling: sentence-embedding models cannot reliably match
+bare identifiers (e.g. "T1110") — they are out-of-distribution tokens. For
+MITRE-category queries containing technique-ID patterns, an additional
+payload-filtered vector search restricted to that exact source_identifier is
+merged with the semantic results (dedupe by chunk_id, best score wins).
+Scores remain genuine cosine similarities; nothing is fabricated.
 """
 import logging
+import re
 import uuid
 from typing import Any, Dict, List, Optional, Set
 
@@ -11,9 +19,31 @@ from app.core.config import settings
 from app.rag.knowledge.embeddings.base import EmbeddingProvider
 from app.rag.knowledge.vectorstore.qdrant import QdrantIndex
 from app.rag.schemas import Evidence, EvidenceSet
-from app.security.schemas import RetrievalQuerySet
+from app.security.schemas import RetrievalQuery, RetrievalQuerySet
 
 logger = logging.getLogger(__name__)
+
+_TECHNIQUE_ID_RE = re.compile(r"\bT\d{4}(?:\.\d{3})?\b")
+_CVE_ID_RE = re.compile(r"\bCVE-\d{4}-\d{4,7}\b", re.IGNORECASE)
+
+
+def _exact_identifier_filters(query: RetrievalQuery) -> List[Dict[str, Any]]:
+    """Qdrant filters for exact identifier matches found in the query text.
+
+    Supports MITRE technique ids (mitre-category queries) and CVE ids
+    (nvd-category queries). Bare ids are out-of-distribution for sentence
+    embeddings; the exact-match pass is the honest tool for them.
+    """
+    if query.category not in ("mitre", "nvd"):
+        return []
+    identifiers = list(dict.fromkeys(_TECHNIQUE_ID_RE.findall(query.text)))
+    identifiers += [
+        c.upper() for c in dict.fromkeys(_CVE_ID_RE.findall(query.text))
+    ]
+    return [
+        {"must": [{"key": "source_identifier", "match": {"value": identifier}}]}
+        for identifier in identifiers
+    ]
 
 
 class RetrieverError(Exception):
@@ -64,53 +94,82 @@ class Retriever:
             try:
                 # Embed query text
                 vector = self._provider.embed_text(query.text)
-                
-                # Search vector store
-                results = self._index.search(
-                    query_vector=vector,
-                    top_k=top_k,
-                    score_threshold=score_threshold,
-                )
-                
-                for hit in results:
-                    score = float(hit["score"])
-                    payload = hit["payload"]
-                    chunk_id = payload.get("chunk_id")
-                    
-                    if not chunk_id:
+
+                # Hybrid: semantic search plus (for technique-ID queries) an
+                # exact-identifier filtered search, merged below by chunk_id.
+                identifier_filters = _exact_identifier_filters(query)
+                search_passes = [None] + identifier_filters
+                for payload_filter in search_passes:
+                    anchored = payload_filter is not None
+                    try:
+                        pass_results = self._index.search(
+                            query_vector=vector,
+                            top_k=top_k,
+                            score_threshold=(
+                                score_threshold if payload_filter is None else None
+                            ),
+                            payload_filter=payload_filter,
+                        )
+                    except Exception as pass_error:  # noqa: BLE001
+                        # A failed auxiliary pass must never discard the
+                        # semantic results already gathered for this query.
+                        if payload_filter is None:
+                            raise
+                        logger.warning(
+                            "retriever_identifier_pass_failed query_id=%s error=%s",
+                            query.query_id,
+                            pass_error,
+                        )
                         continue
-                        
-                    if chunk_id in accumulated_chunks:
-                        state = accumulated_chunks[chunk_id]
-                        if query.query_id not in state["query_ids"]:
-                            state["query_ids"].append(query.query_id)
-                        if query.category not in state["categories"]:
-                            state["categories"].append(query.category)
-                        # Retain the strongest match score for the chunk
-                        if score > state["similarity_score"]:
-                            state["similarity_score"] = score
-                    else:
-                        accumulated_chunks[chunk_id] = {
-                            "query_ids": [query.query_id],
-                            "categories": [query.category],
-                            "source": payload.get("source", ""),
-                            "document_id": payload.get("document_id", ""),
-                            "chunk_id": chunk_id,
-                            "source_identifier": payload.get("source_identifier"),
-                            "source_url": payload.get("source_url"),
-                            "title": payload.get("title", ""),
-                            "content": payload.get("content", ""),
-                            "similarity_score": score,
-                            "chunk_index": int(payload.get("chunk_index", 0)),
-                            "metadata": payload.get("metadata", {}),
-                        }
+
+                    for hit in pass_results:
+                        score = float(hit["score"])
+                        payload = hit["payload"]
+                        chunk_id = payload.get("chunk_id")
+
+                        if not chunk_id:
+                            continue
+
+                        if chunk_id in accumulated_chunks:
+                            state = accumulated_chunks[chunk_id]
+                            if query.query_id not in state["query_ids"]:
+                                state["query_ids"].append(query.query_id)
+                            if query.category not in state["categories"]:
+                                state["categories"].append(query.category)
+                            # Retain the strongest match score for the chunk
+                            if score > state["similarity_score"]:
+                                state["similarity_score"] = score
+                        else:
+                            accumulated_chunks[chunk_id] = {
+                                "query_ids": [query.query_id],
+                                "categories": [query.category],
+                                "source": payload.get("source", ""),
+                                "document_id": payload.get("document_id", ""),
+                                "chunk_id": chunk_id,
+                                "source_identifier": payload.get("source_identifier"),
+                                "source_url": payload.get("source_url"),
+                                "title": payload.get("title", ""),
+                                "content": payload.get("content", ""),
+                                "similarity_score": score,
+                                "chunk_index": int(payload.get("chunk_index", 0)),
+                                "metadata": payload.get("metadata", {}),
+                                "identifier_match": anchored,
+                            }
+                        if anchored:
+                            # Boolean fact from the exact-ID pass, never downgraded.
+                            accumulated_chunks[chunk_id]["identifier_match"] = True
                     
             except Exception as e:
                 logger.error(f"retriever_query_failed query_id={query.query_id} error={e}")
                 # We continue to the next query rather than crashing everything
                 
         all_evidence: List[Evidence] = []
+        anchored_evidence: List[Evidence] = []
         for chunk_id, state in accumulated_chunks.items():
+            identifier_match = bool(state.pop("identifier_match", False))
+            metadata = dict(state["metadata"] or {})
+            if identifier_match:
+                metadata["identifier_match"] = True
             evidence = Evidence(
                 evidence_id=str(uuid.uuid4()),
                 query_ids=state["query_ids"],
@@ -124,15 +183,19 @@ class Retriever:
                 content=state["content"],
                 similarity_score=state["similarity_score"],
                 chunk_index=state["chunk_index"],
-                metadata=state["metadata"],
+                metadata=metadata,
             )
-            all_evidence.append(evidence)
+            (anchored_evidence if identifier_match else all_evidence).append(evidence)
 
-        # Deterministic sort: primarily by score (desc), tie-break by chunk_id (asc)
+        # Deterministic sort: identifier-anchored matches first (an exact-ID
+        # match is a boolean relevance fact, stronger than cosine similarity
+        # for identifier queries), then by score (desc), tie-break chunk_id.
+        anchored_evidence.sort(key=lambda x: (-x.similarity_score, x.chunk_id))
         all_evidence.sort(key=lambda x: (-x.similarity_score, x.chunk_id))
-        
+        ranked = anchored_evidence + all_evidence
+
         # Apply final limit
-        final_evidence = all_evidence[:top_k]
+        final_evidence = ranked[:top_k]
 
         logger.info(
             f"retriever_complete alert_id={query_set.alert_id} "

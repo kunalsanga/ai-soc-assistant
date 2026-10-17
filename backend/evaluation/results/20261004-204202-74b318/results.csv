@@ -1,0 +1,2 @@
+case_id,category,mode,db_alert_id,analysis_id,error,wall_latency_seconds,llm_latency_seconds,confidence,severity_band_match,expected_severity_band,technique_precision,technique_recall,technique_f1,valid_evidence_reference_rate,evidence_reference_count,retrieval_first_relevant_rank,predicted_techniques
+case-01-ssh-bruteforce,brute_force,llm_only,4,9,,36.53772750000644,36.51844909999636,MEDIUM,True,high,1.0,0.5,0.6666666666666666,,0,,T1110

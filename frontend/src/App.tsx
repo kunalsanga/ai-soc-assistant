@@ -3,14 +3,10 @@ import Layout from './components/layout/Layout';
 import Dashboard from './pages/Dashboard';
 import Alerts from './pages/Alerts';
 import AlertDetails from './pages/AlertDetails';
-import Investigation from './pages/Investigation';
-import SecurityContext from './pages/SecurityContext';
-import ThreatIntelligence from './pages/ThreatIntelligence';
-import Evidence from './pages/Evidence';
 import AIAnalysis from './pages/AIAnalysis';
-import Architecture from './pages/Architecture';
+import SecurityKnowledge from './pages/SecurityKnowledge';
 import Evaluation from './pages/Evaluation';
-import ProjectStatus from './pages/ProjectStatus';
+import Architecture from './pages/Architecture';
 import Settings from './pages/Settings';
 
 function App() {
@@ -18,28 +14,24 @@ function App() {
     <Router>
       <Layout>
         <Routes>
-          {/* Main Dashboards & Alert Triage */}
+          {/* Core workflow */}
           <Route path="/" element={<Dashboard />} />
           <Route path="/dashboard" element={<Navigate to="/" replace />} />
           <Route path="/alerts" element={<Alerts />} />
           <Route path="/alerts/:id" element={<AlertDetails />} />
-
-          {/* Investigation Workspaces */}
-          <Route path="/investigation" element={<Investigation />} />
-          <Route path="/investigations" element={<Investigation />} />
-          <Route path="/investigations/:id" element={<Investigation />} />
-
-          {/* Intelligence & Evidence */}
-          <Route path="/security-context" element={<SecurityContext />} />
-          <Route path="/threat-intelligence" element={<ThreatIntelligence />} />
-          <Route path="/evidence" element={<Evidence />} />
           <Route path="/ai-analysis" element={<AIAnalysis />} />
-          <Route path="/analysis" element={<AIAnalysis />} />
+          <Route path="/analysis" element={<Navigate to="/ai-analysis" replace />} />
 
-          {/* Platform & Status */}
-          <Route path="/architecture" element={<Architecture />} />
+          {/* Knowledge & research */}
+          <Route path="/knowledge" element={<SecurityKnowledge />} />
           <Route path="/evaluation" element={<Evaluation />} />
-          <Route path="/project-status" element={<ProjectStatus />} />
+
+          {/* Platform */}
+          <Route path="/architecture" element={<Architecture />} />
+          <Route path="/project-status" element={<Navigate to="/architecture" replace />} />
+          <Route path="/evidence" element={<Navigate to="/knowledge" replace />} />
+          <Route path="/security-context" element={<Navigate to="/knowledge" replace />} />
+          <Route path="/threat-intelligence" element={<Navigate to="/knowledge" replace />} />
 
           {/* System */}
           <Route path="/settings" element={<Settings />} />

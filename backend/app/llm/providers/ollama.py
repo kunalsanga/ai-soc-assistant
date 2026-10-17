@@ -1,6 +1,6 @@
 import httpx
 import logging
-from typing import Optional
+from typing import Dict, Optional
 
 from app.core.config import settings
 from app.llm.provider import LLMProvider
@@ -14,12 +14,17 @@ class OllamaLLMProvider(LLMProvider):
         self._base_url = base_url or settings.LLM_BASE_URL or "http://localhost:11434"
         self._model = model or settings.LLM_MODEL or "mock-model"
         self._provider = "ollama"
-        self._client = httpx.Client(timeout=60.0)
+        self._timeout = getattr(settings, "LLM_TIMEOUT", 300.0)
+        # Qwen3-class "thinking" models emit reasoning into message.thinking and
+        # can exhaust num_predict before producing any content. Disable by
+        # default; overridable via LLM_THINK for models that benefit from it.
+        self._think = getattr(settings, "LLM_THINK", False)
+        self._client = httpx.Client(timeout=self._timeout)
 
     def generate(self, request: LLMRequest) -> LLMResponse:
         url = f"{self._base_url.rstrip('/')}/api/chat"
         
-        payload = {
+        payload: Dict[str, object] = {
             "model": self._model,
             "messages": [
                 {"role": "system", "content": request.system_prompt},
@@ -27,10 +32,13 @@ class OllamaLLMProvider(LLMProvider):
             ],
             "options": {
                 "temperature": request.temperature,
-                "num_predict": request.max_tokens
+                "num_predict": request.max_tokens,
+                "num_ctx": 8192
             },
             "stream": False
         }
+        if self._think is not None:
+            payload["think"] = self._think
 
         try:
             response = self._client.post(url, json=payload)
@@ -39,7 +47,7 @@ class OllamaLLMProvider(LLMProvider):
         except httpx.ConnectError as e:
             raise LLMProviderError(f"Failed to connect to Ollama at {self._base_url}") from e
         except httpx.TimeoutException as e:
-            raise LLMProviderError("Ollama request timed out after 60s") from e
+            raise LLMProviderError(f"Ollama request timed out after {self._timeout}s") from e
         except httpx.HTTPStatusError as e:
             raise LLMProviderError(f"Ollama returned HTTP {e.response.status_code}") from e
         except Exception as e:

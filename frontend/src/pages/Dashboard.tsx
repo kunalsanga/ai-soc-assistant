@@ -1,101 +1,143 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ShieldAlert,
   AlertOctagon,
-  SearchCode,
   Cpu,
   FileCheck,
-  Activity,
-  ArrowUpRight,
   Server,
   RefreshCw,
-  SlidersHorizontal,
+  ArrowUpRight,
+  Database,
+  Boxes,
+  TriangleAlert,
 } from 'lucide-react';
+import { dashboardService, alertService } from '../services/api';
+import type { DashboardStats } from '../services/api';
 import type { Alert } from '../types/alert';
-import { alertService } from '../services/api';
-import { mockAlerts } from '../data/mockAlerts';
 import MetricCard from '../components/common/MetricCard';
 import SeverityBadge from '../components/common/SeverityBadge';
-import StatusBadge from '../components/common/StatusBadge';
-import MockDataDisclaimer from '../components/common/MockDataDisclaimer';
 import LoadingSkeleton from '../components/common/LoadingSkeleton';
 
 const Dashboard: React.FC = () => {
-  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [recentAlerts, setRecentAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isUsingMock, setIsUsingMock] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
-  const fetchAlerts = async (showLoadingState = true) => {
-    if (showLoadingState) setLoading(true);
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     try {
-      const data = await alertService.getAlerts();
-      if (Array.isArray(data) && data.length > 0) {
-        setAlerts(data);
-        setIsUsingMock(false);
-      } else {
-        setAlerts(mockAlerts);
-        setIsUsingMock(true);
+      const data = await dashboardService.getStats();
+      setStats(data);
+      // Recent alerts come from the real alert list API.
+      try {
+        const alerts = await alertService.getAlerts();
+        const sorted = [...alerts].sort(
+          (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        );
+        setRecentAlerts(sorted.slice(0, 6));
+      } catch {
+        // Stats-driven dashboard still renders; the alert table shows its own error.
+        setRecentAlerts([]);
       }
-    } catch {
-      // Backend offline or endpoint pending — fallback gracefully to rich mock dataset
-      setAlerts(mockAlerts);
-      setIsUsingMock(true);
+    } catch (e: unknown) {
+      const message =
+        (e as { response?: { data?: { detail?: string } }; message?: string })?.response?.data
+          ?.detail ||
+        (e as { message?: string })?.message ||
+        'Backend is unreachable.';
+      setError(message);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    let mounted = true;
-    alertService
-      .getAlerts()
-      .then((data) => {
-        if (!mounted) return;
-        if (Array.isArray(data) && data.length > 0) {
-          setAlerts(data);
-          setIsUsingMock(false);
-        } else {
-          setAlerts(mockAlerts);
-          setIsUsingMock(true);
-        }
-      })
-      .catch(() => {
-        if (!mounted) return;
-        setAlerts(mockAlerts);
-        setIsUsingMock(true);
-      })
-      .finally(() => {
-        if (mounted) setLoading(false);
-      });
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
+    load();
+  }, [load]);
 
   const handleSync = async () => {
     setSyncing(true);
+    setSyncMessage(null);
     try {
-      await alertService.syncAlerts();
-      await fetchAlerts();
+      const result = await alertService.syncAlerts();
+      const count = result.created ?? result.synced ?? 0;
+      const skipped = result.duplicates_skipped ?? result.skipped ?? 0;
+      const isReal = (result.client_mode || stats?.services?.wazuh?.mode) === 'real';
+      setSyncMessage(
+        `Synced ${count} new alert(s) (${skipped} duplicate(s) skipped) from the ${
+          isReal ? 'configured Wazuh API' : 'mock Wazuh client (development)'
+        }.`
+      );
+      await load();
     } catch {
-      // simulate quick sync feedback
-      setTimeout(() => {
-        setSyncing(false);
-      }, 800);
-      return;
+      setSyncMessage('Alert sync failed — see Settings & Diagnostics for service health.');
+    } finally {
+      setSyncing(false);
     }
-    setSyncing(false);
   };
 
-  // Severity metrics
-  const criticalCount = alerts.filter((a) => a.severity >= 12).length;
-  const highCount = alerts.filter((a) => a.severity >= 8 && a.severity < 12).length;
-  const mediumCount = alerts.filter((a) => a.severity >= 5 && a.severity < 8).length;
-  const lowCount = alerts.filter((a) => a.severity >= 2 && a.severity < 5).length;
-  const infoCount = alerts.filter((a) => a.severity < 2).length;
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <LoadingSkeleton type="card" count={5} />
+      </div>
+    );
+  }
+
+  if (error || !stats) {
+    return (
+      <div className="card p-12 flex flex-col items-center justify-center space-y-4 border-rose-500/30">
+        <TriangleAlert className="w-12 h-12 text-rose-400" />
+        <div className="text-center">
+          <h2 className="text-sm font-semibold text-zinc-200">Dashboard data unavailable</h2>
+          <p className="text-xs text-zinc-400 mt-1 max-w-md font-mono break-all">{error}</p>
+          <p className="text-xs text-zinc-500 mt-2 max-w-md">
+            The backend could not be reached. Start it with
+            <code className="mx-1 text-cyan-400">python -m uvicorn app.main:app</code>
+            from the backend/ directory.
+          </p>
+        </div>
+        <button onClick={load} className="btn btn-secondary text-xs flex items-center gap-1.5">
+          <RefreshCw className="w-3.5 h-3.5" />
+          <span>Retry</span>
+        </button>
+      </div>
+    );
+  }
+
+  const dist = stats.alerts.severity_distribution;
+  const total = stats.alerts.total;
+  const wazuhMode = (stats.services?.wazuh?.mode as string | undefined) ?? null;
+
+  const severityRows = [
+    { label: 'Critical (L12-15)', key: 'critical' as const, bar: 'bg-rose-500', text: 'text-rose-400' },
+    { label: 'High (L8-11)', key: 'high' as const, bar: 'bg-amber-500', text: 'text-amber-400' },
+    { label: 'Medium (L5-7)', key: 'medium' as const, bar: 'bg-yellow-500', text: 'text-yellow-400' },
+    { label: 'Low (L2-4)', key: 'low' as const, bar: 'bg-blue-500', text: 'text-blue-400' },
+    { label: 'Info (L0-1)', key: 'info' as const, bar: 'bg-zinc-600', text: 'text-zinc-400' },
+  ];
+
+  const serviceEntries = [
+    { name: 'FastAPI Backend', data: { status: 'connected' as string }, detail: 'This dashboard is served by it' },
+    { name: 'PostgreSQL', data: { status: String(stats.services?.postgres?.status ?? 'unknown') }, detail: 'Alert/analysis persistence' },
+    { name: 'Qdrant', data: { status: String(stats.services?.qdrant?.status ?? 'unknown') }, detail: 'Knowledge vector index' },
+    { name: 'Ollama', data: { status: String(stats.services?.ollama?.status ?? 'unknown') }, detail: 'Local LLM inference' },
+    {
+      name: 'Wazuh Source',
+      data: {
+        status:
+          wazuhMode === 'real'
+            ? String(stats.services?.wazuh?.status ?? 'real_mode')
+            : 'using_mock_client',
+      },
+      detail: wazuhMode === 'real' ? 'Real API configured' : 'Development mock client',
+    },
+  ];
 
   return (
     <div className="space-y-6">
@@ -107,420 +149,290 @@ const Dashboard: React.FC = () => {
               Security Operations Center
             </h1>
             <span className="hidden sm:inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-mono font-medium bg-cyan-950/80 text-cyan-400 border border-cyan-800/50">
-              SOC Assist v2.4
+              AI SOC Assistant
             </span>
           </div>
           <p className="mt-1 text-sm text-zinc-400">
-            AI-assisted threat monitoring, evidence retrieval, and incident investigation platform.
+            AI-assisted alert triage with LLM analysis and evidence-grounded retrieval.
           </p>
         </div>
 
-        {/* Action Controls */}
         <div className="flex items-center gap-2.5 shrink-0">
           <button
             onClick={handleSync}
             disabled={syncing}
             className="btn btn-secondary flex items-center gap-2 text-xs"
-            title="Poll or synchronize alerts from backend service"
+            title={`Sync alerts from the configured source (${wazuhMode === 'real' ? 'real Wazuh API' : 'mock client'})`}
           >
             <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin text-cyan-400' : ''}`} />
-            <span>{syncing ? 'Synchronizing...' : 'Sync Pipeline'}</span>
+            <span>{syncing ? 'Synchronizing...' : 'Sync Alerts'}</span>
           </button>
-          <Link
-            to="/investigation"
-            className="btn btn-primary flex items-center gap-2 text-xs"
-          >
-            <SearchCode className="w-3.5 h-3.5" />
-            <span>Investigation Workspace</span>
+          <Link to="/ai-analysis" className="btn btn-primary flex items-center gap-2 text-xs">
+            <Cpu className="w-3.5 h-3.5" />
+            <span>Run AI Analysis</span>
           </Link>
         </div>
       </div>
 
-      {/* Mock Telemetry Notice */}
-      {isUsingMock && (
-        <MockDataDisclaimer
-          label="MOCK / DEVELOPMENT DATA"
-          detail="Live Wazuh telemetry endpoint unavailable — Displaying development baseline telemetry and mock security artifacts."
-        />
-      )}
-
-      {/* KPI Cards Grid */}
-      {loading ? (
-        <LoadingSkeleton type="card" count={4} />
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          <MetricCard
-            title="Active Alerts"
-            value={alerts.length}
-            icon={ShieldAlert}
-            change="+4 last hr"
-            changeType="neutral"
-            subtitle="Queue backlog across all agents"
-            isMock={isUsingMock}
-            glowColor="cyan"
-          />
-          <MetricCard
-            title="Critical Alerts"
-            value={criticalCount < 10 ? `0${criticalCount}` : criticalCount}
-            icon={AlertOctagon}
-            change="Immediate action"
-            changeType="negative"
-            subtitle="Severity ≥ 12 / PAM & Exec"
-            isMock={isUsingMock}
-            glowColor="red"
-          />
-          <MetricCard
-            title="Investigations"
-            value="02"
-            icon={SearchCode}
-            change="In Progress"
-            changeType="positive"
-            subtitle="Active analyst triage cases"
-            isMock={true}
-            glowColor="amber"
-          />
-          <MetricCard
-            title="AI Analyses"
-            value="14"
-            icon={Cpu}
-            change="94% Confidence"
-            changeType="positive"
-            subtitle="Grounded RAG syntheses"
-            isMock={true}
-            glowColor="cyan"
-          />
-          <MetricCard
-            title="Evidence Items"
-            value="48"
-            icon={FileCheck}
-            change="NIST / MITRE"
-            changeType="positive"
-            subtitle="Authoritative retrieved docs"
-            isMock={true}
-            glowColor="emerald"
-          />
+      {syncMessage && (
+        <div
+          className={`p-3 rounded-lg border text-xs font-mono ${
+            syncMessage.includes('failed')
+              ? 'bg-rose-950/40 border-rose-800/40 text-rose-300'
+              : 'bg-cyan-950/40 border-cyan-800/40 text-cyan-300'
+          }`}
+        >
+          {syncMessage}
         </div>
       )}
 
-      {/* Middle Analytical Grid: Visualizations & Architecture Health */}
+      {/* KPI Cards — real aggregates from /dashboard/stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <MetricCard
+          title="Alerts in Database"
+          value={total}
+          icon={ShieldAlert}
+          subtitle="Total persisted alerts"
+          glowColor="cyan"
+        />
+        <MetricCard
+          title="Critical Alerts"
+          value={dist.critical}
+          icon={AlertOctagon}
+          changeType="negative"
+          subtitle="Severity ≥ 12"
+          glowColor="red"
+        />
+        <MetricCard
+          title="Analyses Persisted"
+          value={stats.analyses.total}
+          icon={Cpu}
+          subtitle="By LLM pipeline runs"
+          glowColor="cyan"
+        />
+        <MetricCard
+          title="Evidence Records"
+          value={stats.evidence.total}
+          icon={FileCheck}
+          subtitle="Linked to persisted analyses"
+          glowColor="emerald"
+        />
+        <MetricCard
+          title="Knowledge Indexed"
+          value={
+            stats.services?.qdrant?.status === 'connected'
+              ? ((stats.services?.qdrant?.points_count as number | undefined) ?? '—')
+              : '—'
+          }
+          icon={Boxes}
+          subtitle={stats.services?.qdrant?.status === 'connected' ? 'Qdrant points (security_knowledge)' : 'Qdrant unreachable'}
+          glowColor={stats.services?.qdrant?.status === 'connected' ? 'cyan' : 'red'}
+        />
+      </div>
+
+      {/* Severity distribution + recent analyses */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Severity Distribution Visualizer */}
         <div className="card p-5 lg:col-span-1 space-y-4">
           <div className="flex items-center justify-between border-b border-zinc-800/80 pb-3">
-            <div className="flex items-center gap-2">
-              <SlidersHorizontal className="w-4 h-4 text-cyan-400" />
-              <h2 className="text-sm font-semibold text-zinc-200">Severity Distribution</h2>
-            </div>
-            <span className="text-[10px] font-mono text-zinc-400 uppercase">Current Queue</span>
+            <h2 className="text-sm font-semibold text-zinc-200">Severity Distribution</h2>
+            <span className="text-[10px] font-mono text-zinc-400 uppercase">SQL aggregate</span>
           </div>
 
           <div className="space-y-3 pt-1">
-            <div className="space-y-1">
-              <div className="flex justify-between text-xs font-mono">
-                <span className="text-rose-400">Critical (L12-15)</span>
-                <span className="text-zinc-300 font-bold">{criticalCount}</span>
-              </div>
-              <div className="w-full h-2 bg-zinc-800/80 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-rose-500 rounded-full transition-all duration-500"
-                  style={{ width: `${(criticalCount / (alerts.length || 1)) * 100}%` }}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <div className="flex justify-between text-xs font-mono">
-                <span className="text-amber-400">High (L8-11)</span>
-                <span className="text-zinc-300 font-bold">{highCount}</span>
-              </div>
-              <div className="w-full h-2 bg-zinc-800/80 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-amber-500 rounded-full transition-all duration-500"
-                  style={{ width: `${(highCount / (alerts.length || 1)) * 100}%` }}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <div className="flex justify-between text-xs font-mono">
-                <span className="text-yellow-400">Medium (L5-7)</span>
-                <span className="text-zinc-300 font-bold">{mediumCount}</span>
-              </div>
-              <div className="w-full h-2 bg-zinc-800/80 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-yellow-500 rounded-full transition-all duration-500"
-                  style={{ width: `${(mediumCount / (alerts.length || 1)) * 100}%` }}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <div className="flex justify-between text-xs font-mono">
-                <span className="text-blue-400">Low (L2-4)</span>
-                <span className="text-zinc-300 font-bold">{lowCount}</span>
-              </div>
-              <div className="w-full h-2 bg-zinc-800/80 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-blue-500 rounded-full transition-all duration-500"
-                  style={{ width: `${(lowCount / (alerts.length || 1)) * 100}%` }}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <div className="flex justify-between text-xs font-mono">
-                <span className="text-zinc-400">Info (L0-1)</span>
-                <span className="text-zinc-300 font-bold">{infoCount}</span>
-              </div>
-              <div className="w-full h-2 bg-zinc-800/80 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-zinc-600 rounded-full transition-all duration-500"
-                  style={{ width: `${(infoCount / (alerts.length || 1)) * 100}%` }}
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="p-2.5 rounded-lg bg-zinc-900/60 border border-zinc-800 text-[11px] text-zinc-400 flex items-center justify-between">
-            <span>Critical triage priority</span>
-            <span className="font-mono text-rose-400 font-bold">
-              {Math.round((criticalCount / (alerts.length || 1)) * 100)}% of total
-            </span>
-          </div>
-        </div>
-
-        {/* Threat Activity Timeline Bar Chart */}
-        <div className="card p-5 lg:col-span-2 space-y-4">
-          <div className="flex items-center justify-between border-b border-zinc-800/80 pb-3">
-            <div className="flex items-center gap-2">
-              <Activity className="w-4 h-4 text-cyan-400" />
-              <h2 className="text-sm font-semibold text-zinc-200">24-Hour Threat Ingestion Activity</h2>
-            </div>
-            <span className="text-[10px] font-mono text-zinc-400">Hourly Aggregate</span>
-          </div>
-
-          {/* Activity visualization */}
-          <div className="h-44 flex items-end justify-between gap-1.5 pt-6 pb-2 px-2">
-            {[
-              { hour: '00:00', count: 12, critical: 1 },
-              { hour: '03:00', count: 8, critical: 0 },
-              { hour: '06:00', count: 15, critical: 2 },
-              { hour: '09:00', count: 42, critical: 5 },
-              { hour: '12:00', count: 38, critical: 3 },
-              { hour: '15:00', count: 54, critical: 8 },
-              { hour: '18:00', count: 29, critical: 2 },
-              { hour: '21:00', count: 18, critical: 1 },
-            ].map((slot, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center gap-2 group">
-                <div className="relative w-full max-w-[36px] flex flex-col items-center justify-end h-28 bg-zinc-900/50 rounded-t border-b border-zinc-700">
-                  <div
-                    className="w-full bg-cyan-500/80 hover:bg-cyan-400 transition-all rounded-t group-hover:shadow-[0_0_12px_rgba(6,182,212,0.4)]"
-                    style={{ height: `${(slot.count / 60) * 100}%` }}
-                    title={`${slot.hour}: ${slot.count} alerts (${slot.critical} critical)`}
-                  >
-                    {slot.critical > 0 && (
-                      <div
-                        className="w-full bg-rose-500 rounded-t"
-                        style={{ height: `${(slot.critical / slot.count) * 100}%` }}
-                      />
-                    )}
-                  </div>
+            {severityRows.map((row) => (
+              <div key={row.key} className="space-y-1">
+                <div className="flex justify-between text-xs font-mono">
+                  <span className={row.text}>{row.label}</span>
+                  <span className="text-zinc-300 font-bold">{dist[row.key]}</span>
                 </div>
-                <span className="text-[10px] font-mono text-zinc-400 group-hover:text-zinc-200">
-                  {slot.hour}
-                </span>
+                <div className="w-full h-2 bg-zinc-800/80 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full ${row.bar} rounded-full transition-all duration-500`}
+                    style={{ width: `${(dist[row.key] / (total || 1)) * 100}%` }}
+                  />
+                </div>
               </div>
             ))}
           </div>
 
-          {/* Legend and Honest Disclaimer */}
-          <div className="flex flex-wrap items-center justify-between pt-2 border-t border-zinc-800 text-[11px] text-zinc-400 font-mono">
-            <div className="flex items-center gap-4">
-              <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 bg-rose-500 rounded-sm" />
-                Critical Threat Events
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 bg-cyan-500 rounded-sm" />
-                Standard Telemetry
-              </span>
-            </div>
-            <span className="text-zinc-500">MOCK TELEMETRY VOLUME</span>
+          <div className="p-2.5 rounded-lg bg-zinc-900/60 border border-zinc-800 text-[11px] text-zinc-400 flex items-center justify-between">
+            <span>Share of total</span>
+            <span className="font-mono text-rose-400 font-bold">
+              {Math.round((dist.critical / (total || 1)) * 100)}% critical
+            </span>
           </div>
+        </div>
+
+        {/* Recent persisted analyses */}
+        <div className="card p-5 lg:col-span-2 space-y-4">
+          <div className="flex items-center justify-between border-b border-zinc-800/80 pb-3">
+            <h2 className="text-sm font-semibold text-zinc-200">Recent Persisted Analyses</h2>
+            <span className="text-[10px] font-mono text-zinc-400 uppercase">Newest first</span>
+          </div>
+          {stats.analyses.recent.length === 0 ? (
+            <div className="p-6 text-center text-xs text-zinc-500">
+              No analyses have been run yet. Select an alert in AI Analysis and run one.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {stats.analyses.recent.map((analysis) => (
+                <Link
+                  key={analysis.id}
+                  to={`/ai-analysis?alert=${analysis.alert_id}`}
+                  className="block p-3 rounded-lg bg-zinc-900/60 hover:bg-cyan-950/20 border border-zinc-800/90 hover:border-cyan-500/40 transition-colors"
+                >
+                  <div className="flex items-center justify-between gap-3 text-[11px] font-mono text-zinc-500">
+                    <span>
+                      Analysis #{analysis.id} · Alert #{analysis.alert_id}
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <span className="text-cyan-400">{analysis.analysis_type || 'unknown mode'}</span>
+                      <span className={analysis.model_name ? '' : 'text-rose-400'}>
+                        {analysis.model_name || 'model not recorded'}
+                      </span>
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs text-zinc-300 line-clamp-2">{analysis.summary || '(no summary)'}</p>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* System Integration Pipeline Health */}
+      {/* Real service health */}
       <div className="card p-5">
         <div className="flex items-center justify-between border-b border-zinc-800/80 pb-3 mb-4">
           <div className="flex items-center gap-2">
             <Server className="w-4 h-4 text-cyan-400" />
-            <h2 className="text-sm font-semibold text-zinc-200">Platform Pipeline Integrity</h2>
+            <h2 className="text-sm font-semibold text-zinc-200">Component Health</h2>
           </div>
           <Link
             to="/architecture"
             className="text-xs text-cyan-400 hover:text-cyan-300 font-mono flex items-center gap-1"
           >
-            <span>Topology & Pipeline View</span>
+            <span>Architecture & Status</span>
             <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
-          <div className="p-3 rounded-lg bg-zinc-900/60 border border-zinc-800/90 flex flex-col justify-between space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-zinc-300 font-medium">FastAPI Backend</span>
-              <span className="w-2 h-2 rounded-full bg-emerald-400" />
-            </div>
-            <div className="flex items-center justify-between font-mono text-[11px]">
-              <span className="text-zinc-400">Port 8000</span>
-              <span className="text-emerald-400">OPERATIONAL</span>
-            </div>
-          </div>
+          {serviceEntries.map((svc) => {
+            const status = svc.data?.status;
+            const ok =
+              status === 'connected' || status === 'reachable' || status === 'using_mock_client' || status === 'real_mode';
+            const degraded = status === 'using_mock_client';
+            return (
+              <div
+                key={svc.name}
+                className="p-3 rounded-lg bg-zinc-900/60 border border-zinc-800/90 flex flex-col justify-between space-y-2"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-zinc-300 font-medium">{svc.name}</span>
+                  <span
+                    className={`w-2 h-2 rounded-full ${
+                      degraded ? 'bg-amber-400' : ok ? 'bg-emerald-400' : 'bg-rose-400'
+                    }`}
+                  />
+                </div>
+                <div className="flex items-center justify-between font-mono text-[11px]">
+                  <span className="text-zinc-400">{svc.detail}</span>
+                  <span className={degraded ? 'text-amber-400' : ok ? 'text-emerald-400' : 'text-rose-400'}>
+                    {String(status || 'unknown').toUpperCase()}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
 
-          <div className="p-3 rounded-lg bg-zinc-900/60 border border-zinc-800/90 flex flex-col justify-between space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-zinc-300 font-medium">Wazuh Manager</span>
-              <span className="w-2 h-2 rounded-full bg-amber-400" />
-            </div>
-            <div className="flex items-center justify-between font-mono text-[11px]">
-              <span className="text-zinc-400">SIEM Feed</span>
-              <span className="text-amber-400">DEV MOCK</span>
-            </div>
-          </div>
-
-          <div className="p-3 rounded-lg bg-zinc-900/60 border border-zinc-800/90 flex flex-col justify-between space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-zinc-300 font-medium">AI RAG Engine</span>
-              <span className="w-2 h-2 rounded-full bg-cyan-400" />
-            </div>
-            <div className="flex items-center justify-between font-mono text-[11px]">
-              <span className="text-zinc-400">Mistral / Grounded</span>
-              <span className="text-cyan-400">READY</span>
-            </div>
-          </div>
-
-          <div className="p-3 rounded-lg bg-zinc-900/60 border border-zinc-800/90 flex flex-col justify-between space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-zinc-300 font-medium">Qdrant Vector DB</span>
-              <span className="w-2 h-2 rounded-full bg-amber-400" />
-            </div>
-            <div className="flex items-center justify-between font-mono text-[11px]">
-              <span className="text-zinc-400">Embeddings</span>
-              <span className="text-amber-400">INTEG PENDING</span>
-            </div>
-          </div>
-
-          <div className="p-3 rounded-lg bg-zinc-900/60 border border-zinc-800/90 flex flex-col justify-between space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-zinc-300 font-medium">PostgreSQL Storage</span>
-              <span className="w-2 h-2 rounded-full bg-emerald-400" />
-            </div>
-            <div className="flex items-center justify-between font-mono text-[11px]">
-              <span className="text-zinc-400">Alert Persistence</span>
-              <span className="text-emerald-400">CONNECTED</span>
-            </div>
-          </div>
+        <div className="mt-3 flex items-center gap-2 text-[11px] font-mono text-zinc-500">
+          <Database className="w-3.5 h-3.5" />
+          <span>
+            Wazuh mode <span className="text-amber-400">{wazuhMode}</span> —
+            {wazuhMode === 'real'
+              ? ' alerts come from the configured Wazuh API.'
+              : ' alerts come from the bundled mock client and are marked as development data.'}
+          </span>
         </div>
       </div>
 
-      {/* Live Alert Queue Stream Table */}
+      {/* Recent alert queue */}
       <div className="card overflow-hidden">
         <div className="p-4 sm:p-5 border-b border-zinc-800/80 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-[#0a0e17]">
           <div>
             <div className="flex items-center gap-2">
               <ShieldAlert className="w-4 h-4 text-cyan-400" />
-              <h2 className="text-base font-semibold text-zinc-100">Active Alert Ingestion Stream</h2>
+              <h2 className="text-base font-semibold text-zinc-100">Most Recent Alerts</h2>
             </div>
             <p className="text-xs text-zinc-400 mt-0.5">
-              Live threat detections awaiting or undergoing AI triage
+              Latest alerts by timestamp — {wazuhMode === 'real' ? 'source: Wazuh API' : 'source: mock Wazuh client'}
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <Link
-              to="/alerts"
-              className="text-xs text-cyan-400 hover:text-cyan-300 font-medium flex items-center gap-1 transition-colors"
-            >
-              <span>Explore All {alerts.length} Alerts</span>
-              <ArrowUpRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
+          <Link
+            to="/alerts"
+            className="text-xs text-cyan-400 hover:text-cyan-300 font-medium flex items-center gap-1 transition-colors"
+          >
+            <span>Explore all {total} alerts</span>
+            <ArrowUpRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
 
-        {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="border-b border-zinc-800/80 bg-[#080b12] text-zinc-400 font-mono uppercase tracking-wider text-[11px]">
-                <th className="py-3 px-4">Severity</th>
-                <th className="py-3 px-4">Timestamp</th>
-                <th className="py-3 px-4">Rule / Detection</th>
-                <th className="py-3 px-4">Agent / Host</th>
-                <th className="py-3 px-4">Source IP</th>
-                <th className="py-3 px-4">User</th>
-                <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-800/60 font-sans">
-              {alerts.slice(0, 6).map((alert) => (
-                <tr
-                  key={alert.id}
-                  className="hover:bg-cyan-950/20 transition-colors group cursor-pointer"
-                >
-                  <td className="py-3.5 px-4 whitespace-nowrap">
-                    <SeverityBadge severity={alert.severity} showLevel />
-                  </td>
-                  <td className="py-3.5 px-4 font-mono text-zinc-400 whitespace-nowrap text-[11px]">
-                    {new Date(alert.timestamp).toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      second: '2-digit',
-                    })}
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <div className="font-medium text-zinc-200 group-hover:text-cyan-300 transition-colors line-clamp-1">
-                      {alert.rule_description}
-                    </div>
-                    <div className="font-mono text-[10px] text-zinc-400 mt-0.5">
-                      RULE-{alert.rule_id}
-                    </div>
-                  </td>
-                  <td className="py-3.5 px-4 font-mono text-zinc-300 whitespace-nowrap">
-                    {alert.agent_name}
-                  </td>
-                  <td className="py-3.5 px-4 font-mono text-zinc-300 whitespace-nowrap">
-                    {alert.source_ip || (
-                      <span className="text-zinc-500 font-normal italic">local</span>
-                    )}
-                  </td>
-                  <td className="py-3.5 px-4 font-mono text-zinc-300 whitespace-nowrap">
-                    {alert.username || <span className="text-zinc-500 italic">-</span>}
-                  </td>
-                  <td className="py-3.5 px-4 whitespace-nowrap">
-                    <StatusBadge status={alert.status} />
-                  </td>
-                  <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                    <div className="flex items-center justify-end gap-2">
+        {recentAlerts.length === 0 ? (
+          <div className="p-8 text-center text-xs text-zinc-500">
+            No alerts in the database. Use "Sync Alerts" above, then refresh.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-zinc-800/80 bg-[#080b12] text-zinc-400 font-mono uppercase tracking-wider text-[11px]">
+                  <th className="py-3 px-4">Severity</th>
+                  <th className="py-3 px-4">Timestamp</th>
+                  <th className="py-3 px-4">Rule / Detection</th>
+                  <th className="py-3 px-4">Agent / Host</th>
+                  <th className="py-3 px-4">Source IP</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-800/60 font-sans">
+                {recentAlerts.map((alert) => (
+                  <tr key={alert.id} className="hover:bg-cyan-950/20 transition-colors group cursor-pointer">
+                    <td className="py-3.5 px-4 whitespace-nowrap">
+                      <SeverityBadge severity={alert.severity} showLevel />
+                    </td>
+                    <td className="py-3.5 px-4 font-mono text-zinc-400 whitespace-nowrap text-[11px]">
+                      {new Date(alert.timestamp).toLocaleString([], {
+                        month: 'short',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="font-medium text-zinc-200 group-hover:text-cyan-300 transition-colors line-clamp-1">
+                        {alert.rule_description}
+                      </div>
+                      <div className="font-mono text-[10px] text-zinc-400 mt-0.5">RULE-{alert.rule_id}</div>
+                    </td>
+                    <td className="py-3.5 px-4 font-mono text-zinc-300 whitespace-nowrap">{alert.agent_name}</td>
+                    <td className="py-3.5 px-4 font-mono text-zinc-300 whitespace-nowrap">
+                      {alert.source_ip || <span className="text-zinc-500 font-normal italic">local</span>}
+                    </td>
+                    <td className="py-3.5 px-4 text-right whitespace-nowrap">
                       <Link
                         to={`/alerts/${alert.id}`}
                         className="px-2.5 py-1 rounded bg-zinc-800/80 hover:bg-cyan-950 hover:text-cyan-300 border border-zinc-700/60 hover:border-cyan-500/40 text-[11px] font-medium text-zinc-300 transition-colors"
                       >
                         Inspect
                       </Link>
-                      <Link
-                        to="/investigation"
-                        className="px-2.5 py-1 rounded bg-cyan-950/80 hover:bg-cyan-900 text-cyan-300 border border-cyan-800/50 text-[11px] font-medium transition-colors"
-                      >
-                        Triage
-                      </Link>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

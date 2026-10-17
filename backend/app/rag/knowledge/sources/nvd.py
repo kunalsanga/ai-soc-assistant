@@ -1,32 +1,36 @@
-"""NVD CVE adapter (NVD CVE API 2.0 JSON format).
+"""NVD/CVE adapter (NVD API 2.0 JSON format).
 
-Input: records shaped like the official NVD CVE API 2.0 response
-(https://services.nvd.nist.gov/rest/json/cves/2.0). Each record:
+Input: JSON saved from https://services.nvd.nist.gov/rest/json/cves/2.0
+(the fetch script scripts/fetch_nvd.py keeps a small, reproducible corpus
+in KNOWLEDGE_DATA_DIR). Each CVE record looks like:
 
     {
-      "cve": {
-        "id": "CVE-2024-12345",
-        "descriptions": [{"lang": "en", "value": "..."}],
-        "metrics": {"cvssMetricV31": [{"cvssData": {"baseScore": 9.8,
-                     "baseSeverity": "CRITICAL", "vectorString": "..."},
-                     "source": "...", "type": "Primary"}]},
-        "references": [{"url": "https://..."}],
-        "published": "2024-01-01T00:00:00.000",
-        "lastModified": "2024-02-01T00:00:00.000",
-        "containers": {"cna": {"affected": [{"product": "...", "vendor": "..."}]}}
-      }
+      "vulnerabilities": [
+        {
+          "cve": {
+            "id": "CVE-2024-6387",
+            "sourceIdentifier": "...",
+            "published": "2024-07-01T...",
+            "lastModified": "...",
+            "vulnStatus": "Analyzed",
+            "descriptions": [{"lang": "en", "value": "..."}],
+            "metrics": {"cvssMetricV31": [{"cvssData": {"baseScore": 8.1, ...}}]},
+            "references": [{"url": "...", "source": "..."}],
+            "weaknesses": [...]
+          }
+        }
+      ]
     }
 
-Verified against NVD developer docs; every optional field is handled
-gracefully and nothing is invented (spec Step 5). Records are accepted
-either wrapped in {"cve": ...} or as the bare cve object.
+Field access is defensive: anything missing is simply absent from the
+document (never invented). REJECTED/unknown-status CVEs are skipped.
 """
 from __future__ import annotations
 
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from app.rag.knowledge.schemas import KnowledgeDocument
 from app.rag.knowledge.sources.base import KnowledgeSource, KnowledgeSourceError
@@ -34,188 +38,169 @@ from app.rag.knowledge.sources.base import KnowledgeSource, KnowledgeSourceError
 logger = logging.getLogger(__name__)
 
 _DOCUMENT_TYPE = "cve_record"
+_ACCEPTED_STATUSES = {"analyzed", "modified"}
+# IDs of CVEs that no longer carry actionable content.
+_SKIP_STATUSES = {"rejected", "awaiting_analysis"}
 
 
 def _english_description(cve: Dict[str, Any]) -> str:
-    descriptions = cve.get("descriptions")
-    if not isinstance(descriptions, list):
-        return ""
-    for entry in descriptions:
-        if isinstance(entry, dict) and entry.get("lang") == "en" and isinstance(entry.get("value"), str):
-            return entry["value"]
-    # Fall back to the first string description if no English entry exists.
-    for entry in descriptions:
-        if isinstance(entry, dict) and isinstance(entry.get("value"), str):
-            return entry["value"]
+    for desc in cve.get("descriptions", []) or []:
+        if isinstance(desc, dict) and desc.get("lang") == "en" and desc.get("value"):
+            return str(desc["value"])
     return ""
 
 
-def _primary_cvss(cve: Dict[str, Any]) -> Tuple[Optional[float], Optional[str], Optional[str]]:
-    """Extract (base_score, severity, vector_string) from the primary metric.
+def _cvss(cve: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Highest-quality CVSS score for the record (Primary preferred over Secondary).
 
-    Preference order: cvssMetricV31 → V30 → V2. Only the metric entry marked
-    type == 'Primary' (or the first entry as fallback) is used. Missing data
-    yields None values — never defaults that look real.
+    Returns flat keys: base_score / base_severity / vector / version.
     """
-    metrics = cve.get("metrics")
-    if not isinstance(metrics, dict):
-        return None, None, None
-
-    for key in ("cvssMetricV31", "cvssMetricV30", "cvssMetricV2"):
-        entries = metrics.get(key)
-        if not isinstance(entries, list) or not entries:
-            continue
-        primary = None
+    metrics = cve.get("metrics", {}) or {}
+    for key in ("cvssMetricV40", "cvssMetricV31", "cvssMetricV30", "cvssMetricV2"):
+        entries = [e for e in (metrics.get(key) or []) if isinstance(e, dict)]
+        # Official NVD records mark the authoritative score "Primary";
+        # prefer it when both Primary and Secondary scores are present.
+        entries.sort(key=lambda e: e.get("type") != "Primary")
         for entry in entries:
-            if isinstance(entry, dict) and entry.get("type") == "Primary":
-                primary = entry
-                break
-        entry = primary if primary is not None else entries[0]
-        if not isinstance(entry, dict):
-            continue
-        cvss_data = entry.get("cvssData")
-        if not isinstance(cvss_data, dict):
-            continue
-        score = cvss_data.get("baseScore")
-        score = float(score) if isinstance(score, (int, float)) else None
-        severity = cvss_data.get("baseSeverity") or entry.get("baseSeverity")
-        severity = str(severity).upper() if isinstance(severity, str) else None
-        vector = cvss_data.get("vectorString")
-        vector = str(vector) if isinstance(vector, str) else None
-        return score, severity, vector
-    return None, None, None
+            data = entry.get("cvssData") or {}
+            if isinstance(data.get("baseScore"), (int, float)):
+                return {
+                    "base_score": data.get("baseScore"),
+                    "base_severity": data.get("baseSeverity"),
+                    "vector": data.get("vectorString"),
+                    "version": data.get("version") or key.replace("cvssMetric", "v"),
+                }
+    return None
 
 
 def _affected_products(cve: Dict[str, Any]) -> List[Dict[str, Any]]:
-    """Collect affected product entries from containers.cna / adp."""
-    containers = cve.get("containers")
-    if not isinstance(containers, dict):
-        return []
+    """Affected products from the CNA container, when published."""
+    containers = cve.get("containers", {}) or {}
+    cna = containers.get("cna", {}) or {}
     products: List[Dict[str, Any]] = []
-    for container_key in ("cna", "adp"):
-        container = containers.get(container_key)
-        if not isinstance(container, dict):
+    for entry in cna.get("affected", []) or []:
+        if not isinstance(entry, dict):
             continue
-        affected = container.get("affected")
-        if not isinstance(affected, list):
-            continue
-        for entry in affected:
-            if isinstance(entry, dict):
-                products.append(
-                    {
-                        "vendor": entry.get("vendor") if isinstance(entry.get("vendor"), str) else None,
-                        "product": entry.get("product") if isinstance(entry.get("product"), str) else None,
-                        "versions": entry.get("versions")
-                        if isinstance(entry.get("versions"), list)
-                        else [],
-                    }
-                )
+        item = {
+            key: entry.get(key)
+            for key in ("vendor", "product", "platform", "packageSlug")
+            if entry.get(key)
+        }
+        if item:
+            products.append(item)
     return products
 
 
 class NvdCveSource(KnowledgeSource):
-    """Loads CVE records from a local NVD JSON export (API 2.0 shape).
+    """Loads CVE records from a local NVD API 2.0 JSON export."""
 
-    The file is expected at KNOWLEDGE_DATA_DIR/nvd_cves.json — produced
-    out-of-band (e.g. via the NVD API) and kept out of Git. Accepts either
-    the full API response body or a bare list of vulnerability records.
-    """
-
-    def __init__(self, data_path: Path) -> None:
-        self._data_path = Path(data_path)
+    def __init__(self, json_path: Path) -> None:
+        self._path = Path(json_path)
 
     @property
     def name(self) -> str:
         return "nvd_cve"
 
     def load_raw(self) -> List[Dict[str, Any]]:
-        if not self._data_path.exists():
+        if not self._path.exists():
             raise KnowledgeSourceError(
-                f"NVD data file not found at {self._data_path}. "
-                "Export from the NVD CVE API 2.0 into KNOWLEDGE_DATA_DIR (kept out of Git)."
+                f"NVD export not found at {self._path}. Run scripts/fetch_nvd.py "
+                "to build a small reproducible corpus first."
             )
         try:
-            with self._data_path.open("r", encoding="utf-8") as fh:
-                payload = json.load(fh)
+            payload = json.loads(self._path.read_text(encoding="utf-8"))
         except (OSError, ValueError) as exc:
-            raise KnowledgeSourceError(f"Cannot read NVD data file: {exc}") from exc
+            raise KnowledgeSourceError(f"Cannot read NVD export: {exc}") from exc
 
-        vulnerabilities: List[Any] = []
-        if isinstance(payload, dict) and isinstance(payload.get("vulnerabilities"), list):
-            vulnerabilities = payload["vulnerabilities"]
-        elif isinstance(payload, list):
+        if isinstance(payload, list):
+            # Bare list export: items are records (wrapped or bare CVE dicts).
             vulnerabilities = payload
+        elif isinstance(payload, dict):
+            vulnerabilities = payload.get("vulnerabilities")
         else:
-            raise KnowledgeSourceError(
-                "NVD data file is neither an API-2.0 response nor a record list"
-            )
-
-        records: List[Dict[str, Any]] = []
+            vulnerabilities = None
+        if not isinstance(vulnerabilities, list):
+            raise KnowledgeSourceError("NVD export has no 'vulnerabilities' list")
+        cves: List[Dict[str, Any]] = []
         for item in vulnerabilities:
-            if isinstance(item, dict) and isinstance(item.get("cve"), dict):
-                records.append(item["cve"])
-            elif isinstance(item, dict):
-                records.append(item)
-        logger.info("nvd_file_loaded path=%s records=%d", self._data_path, len(records))
-        return records
+            if not isinstance(item, dict):
+                continue
+            inner = item.get("cve")
+            if isinstance(inner, dict):
+                cves.append(inner)
+            elif str(item.get("id", "")).startswith("CVE-"):
+                cves.append(item)  # bare record placed directly in the list
+        logger.info("nvd_export_loaded path=%s cves=%d", self._path, len(cves))
+        return cves
 
     def normalize_record(self, record: Dict[str, Any]) -> KnowledgeDocument:
-        if not isinstance(record, dict):
-            raise ValueError("record is not a dict")
+        if not isinstance(record, dict) or not str(record.get("id", "")).startswith("CVE-"):
+            raise ValueError("record is not an NVD CVE object")
 
-        cve_id = record.get("id")
-        if not isinstance(cve_id, str) or not cve_id.strip():
-            raise ValueError("CVE record missing 'id'")
-        cve_id = cve_id.strip().upper()
-        if not cve_id.startswith("CVE-"):
-            raise ValueError(f"invalid CVE id format: {cve_id}")
+        cve_id = str(record["id"]).strip().upper()
 
+        status = str(record.get("vulnStatus", "")).strip().lower()
+        if status in _SKIP_STATUSES:
+            raise ValueError(f"{cve_id} skipped (vulnStatus={status or 'unknown'})")
+
+        # Descriptions are optional in the export; anything absent is simply
+        # not composed into the content — nothing is invented.
         description = _english_description(record)
 
-        base_score, severity, vector = _primary_cvss(record)
-        references = [
-            {"url": r.get("url"), "source": r.get("source"), "tags": r.get("tags")}
-            for r in record.get("references", [])
-            if isinstance(r, dict) and isinstance(r.get("url"), str)
-        ] if isinstance(record.get("references"), list) else []
+        cvss = _cvss(record)
+        base_score = cvss.get("base_score") if cvss else None
+        base_severity = cvss.get("base_severity") if cvss else None
+        vector = cvss.get("vector") if cvss else None
 
+        references = [
+            {"url": r.get("url"), "source": r.get("source"), "tags": r.get("tags") or []}
+            for r in record.get("references", []) or []
+            if isinstance(r, dict) and r.get("url")
+        ]
+        cwe_ids = [
+            w["cwe"]["id"]
+            for w in record.get("weaknesses", []) or []
+            if isinstance(w, dict) and isinstance(w.get("cwe"), dict) and w["cwe"].get("id")
+        ]
         affected_products = _affected_products(record)
+
+        # Contextual composition: strictly from fields present in the record.
+        content = f"{cve_id} vulnerability record."
+        if base_score is not None:
+            content += f" CVSS {base_score} {base_severity} ({vector})."
+        if description:
+            content += f" {description}"
+
+        if base_severity:
+            title = f"{cve_id} ({base_severity})"
+        else:
+            title = f"{cve_id} (Unknown severity)"
+
         metadata: Dict[str, Any] = {
             "cve_id": cve_id,
             "cvss_base_score": base_score,
-            "cvss_severity": severity,
+            "cvss_severity": base_severity,
             "cvss_vector": vector,
             "affected_products": affected_products,
-            "references": references,
-            "vuln_status": record.get("vulnStatus")
-            if isinstance(record.get("vulnStatus"), str)
-            else None,
+            "cwe_ids": sorted(set(cwe_ids)),
+            "source_identifier_nvd": record.get("sourceIdentifier"),
+            "vuln_status": record.get("vulnStatus"),
+            "references": references[:10],
         }
 
-        # Records without an English description stay usable: compose content
-        # strictly from fields present in the record (no invention).
-        if not description:
-            parts = [f"{cve_id} vulnerability record."]
-            if severity:
-                parts.append(f"Severity: {severity}.")
-            if base_score is not None:
-                parts.append(f"CVSS base score: {base_score}.")
-            product_names = [p["product"] for p in affected_products if p.get("product")]
-            if product_names:
-                parts.append("Affected products: " + ", ".join(product_names) + ".")
-            description = " ".join(parts)
+        published = record.get("published")
+        modified = record.get("lastModified")
 
-        title = f"{cve_id}: {severity or 'Unknown severity'}"
         return KnowledgeDocument(
             document_id=f"{self.name}:{_DOCUMENT_TYPE}:{cve_id}",
             source=self.name,
             document_type=_DOCUMENT_TYPE,
             title=title,
-            content=description,
+            content=content,
             source_url=f"https://nvd.nist.gov/vuln/detail/{cve_id}",
             source_identifier=cve_id,
             metadata=metadata,
-            version=record.get("vulnStatus") if isinstance(record.get("vulnStatus"), str) else None,
-            created=record.get("published") if isinstance(record.get("published"), str) else None,
-            updated=record.get("lastModified") if isinstance(record.get("lastModified"), str) else None,
+            version=None,
+            created=published if isinstance(published, str) else None,
+            updated=modified if isinstance(modified, str) else None,
         )

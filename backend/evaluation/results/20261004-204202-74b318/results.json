@@ -1,0 +1,82 @@
+{
+  "meta": {
+    "run_id": "20261004-204202-74b318",
+    "timestamp_utc": "2026-10-04T20:42:39.351483+00:00",
+    "dataset_version": "v1",
+    "num_cases": 1,
+    "llm_model": "qwen3:8b",
+    "llm_base_url": "http://localhost:11434",
+    "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+    "qdrant_collection": "security_knowledge",
+    "modes": [
+      "llm_only"
+    ],
+    "temperature": 0.0
+  },
+  "aggregate": {
+    "llm_only": {
+      "cases": 1,
+      "errors": 0,
+      "wall_latency_seconds": {
+        "mean": 36.53772750000644,
+        "median": 36.53772750000644,
+        "stdev": null
+      },
+      "llm_latency_seconds": {
+        "mean": 36.51844909999636,
+        "median": 36.51844909999636,
+        "stdev": null
+      },
+      "severity_band_accuracy": 1.0,
+      "severity_parseable_count": 1,
+      "technique_precision": 1.0,
+      "technique_recall": 0.5,
+      "technique_f1": 0.6666666666666666,
+      "valid_evidence_reference_rate": null,
+      "grounding_coverage": 0,
+      "retrieval_recall@5": 0.0,
+      "retrieval_recall@1": 0.0,
+      "retrieval_mrr": 0.0
+    }
+  },
+  "records": [
+    {
+      "case_id": "case-01-ssh-bruteforce",
+      "category": "brute_force",
+      "mode": "llm_only",
+      "db_alert_id": 4,
+      "error": null,
+      "wall_latency_seconds": 36.53772750000644,
+      "llm_latency_seconds": 36.51844909999636,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 1125,
+        "completion": 312
+      },
+      "analysis_id": 9,
+      "summary": "A failed authentication attempt was detected using a non-existent user 'admin-test' from IP 198.51.100.77 on the Ubuntu host linux-lab.",
+      "confidence": "MEDIUM",
+      "predicted_techniques": [
+        "T1110"
+      ],
+      "technique_prf1": {
+        "precision": 1.0,
+        "recall": 0.5,
+        "f1": 0.6666666666666666,
+        "predicted_count": 1
+      },
+      "severity_band_match": true,
+      "expected_severity_band": "high",
+      "observed_indicators": [
+        "198.51.100.77",
+        "admin-test"
+      ],
+      "investigation_step_count": 3,
+      "evidence_reference_count": 0,
+      "valid_evidence_reference_rate": null,
+      "retrieved": [],
+      "retrieval_first_relevant_rank": null,
+      "limitations": "No additional evidence is available to confirm the intent of the attack or the legitimacy of the user or IP address."
+    }
+  ]
+}
