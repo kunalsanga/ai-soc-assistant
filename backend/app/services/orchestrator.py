@@ -1,5 +1,7 @@
 import json
 import logging
+import time
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional, List, Tuple
 
@@ -23,6 +25,20 @@ class AnalysisMode(str, Enum):
     LLM_ONLY = "llm_only"
     STANDARD_RAG = "standard_rag"
     EVIDENCE_AWARE = "evidence_aware"
+
+
+@dataclass
+class PipelineArtifacts:
+    """Intermediate artifacts captured for research evaluation.
+
+    Purely additive observation: does not alter pipeline behavior.
+    """
+    mode: str
+    evidence_set: Optional[EvidenceSet] = None
+    parsed_analysis: Optional[SOCAnalysis] = None
+    llm_latency_seconds: float = 0.0
+    llm_model: str = ""
+    llm_tokens: dict = field(default_factory=dict)
 
 class SOCAnalysisOrchestrator:
     """Orchestrates the entire SOC analysis pipeline.
@@ -50,6 +66,23 @@ class SOCAnalysisOrchestrator:
         mode: AnalysisMode = AnalysisMode.EVIDENCE_AWARE,
     ) -> "app.db.models.alert.Analysis":
         """Run the end-to-end analysis pipeline and persist the result."""
+        analysis, _ = await self.analyze_alert_with_artifacts(db, alert_id, mode)
+        return analysis
+
+    async def analyze_alert_with_artifacts(
+        self,
+        db: AsyncSession,
+        alert_id: int,
+        mode: AnalysisMode = AnalysisMode.EVIDENCE_AWARE,
+    ) -> tuple["app.db.models.alert.Analysis", "PipelineArtifacts"]:
+        """Run the pipeline and additionally return evaluation artifacts.
+
+        Additive hook for the research evaluation: identical behavior to
+        analyze_alert, plus the intermediate EvidenceSet, the pre-validation
+        SOCAnalysis, the raw LLM response metadata, and timings. Nothing here
+        changes the persisted result of analyze_alert.
+        """
+        artifacts = PipelineArtifacts(mode=mode.value)
         
         # 1. Fetch normalized alert
         alert = await self._alert_service.get_normalized_alert(db, alert_id)
@@ -58,7 +91,6 @@ class SOCAnalysisOrchestrator:
 
         # 2. Extract context / Queries
         context, structured_queries = self._alert_service.get_security_context(alert)
-        
         # 3. Retrieve Evidence based on mode
         evidence_set = None
         if mode == AnalysisMode.STANDARD_RAG and self._retriever:
@@ -70,15 +102,16 @@ class SOCAnalysisOrchestrator:
             )
             naive_query_set = RetrievalQuerySet(
                 alert_id=str(alert_id),
-                mitre=[],
-                nvd=[],
-                general=[naive_query]
+                mitre_queries=[],
+                nvd_queries=[],
+                security_queries=[naive_query]
             )
             evidence_set = self._retriever.retrieve_query_set(naive_query_set)
             
         elif mode == AnalysisMode.EVIDENCE_AWARE and self._retriever:
             # Evidence-Aware RAG: Full structured context queries
             evidence_set = self._retriever.retrieve_query_set(structured_queries)
+        artifacts.evidence_set = evidence_set
 
         # 4. Construct LLM prompt
         system_prompt, user_prompt = self._build_prompts(alert, evidence_set)
@@ -91,11 +124,17 @@ class SOCAnalysisOrchestrator:
         )
         
         # 5. Execute LLM
+        llm_started = time.perf_counter()
         response = self._llm_provider.generate(request)
-        
+        artifacts.llm_latency_seconds = time.perf_counter() - llm_started
+        artifacts.llm_model = response.model
+        artifacts.llm_tokens = {
+            "prompt": response.usage.prompt_tokens,
+            "completion": response.usage.completion_tokens,
+        }
         # 6. Parse and validate JSON
         soc_analysis = self._parse_llm_response(response.content)
-        
+        artifacts.parsed_analysis = soc_analysis
         # 7. Validate Evidence Grounding
         validated_analysis, evidence_creates = self._validate_evidence(soc_analysis, evidence_set)
         
@@ -116,8 +155,8 @@ class SOCAnalysisOrchestrator:
         )
         
         analysis = await self._analysis_service.create_analysis(db, alert_id, analysis_create)
-        
-        return analysis
+
+        return analysis, artifacts
 
     def _build_prompts(self, alert: NormalizedSecurityAlert, evidence_set: Optional[EvidenceSet]) -> Tuple[str, str]:
         system_prompt = (

@@ -74,7 +74,7 @@ class MockWazuhClient(BaseWazuhClient):
     so normalization and preprocessing are exercised end-to-end offline.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, include_evaluation_cases: bool = False) -> None:
         self._alerts: List[Dict[str, Any]] = [
             {
                 "id": "mock-001",
@@ -131,6 +131,28 @@ class MockWazuhClient(BaseWazuhClient):
                 "location": "/var/log/nginx/access.log",
             },
         ]
+
+        # Optional benchmark cases loading
+        if include_evaluation_cases:
+            try:
+                from pathlib import Path
+                import json
+
+                dataset_path = (
+                    Path(__file__).resolve().parent.parent.parent
+                    / "evaluation"
+                    / "dataset_v1.json"
+                )
+                if dataset_path.exists():
+                    with open(dataset_path, "r", encoding="utf-8") as f:
+                        dataset_data = json.load(f)
+                        for case in dataset_data.get("cases", []):
+                            eval_alert = case.get("alert")
+                            if eval_alert and eval_alert.get("id"):
+                                if not any(a.get("id") == eval_alert.get("id") for a in self._alerts):
+                                    self._alerts.append(eval_alert)
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("Could not load evaluation cases into mock client: %s", exc)
 
     async def get_alerts(
         self, limit: int = 10, offset: int = 0

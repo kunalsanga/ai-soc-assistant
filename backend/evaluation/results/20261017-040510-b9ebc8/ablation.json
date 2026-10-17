@@ -1,0 +1,266 @@
+{
+  "semantic_anchored": {
+    "recall@5": 1.0,
+    "recall@1": 1.0,
+    "mrr": 1.0,
+    "avg_latency_ms": 1562.594725000963,
+    "per_case": {
+      "case-01-ssh-bruteforce": {
+        "rank": 1,
+        "top5": [
+          "T1110",
+          "T1110",
+          "T1065",
+          "T1590",
+          "T1008"
+        ]
+      },
+      "case-02-password-spray": {
+        "rank": 1,
+        "top5": [
+          "T1110.003",
+          "T1110.003",
+          "T1110",
+          "T1065",
+          "T1110.001"
+        ]
+      },
+      "case-03-webshell-upload": {
+        "rank": 1,
+        "top5": [
+          "T1190",
+          "T1190",
+          "T1505.003",
+          "T1190",
+          "T1590"
+        ]
+      },
+      "case-04-scheduled-task-persistence": {
+        "rank": 1,
+        "top5": [
+          "T1053.005",
+          "T1053.005",
+          "T1053.005",
+          "T1065",
+          "T1591.001"
+        ]
+      },
+      "case-05-sudoers-modification": {
+        "rank": 1,
+        "top5": [
+          "T1548.003",
+          "T1548.003",
+          "T1548.003",
+          "T1548.003",
+          "T1548.003"
+        ]
+      },
+      "case-06-encoded-powershell": {
+        "rank": 1,
+        "top5": [
+          "T1059.001",
+          "T1027",
+          "T1059.001",
+          "T1027",
+          "T1065"
+        ]
+      },
+      "case-07-port-scan": {
+        "rank": 1,
+        "top5": [
+          "T1046",
+          "T1065",
+          "T1041",
+          "T1591.001",
+          "T1590"
+        ]
+      },
+      "case-08-shadow-copy-deletion": {
+        "rank": 1,
+        "top5": [
+          "T1490",
+          "T1490",
+          "T1490",
+          "T1486",
+          "T1486"
+        ]
+      }
+    }
+  },
+  "semantic_no_anchoring": {
+    "recall@5": 0.625,
+    "recall@1": 0.375,
+    "mrr": 0.4625,
+    "avg_latency_ms": 338.11566250005853,
+    "per_case": {
+      "case-01-ssh-bruteforce": {
+        "rank": null,
+        "top5": [
+          "T1065",
+          "T1590",
+          "T1008",
+          "T1030",
+          "T1190"
+        ]
+      },
+      "case-02-password-spray": {
+        "rank": 1,
+        "top5": [
+          "T1110.003",
+          "T1110",
+          "T1065",
+          "T1110.001",
+          "T1201"
+        ]
+      },
+      "case-03-webshell-upload": {
+        "rank": 5,
+        "top5": [
+          "T1590",
+          "T1065",
+          "T1591.001",
+          "T1008",
+          "T1190"
+        ]
+      },
+      "case-04-scheduled-task-persistence": {
+        "rank": 1,
+        "top5": [
+          "T1053.005",
+          "T1053.005",
+          "T1053.005",
+          "T1065",
+          "T1591.001"
+        ]
+      },
+      "case-05-sudoers-modification": {
+        "rank": null,
+        "top5": [
+          "T1591.001",
+          "T1590",
+          "T1065",
+          "T1595.001",
+          "CVE-2023-22809"
+        ]
+      },
+      "case-06-encoded-powershell": {
+        "rank": 2,
+        "top5": [
+          "T1065",
+          "T1059.001",
+          "T1030",
+          "T1591.001",
+          "T1590"
+        ]
+      },
+      "case-07-port-scan": {
+        "rank": null,
+        "top5": [
+          "T1065",
+          "T1041",
+          "T1591.001",
+          "T1590",
+          "T1079"
+        ]
+      },
+      "case-08-shadow-copy-deletion": {
+        "rank": 1,
+        "top5": [
+          "T1490",
+          "T1065",
+          "T1590",
+          "T1595.001",
+          "T1488"
+        ]
+      }
+    }
+  },
+  "hashing": {
+    "recall@5": 1.0,
+    "recall@1": 1.0,
+    "mrr": 1.0,
+    "avg_latency_ms": 51.87602499790955,
+    "per_case": {
+      "case-01-ssh-bruteforce": {
+        "rank": 1,
+        "top5": [
+          "T1110",
+          "T1110",
+          "T1528",
+          "T1556.001",
+          "T1583.001"
+        ]
+      },
+      "case-02-password-spray": {
+        "rank": 1,
+        "top5": [
+          "T1110.003",
+          "T1110.003",
+          "T1140",
+          "T1110.001",
+          "T1075"
+        ]
+      },
+      "case-03-webshell-upload": {
+        "rank": 1,
+        "top5": [
+          "T1190",
+          "T1190",
+          "T1190",
+          "T1505.003",
+          "T1650"
+        ]
+      },
+      "case-04-scheduled-task-persistence": {
+        "rank": 1,
+        "top5": [
+          "T1053.005",
+          "T1053.005",
+          "T1053.005",
+          "T1650",
+          "T1592.004"
+        ]
+      },
+      "case-05-sudoers-modification": {
+        "rank": 1,
+        "top5": [
+          "T1548.003",
+          "T1548.003",
+          "T1548.003",
+          "T1548.003",
+          "T1548.003"
+        ]
+      },
+      "case-06-encoded-powershell": {
+        "rank": 1,
+        "top5": [
+          "T1027",
+          "T1059.001",
+          "T1027",
+          "T1059.001",
+          "T1650"
+        ]
+      },
+      "case-07-port-scan": {
+        "rank": 1,
+        "top5": [
+          "T1046",
+          "T1650",
+          "T1683.001",
+          "T1683",
+          "T1592.004"
+        ]
+      },
+      "case-08-shadow-copy-deletion": {
+        "rank": 1,
+        "top5": [
+          "T1490",
+          "T1490",
+          "T1490",
+          "T1486",
+          "T1486"
+        ]
+      }
+    }
+  }
+}

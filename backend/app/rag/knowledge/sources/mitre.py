@@ -130,17 +130,26 @@ class MitreAttackSource(KnowledgeSource):
             else []
         )
 
+        # Contextual chunking: embed the technique name + id with the content.
+        # Without it, a description chunk never contains what it is about —
+        # queries like "T1110" or "brute force" cannot match the technique
+        # semantically. The prefix is composed ONLY from record fields
+        # (no invention) and stays attached to every chunk of the document.
+        header = f"{name} (ATT&CK technique {technique_id})"
+        if tactics:
+            header += f" — Tactic: {', '.join(tactics)}"
+
         # Records without prose descriptions stay usable: compose content
         # strictly from fields present in the record (no invention).
         if not content and detection_text:
             content = detection_text
         if not content:
-            parts = [f"{name} (ATT&CK technique {technique_id})"]
-            if tactics:
-                parts.append("Tactics: " + ", ".join(tactics))
+            parts = [header]
             if platforms:
                 parts.append("Platforms: " + ", ".join(platforms))
             content = ". ".join(parts) + "."
+        else:
+            content = f"{header}. {content}"
 
         stix_id = record.get("id") if isinstance(record.get("id"), str) else None
         url = ext_ref.get("url") if isinstance(ext_ref, dict) else None

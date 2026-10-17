@@ -1,22 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Search,
   LayoutDashboard,
   ShieldAlert,
-  SearchCode,
-  Network,
-  Binary,
-  FileCheck,
-  Cpu,
-  Layers,
+  FileSearch,
+  BookOpen,
   BarChart3,
-  ListTodo,
+  Layers,
   Settings as SettingsIcon,
   X,
   ExternalLink,
 } from 'lucide-react';
-import { mockAlerts } from '../../data/mockAlerts';
+import { alertService } from '../../services/api';
+import type { Alert } from '../../types/alert';
 
 interface CommandPaletteProps {
   isOpen: boolean;
@@ -25,7 +22,10 @@ interface CommandPaletteProps {
 
 const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose }) => {
   const [query, setQuery] = useState('');
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [alertsError, setAlertsError] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -44,39 +44,59 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose }) => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
+  // Fetch real alerts once when the palette opens.
+  useEffect(() => {
+    if (!isOpen) return;
+    // Skip the initial refetch when palettes open from the same alert page.
+    setQuery('');
+    let cancelled = false;
+    alertService
+      .getAlerts()
+      .then((data) => {
+        if (!cancelled) {
+          setAlerts(Array.isArray(data) ? data : []);
+          setAlertsError(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setAlertsError(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const navItems = [
-    { label: 'SOC Overview / Dashboard', path: '/', icon: LayoutDashboard, category: 'Navigation' },
-    { label: 'Alert Stream & Queue', path: '/alerts', icon: ShieldAlert, category: 'Navigation' },
-    { label: 'Investigation Workspace', path: '/investigation', icon: SearchCode, category: 'Navigation' },
-    { label: 'Security Context Explorer', path: '/security-context', icon: Network, category: 'Intelligence' },
-    { label: 'Threat Intelligence Feeds', path: '/threat-intelligence', icon: Binary, category: 'Intelligence' },
-    { label: 'Evidence & Knowledge Grounding', path: '/evidence', icon: FileCheck, category: 'Intelligence' },
-    { label: 'AI Incident Analysis', path: '/ai-analysis', icon: Cpu, category: 'Intelligence' },
-    { label: 'Architecture & Pipeline Topology', path: '/architecture', icon: Layers, category: 'Platform' },
-    { label: 'RAG Model Evaluation', path: '/evaluation', icon: BarChart3, category: 'Platform' },
-    { label: 'Project Implementation Status', path: '/project-status', icon: ListTodo, category: 'Platform' },
-    { label: 'SOC Settings & API Connections', path: '/settings', icon: SettingsIcon, category: 'System' },
+    { label: 'Dashboard', path: '/', icon: LayoutDashboard, category: 'Workflow' },
+    { label: 'Alert Stream', path: '/alerts', icon: ShieldAlert, category: 'Workflow' },
+    { label: 'AI Analysis', path: '/ai-analysis', icon: FileSearch, category: 'Workflow' },
+    { label: 'Security Knowledge', path: '/knowledge', icon: BookOpen, category: 'Research' },
+    { label: 'RAG Evaluation', path: '/evaluation', icon: BarChart3, category: 'Research' },
+    { label: 'Architecture & Status', path: '/architecture', icon: Layers, category: 'System' },
+    { label: 'Settings & Diagnostics', path: '/settings', icon: SettingsIcon, category: 'System' },
   ];
 
-  const filteredNav = navItems.filter((item) =>
-    item.label.toLowerCase().includes(query.toLowerCase()) ||
-    item.category.toLowerCase().includes(query.toLowerCase())
+  const filteredNav = navItems.filter(
+    (item) =>
+      item.label.toLowerCase().includes(query.toLowerCase()) ||
+      item.category.toLowerCase().includes(query.toLowerCase())
   );
 
-  const filteredAlerts = mockAlerts
+  const filteredAlerts = alerts
     .filter(
       (a) =>
         a.rule_description.toLowerCase().includes(query.toLowerCase()) ||
-        a.rule_id.includes(query) ||
+        (a.rule_id && a.rule_id.includes(query)) ||
         (a.source_ip && a.source_ip.includes(query)) ||
         (a.username && a.username.toLowerCase().includes(query.toLowerCase()))
     )
     .slice(0, 4);
 
   const handleSelect = (path: string) => {
-    navigate(path);
+    // Avoid pushing a duplicate history entry when already there.
+    if (location.pathname !== path) navigate(path);
     onClose();
   };
 
@@ -94,7 +114,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose }) => {
           <Search className="w-5 h-5 text-cyan-400 shrink-0 mr-3" />
           <input
             type="text"
-            placeholder="Type a command, route, IP (10.0.3.47), rule ID (5710), or keyword..."
+            placeholder="Type a command, route, or search alerts by rule, IP, or user..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="w-full bg-transparent text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none"
@@ -119,7 +139,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose }) => {
           {filteredNav.length > 0 && (
             <div className="py-2">
               <div className="px-3 py-1 text-[11px] font-mono font-medium text-zinc-500 uppercase tracking-wider">
-                Pages & Workspaces
+                Pages
               </div>
               <div className="mt-1 space-y-1">
                 {filteredNav.map((item, idx) => {
@@ -144,11 +164,15 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose }) => {
             </div>
           )}
 
-          {/* Quick Alert Lookup */}
-          {query.trim().length > 0 && filteredAlerts.length > 0 && (
+          {/* Real alert lookup */}
+          {alertsError ? (
+            <div className="p-4 text-xs text-zinc-500 font-mono">
+              Alert search unavailable — the backend could not be reached.
+            </div>
+          ) : query.trim().length > 0 && filteredAlerts.length > 0 ? (
             <div className="py-2">
               <div className="px-3 py-1 text-[11px] font-mono font-medium text-zinc-500 uppercase tracking-wider">
-                Matching Telemetry Alerts
+                Matching Alerts (from database)
               </div>
               <div className="mt-1 space-y-1">
                 {filteredAlerts.map((alert) => (
@@ -157,13 +181,13 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose }) => {
                     onClick={() => handleSelect(`/alerts/${alert.id}`)}
                     className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-sm text-zinc-300 hover:text-cyan-400 hover:bg-zinc-800/60 transition-colors group"
                   >
-                    <div className="flex items-center gap-3">
-                      <span className="font-mono text-xs text-cyan-400 bg-cyan-950/60 px-1.5 py-0.5 rounded border border-cyan-800/50">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="font-mono text-xs text-cyan-400 bg-cyan-950/60 px-1.5 py-0.5 rounded border border-cyan-800/50 shrink-0">
                         #{alert.id}
                       </span>
                       <span className="line-clamp-1">{alert.rule_description}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-xs font-mono text-zinc-500">
+                    <div className="flex items-center gap-2 text-xs font-mono text-zinc-500 shrink-0">
                       <span>{alert.source_ip || alert.agent_name}</span>
                       <ExternalLink className="w-3.5 h-3.5 text-zinc-500 group-hover:text-cyan-400" />
                     </div>
@@ -171,21 +195,19 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose }) => {
                 ))}
               </div>
             </div>
-          )}
+          ) : null}
 
-          {filteredNav.length === 0 && filteredAlerts.length === 0 && (
+          {filteredNav.length === 0 && (alertsError || filteredAlerts.length === 0) && (
             <div className="p-8 text-center text-sm text-zinc-500">
-              No navigation commands or telemetry matching &quot;{query}&quot;
+              No navigation commands or alerts matching &quot;{query}&quot;
             </div>
           )}
         </div>
 
         {/* Footer */}
         <div className="px-4 py-2.5 bg-[#090d16] border-t border-zinc-800/80 flex items-center justify-between text-[11px] font-mono text-zinc-500">
-          <span>Enterprise SOC Command Interface</span>
+          <span>AI SOC Assistant — Command Interface</span>
           <div className="flex items-center gap-3">
-            <span>↑↓ Navigate</span>
-            <span>↵ Select</span>
             <span>ESC Close</span>
           </div>
         </div>

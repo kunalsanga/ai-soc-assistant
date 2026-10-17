@@ -3,7 +3,11 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     PROJECT_NAME: str = "SOC Assistant"
     API_V1_STR: str = "/api/v1"
-    
+
+    # CORS: comma-separated allow-list of browser origins (dev default).
+    # Never use "*" together with credentials.
+    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:4173,http://localhost:8000"
+
     DATABASE_URL: str
     
     WAZUH_BASE_URL: str = ""
@@ -19,7 +23,12 @@ class Settings(BaseSettings):
 
     # --- Knowledge base (Phase 4A) -----------------------------------------
     KNOWLEDGE_DATA_DIR: str = "knowledge"
-    EMBEDDING_MODEL: str = "local-hashing"  # "local-hashing" | future providers
+    # Embedding provider selection: "local-hashing" (deterministic tests) or
+    # "semantic" (real local sentence-transformers model — see
+    # SEMANTIC_EMBEDDING_MODEL). Switching providers requires re-indexing.
+    EMBEDDING_PROVIDER: str = "local-hashing"
+    SEMANTIC_EMBEDDING_MODEL: str = "sentence-transformers/all-MiniLM-L6-v2"
+    EMBEDDING_MODEL: str = "local-hashing"  # legacy alias, kept for compat
     EMBEDDING_DIMENSION: int = 256
     CHUNK_SIZE: int = 1200
     CHUNK_OVERLAP: int = 150
@@ -36,6 +45,10 @@ class Settings(BaseSettings):
     LLM_API_KEY: str = ""
     LLM_TEMPERATURE: float = 0.0
     LLM_MAX_TOKENS: int = 2000
+    LLM_TIMEOUT: float = 300.0
+    # Thinking-mode toggle for reasoning models (e.g. qwen3). Disabled by
+    # default: thinking tokens consume num_predict and delay content output.
+    LLM_THINK: bool = False
     
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=True, extra="ignore")
 

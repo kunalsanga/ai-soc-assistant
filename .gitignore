@@ -9,3 +9,7 @@ venv/
 .pytest_cache/
 .DS_Store
 .vscode/
+
+# Large downloaded datasets (auto-downloaded by scripts/ingest.py)
+backend/knowledge/*.json
+knowledge/*.json

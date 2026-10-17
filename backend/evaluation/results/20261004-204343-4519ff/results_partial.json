@@ -1,0 +1,339 @@
+{
+  "run_id": "20261004-204343-4519ff",
+  "records": [
+    {
+      "case_id": "case-01-ssh-bruteforce",
+      "category": "brute_force",
+      "mode": "llm_only",
+      "db_alert_id": 4,
+      "error": null,
+      "wall_latency_seconds": 25.803071899994393,
+      "llm_latency_seconds": 25.777659200000926,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 1125,
+        "completion": 314
+      },
+      "analysis_id": 10,
+      "summary": "A failed authentication attempt was detected using a non-existent user 'admin-test' from IP 198.51.100.77 on the Ubuntu host linux-lab.",
+      "confidence": "MEDIUM",
+      "predicted_techniques": [
+        "T1110"
+      ],
+      "technique_prf1": {
+        "precision": 1.0,
+        "recall": 0.5,
+        "f1": 0.6666666666666666,
+        "predicted_count": 1
+      },
+      "severity_band_match": true,
+      "expected_severity_band": "high",
+      "observed_indicators": [
+        "198.51.100.77",
+        "admin-test"
+      ],
+      "investigation_step_count": 3,
+      "evidence_reference_count": 0,
+      "valid_evidence_reference_rate": null,
+      "retrieved": [],
+      "retrieval_first_relevant_rank": null,
+      "limitations": "No additional evidence is available to confirm the intent of the attack or the presence of malicious activity."
+    },
+    {
+      "case_id": "case-01-ssh-bruteforce",
+      "category": "brute_force",
+      "mode": "standard_rag",
+      "db_alert_id": 4,
+      "error": null,
+      "wall_latency_seconds": 82.35137899999972,
+      "llm_latency_seconds": 63.19643390001147,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 2317,
+        "completion": 588
+      },
+      "analysis_id": 11,
+      "summary": "A failed authentication attempt was detected using a non-existent user 'admin-test' from IP 198.51.100.77 on the Ubuntu host linux-lab.",
+      "confidence": "MEDIUM",
+      "predicted_techniques": [
+        "T1110"
+      ],
+      "technique_prf1": {
+        "precision": 1.0,
+        "recall": 0.5,
+        "f1": 0.6666666666666666,
+        "predicted_count": 1
+      },
+      "severity_band_match": true,
+      "expected_severity_band": "high",
+      "observed_indicators": [
+        "198.51.100.77",
+        "admin-test"
+      ],
+      "investigation_step_count": 3,
+      "evidence_reference_count": 3,
+      "valid_evidence_reference_rate": 1.0,
+      "retrieved": [
+        {
+          "id": "T1563.001",
+          "title": "SSH Hijacking",
+          "score": 0.3923
+        },
+        {
+          "id": "T1563.001",
+          "title": "SSH Hijacking",
+          "score": 0.36
+        },
+        {
+          "id": "T1184",
+          "title": "SSH Hijacking",
+          "score": 0.3541
+        },
+        {
+          "id": "T1184",
+          "title": "SSH Hijacking",
+          "score": 0.3453
+        },
+        {
+          "id": "T1021.004",
+          "title": "SSH",
+          "score": 0.3448
+        }
+      ],
+      "retrieval_first_relevant_rank": null,
+      "limitations": "The exact intent of the attack is unknown, and further analysis is required to determine if this is a genuine threat or a false positive."
+    },
+    {
+      "case_id": "case-01-ssh-bruteforce",
+      "category": "brute_force",
+      "mode": "evidence_aware",
+      "db_alert_id": 4,
+      "error": null,
+      "wall_latency_seconds": 56.71255490000476,
+      "llm_latency_seconds": 56.60569879999093,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 1942,
+        "completion": 535
+      },
+      "analysis_id": 12,
+      "summary": "A failed authentication attempt was detected using a non-existent user 'admin-test' from IP 198.51.100.77 on Ubuntu server linux-lab.",
+      "confidence": "MEDIUM",
+      "predicted_techniques": [
+        "T1110"
+      ],
+      "technique_prf1": {
+        "precision": 1.0,
+        "recall": 0.5,
+        "f1": 0.6666666666666666,
+        "predicted_count": 1
+      },
+      "severity_band_match": true,
+      "expected_severity_band": "high",
+      "observed_indicators": [
+        "198.51.100.77",
+        "admin-test"
+      ],
+      "investigation_step_count": 3,
+      "evidence_reference_count": 2,
+      "valid_evidence_reference_rate": 1.0,
+      "retrieved": [
+        {
+          "id": "T1110",
+          "title": "Brute Force",
+          "score": 0.2833
+        },
+        {
+          "id": "T1110",
+          "title": "Brute Force",
+          "score": 0.1378
+        },
+        {
+          "id": "T1065",
+          "title": "Uncommonly Used Port",
+          "score": 0.5017
+        },
+        {
+          "id": "T1590",
+          "title": "Gather Victim Network Information",
+          "score": 0.4862
+        },
+        {
+          "id": "T1008",
+          "title": "Fallback Channels",
+          "score": 0.4793
+        }
+      ],
+      "retrieval_first_relevant_rank": 1,
+      "limitations": "The alert does not provide information about the password or the exact method used for the brute force attempt."
+    },
+    {
+      "case_id": "case-02-password-spray",
+      "category": "credential_access",
+      "mode": "llm_only",
+      "db_alert_id": 5,
+      "error": null,
+      "wall_latency_seconds": 29.765468900004635,
+      "llm_latency_seconds": 29.66410090000136,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 1128,
+        "completion": 312
+      },
+      "analysis_id": 13,
+      "summary": "A potential password spraying attack was detected against cloud accounts, with multiple authentication failures from a single source IP.",
+      "confidence": "MEDIUM",
+      "predicted_techniques": [
+        "T1110.003"
+      ],
+      "technique_prf1": {
+        "precision": 1.0,
+        "recall": 0.5,
+        "f1": 0.6666666666666666,
+        "predicted_count": 1
+      },
+      "severity_band_match": true,
+      "expected_severity_band": "high",
+      "observed_indicators": [
+        "203.0.113.50",
+        "multiple-users"
+      ],
+      "investigation_step_count": 3,
+      "evidence_reference_count": 0,
+      "valid_evidence_reference_rate": null,
+      "retrieved": [],
+      "retrieval_first_relevant_rank": null,
+      "limitations": "No additional evidence was provided to confirm the malicious intent of the activity. Further investigation is required to determine if this is a genuine attack or a false positive."
+    },
+    {
+      "case_id": "case-02-password-spray",
+      "category": "credential_access",
+      "mode": "standard_rag",
+      "db_alert_id": 5,
+      "error": null,
+      "wall_latency_seconds": 71.2810399000009,
+      "llm_latency_seconds": 71.14108469999337,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 2320,
+        "completion": 570
+      },
+      "analysis_id": 14,
+      "summary": "A potential password spraying attack was detected against cloud accounts, with multiple authentication failures from a single source IP.",
+      "confidence": "MEDIUM",
+      "predicted_techniques": [
+        "T1110.003"
+      ],
+      "technique_prf1": {
+        "precision": 1.0,
+        "recall": 0.5,
+        "f1": 0.6666666666666666,
+        "predicted_count": 1
+      },
+      "severity_band_match": true,
+      "expected_severity_band": "high",
+      "observed_indicators": [
+        "203.0.113.50",
+        "multiple-users",
+        "idp-01"
+      ],
+      "investigation_step_count": 3,
+      "evidence_reference_count": 2,
+      "valid_evidence_reference_rate": 1.0,
+      "retrieved": [
+        {
+          "id": "T1586.003",
+          "title": "Cloud Accounts",
+          "score": 0.6699
+        },
+        {
+          "id": "T1098.001",
+          "title": "Additional Cloud Credentials",
+          "score": 0.6125
+        },
+        {
+          "id": "T1078",
+          "title": "Valid Accounts",
+          "score": 0.5725
+        },
+        {
+          "id": "T1078.004",
+          "title": "Cloud Accounts",
+          "score": 0.5521
+        },
+        {
+          "id": "T1556.009",
+          "title": "Conditional Access Policies",
+          "score": 0.5469
+        }
+      ],
+      "retrieval_first_relevant_rank": null,
+      "limitations": "The exact number of failed attempts and the specific users targeted are not detailed in the alert. Further investigation is required to confirm the attack vector and its impact."
+    },
+    {
+      "case_id": "case-02-password-spray",
+      "category": "credential_access",
+      "mode": "evidence_aware",
+      "db_alert_id": 5,
+      "error": null,
+      "wall_latency_seconds": 69.30956170000718,
+      "llm_latency_seconds": 69.0906263999932,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 2273,
+        "completion": 536
+      },
+      "analysis_id": 15,
+      "summary": "A potential password spraying attack was detected with multiple authentication failures from a single source against different users.",
+      "confidence": "MEDIUM",
+      "predicted_techniques": [
+        "T1110.003"
+      ],
+      "technique_prf1": {
+        "precision": 1.0,
+        "recall": 0.5,
+        "f1": 0.6666666666666666,
+        "predicted_count": 1
+      },
+      "severity_band_match": true,
+      "expected_severity_band": "high",
+      "observed_indicators": [
+        "203.0.113.50",
+        "multiple-users",
+        "https"
+      ],
+      "investigation_step_count": 3,
+      "evidence_reference_count": 2,
+      "valid_evidence_reference_rate": 1.0,
+      "retrieved": [
+        {
+          "id": "T1110.003",
+          "title": "Password Spraying",
+          "score": 0.5651
+        },
+        {
+          "id": "T1110.003",
+          "title": "Password Spraying",
+          "score": -0.0095
+        },
+        {
+          "id": "T1110",
+          "title": "Brute Force",
+          "score": 0.4798
+        },
+        {
+          "id": "T1065",
+          "title": "Uncommonly Used Port",
+          "score": 0.4769
+        },
+        {
+          "id": "T1110.001",
+          "title": "Password Guessing",
+          "score": 0.4739
+        }
+      ],
+      "retrieval_first_relevant_rank": 1,
+      "limitations": "The exact credentials used or the specific accounts targeted are not provided in the alert."
+    }
+  ]
+}

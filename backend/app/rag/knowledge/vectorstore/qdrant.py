@@ -111,6 +111,44 @@ class QdrantIndex:
 
     # -- collection management -------------------------------------------------
 
+    def recreate_if_dimension_mismatch(self) -> bool:
+        """Drop and recreate the collection when its dimension differs.
+
+        Switching embedding providers (e.g. hashing 256-dim → semantic
+        384-dim) changes the vector size; vectors from different models can
+        never be mixed. Explicit operator action: the collection is recreated
+        EMPTY and must be re-indexed. Returns True if recreated.
+        """
+        client = self._get_client()
+        try:
+            existing_names = [c.name for c in client.get_collections().collections]
+            if self._collection not in existing_names:
+                return False
+            info = client.get_collection(self._collection)
+            config = getattr(info, "config", None)
+            params = getattr(config, "params", None) if config else None
+            vectors = getattr(params, "vectors", None) if params else None
+            vector_size = getattr(vectors, "size", None) if vectors else None
+            if vector_size is not None and vector_size != self._provider.dimension:
+                logger.warning(
+                    "qdrant_collection_recreate dimension_mismatch "
+                    "collection=%s existing_dim=%s new_dim=%d",
+                    self._collection,
+                    vector_size,
+                    self._provider.dimension,
+                )
+                client.delete_collection(self._collection)
+                self._collection_ready = False
+                self.ensure_collection()
+                return True
+            return False
+        except VectorStoreError:
+            raise
+        except Exception as exc:  # noqa: BLE001
+            raise VectorStoreError(
+                f"Qdrant recreate_if_dimension_mismatch failed: {exc}"
+            ) from exc
+
     def ensure_collection(self) -> None:
         """Create the collection if missing; validate dimension if present."""
         client = self._get_client()
@@ -248,9 +286,14 @@ class QdrantIndex:
         query_vector: List[float],
         top_k: int = 5,
         score_threshold: Optional[float] = None,
+        payload_filter: Optional[Dict[str, Any]] = None,
     ) -> List[Dict[str, Any]]:
         """Search the collection for the closest vectors.
-        
+
+        payload_filter: optional Qdrant filter dict restricting the candidate
+        set (hybrid retrieval: exact identifier matches merged with semantic
+        results). Scores remain genuine cosine similarities.
+
         Returns a list of dicts containing 'score' and 'payload'.
         """
         if not self._collection_ready:
@@ -259,12 +302,15 @@ class QdrantIndex:
         client = self._get_client()
         
         try:
+            # qdrant-client names the filter parameter query_filter (not filter).
+            extra = {"query_filter": payload_filter} if payload_filter else {}
             response = client.query_points(
                 collection_name=self._collection,
                 query=query_vector,
                 limit=top_k,
                 score_threshold=score_threshold,
                 with_payload=True,
+                **extra,
             )
             
             # Extract score and payload to keep Qdrant types from leaking too much

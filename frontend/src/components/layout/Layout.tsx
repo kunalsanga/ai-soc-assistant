@@ -1,27 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   Shield,
   LayoutDashboard,
   ShieldAlert,
-  SearchCode,
-  Network,
-  Binary,
-  FileCheck,
-  Cpu,
-  Layers,
+  FileSearch,
+  BookOpen,
   BarChart3,
-  ListTodo,
+  Layers,
   Settings,
   Search,
-  Bell,
   ChevronLeft,
   ChevronRight,
   Menu,
   X,
-  User,
 } from 'lucide-react';
 import CommandPalette from '../common/CommandPalette';
+import { healthService } from '../../services/api';
+import type { DetailedHealth } from '../../services/api';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -31,40 +27,57 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [health, setHealth] = useState<DetailedHealth | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    const load = () => {
+      healthService
+        .check()
+        .then((data) => {
+          if (mounted) setHealth(data);
+        })
+        .catch(() => {
+          if (mounted) setHealth(null);
+        });
+    };
+    load();
+    const interval = window.setInterval(load, 60_000);
+    return () => {
+      mounted = false;
+      window.clearInterval(interval);
+    };
+  }, []);
 
   const navSections = [
     {
-      title: 'MAIN',
+      title: 'WORKFLOW',
       items: [
         { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-        { name: 'Alert Stream', path: '/alerts', icon: ShieldAlert, badge: 'Live' },
-        { name: 'Investigations', path: '/investigation', icon: SearchCode },
+        { name: 'Alert Stream', path: '/alerts', icon: ShieldAlert },
+        { name: 'AI Analysis', path: '/ai-analysis', icon: FileSearch },
       ],
     },
     {
-      title: 'INTELLIGENCE',
+      title: 'RESEARCH',
       items: [
-        { name: 'Security Context', path: '/security-context', icon: Network },
-        { name: 'Threat Intelligence', path: '/threat-intelligence', icon: Binary },
-        { name: 'Evidence & RAG', path: '/evidence', icon: FileCheck },
-        { name: 'AI Analysis', path: '/ai-analysis', icon: Cpu },
-      ],
-    },
-    {
-      title: 'PLATFORM',
-      items: [
-        { name: 'Architecture', path: '/architecture', icon: Layers },
+        { name: 'Security Knowledge', path: '/knowledge', icon: BookOpen },
         { name: 'RAG Evaluation', path: '/evaluation', icon: BarChart3 },
-        { name: 'Project Status', path: '/project-status', icon: ListTodo },
       ],
     },
     {
       title: 'SYSTEM',
       items: [
-        { name: 'Settings', path: '/settings', icon: Settings },
+        { name: 'Architecture & Status', path: '/architecture', icon: Layers },
+        { name: 'Settings & Diagnostics', path: '/settings', icon: Settings },
       ],
     },
   ];
+
+  // Real health chips from the backend, or an explicit offline state.
+  const qdrantStatus = health?.services?.qdrant?.status;
+  const wazuhMode = health?.config?.wazuh_mode ?? null;
+  const backendOnline = health !== null;
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#07090e] text-zinc-100">
@@ -94,7 +107,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   AI SOC Assistant
                 </span>
                 <span className="text-[10px] font-mono text-cyan-400/90 tracking-widest uppercase">
-                  Enterprise SecOps
+                  Research Prototype
                 </span>
               </div>
             )}
@@ -142,16 +155,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                     title={collapsed ? item.name : undefined}
                   >
                     <Icon className="w-4 h-4 shrink-0 transition-transform duration-200 group-hover:scale-110" />
-                    {!collapsed && (
-                      <div className="flex items-center justify-between w-full">
-                        <span>{item.name}</span>
-                        {item.badge && (
-                          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-                            {item.badge}
-                          </span>
-                        )}
-                      </div>
-                    )}
+                    {!collapsed && <span>{item.name}</span>}
                   </NavLink>
                 );
               })}
@@ -159,27 +163,54 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           ))}
         </div>
 
-        {/* Sidebar Footer — Status honest to development mode */}
+        {/* Sidebar Footer — real backend connectivity */}
         <div className="p-3 border-t border-zinc-800/80 bg-[#090d16]">
           {!collapsed ? (
             <div className="px-2 py-1.5 rounded-lg bg-zinc-900/80 border border-zinc-800 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500" />
+                <span
+                  className={`relative flex h-2 w-2 ${
+                    backendOnline ? '' : 'opacity-50'
+                  }`}
+                >
+                  {backendOnline ? (
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
+                  ) : null}
+                  <span
+                    className={`relative inline-flex rounded-full h-2 w-2 ${
+                      backendOnline ? 'bg-cyan-500' : 'bg-rose-500'
+                    }`}
+                  />
                 </span>
-                <span className="text-[11px] font-mono text-zinc-300">SOC Console</span>
+                <span className="text-[11px] font-mono text-zinc-300">
+                  {backendOnline ? 'Backend API' : 'Backend Offline'}
+                </span>
               </div>
-              <span className="text-[10px] font-mono text-cyan-400/90 bg-cyan-950/80 px-1.5 py-0.5 rounded border border-cyan-800/40">
-                DEV ACTIVE
+              <span
+                className={`text-[10px] font-mono px-1.5 py-0.5 rounded border ${
+                  wazuhMode === 'real'
+                    ? 'text-emerald-400 bg-emerald-950/80 border-emerald-800/40'
+                    : 'text-amber-400 bg-amber-950/80 border-amber-800/40'
+                }`}
+                title={
+                  wazuhMode === 'real'
+                    ? 'Configure for a real Wazuh API'
+                    : 'Alerts come from the development mock client'
+                }
+              >
+                {wazuhMode === 'real' ? 'WAZUH REAL' : wazuhMode === 'mock' ? 'WAZUH MOCK' : 'NO INFO'}
               </span>
             </div>
           ) : (
-            <div className="flex justify-center" title="SOC Console: Active (Dev Mode)">
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-500" />
-              </span>
+            <div
+              className="flex justify-center"
+              title={backendOnline ? 'Backend connected' : 'Backend unreachable'}
+            >
+              <span
+                className={`relative flex h-2.5 w-2.5 rounded-full ${
+                  backendOnline ? 'bg-cyan-500' : 'bg-rose-500'
+                }`}
+              />
             </div>
           )}
         </div>
@@ -212,37 +243,50 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
           {/* Right Header Status & Controls */}
           <div className="flex items-center gap-3 sm:gap-4">
-            {/* System Status Indicators */}
+            {/* System Status Indicators — real values */}
             <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-900/90 border border-zinc-800 text-[11px] font-mono">
-              <span className="flex items-center gap-1.5 text-emerald-400">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                Backend API
+              <span
+                className={`flex items-center gap-1.5 ${
+                  qdrantStatus === 'connected' ? 'text-emerald-400' : 'text-rose-400'
+                }`}
+                title={qdrantStatus === 'connected' ? 'Qdrant reachable' : 'Qdrant unreachable'}
+              >
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    qdrantStatus === 'connected' ? 'bg-emerald-400' : 'bg-rose-400'
+                  }`}
+                />
+                Qdrant
               </span>
               <span className="text-zinc-600">|</span>
-              <span className="flex items-center gap-1.5 text-amber-400" title="Wazuh integration pending">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                Wazuh (Dev Mode)
+              <span
+                className={`flex items-center gap-1.5 ${
+                  wazuhMode === 'real' ? 'text-emerald-400' : 'text-amber-400'
+                }`}
+                title={
+                  wazuhMode === 'real'
+                    ? 'Real Wazuh mode configured'
+                    : 'Mock Wazuh mode — development alerts'
+                }
+              >
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    wazuhMode === 'real' ? 'bg-emerald-400' : 'bg-amber-400'
+                  }`}
+                />
+                Wazuh {wazuhMode === 'real' ? 'Real' : wazuhMode === 'mock' ? 'Mock' : '?'}
               </span>
             </div>
 
-            {/* Notification Icon */}
-            <button
-              onClick={() => setPaletteOpen(true)}
-              className="relative p-2 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60 transition-colors"
-              title="Notifications"
-            >
-              <Bell className="w-4 h-4" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-[#0c101a]" />
-            </button>
-
-            {/* Analyst Profile Menu */}
+            {/* Neutral research-prototype identity — no fictitious analyst */}
             <div className="flex items-center gap-2 pl-2 sm:pl-3 border-l border-zinc-800">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-600 to-blue-700 p-0.5 flex items-center justify-center text-zinc-100 font-semibold text-xs shadow-md">
-                <User className="w-4 h-4" />
-              </div>
-              <div className="hidden sm:flex flex-col text-left">
-                <span className="text-xs font-medium text-zinc-200 leading-tight">Bivan</span>
-                <span className="text-[10px] font-mono text-cyan-400 leading-tight">Lead SecOps / Frontend</span>
+              <div className="hidden sm:flex flex-col text-right">
+                <span className="text-xs font-medium text-zinc-200 leading-tight">
+                  Research Session
+                </span>
+                <span className="text-[10px] font-mono text-zinc-500 leading-tight">
+                  Local prototype
+                </span>
               </div>
             </div>
           </div>

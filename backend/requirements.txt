@@ -9,6 +9,7 @@ asyncpg
 greenlet
 httpx
 qdrant-client
+sentence-transformers
 pytest
 pytest-asyncio
 python-dotenv

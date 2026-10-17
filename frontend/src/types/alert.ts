@@ -124,52 +124,23 @@ export interface SecurityContext {
 }
 
 /* ============================================================
-   THREAT INTELLIGENCE (Frontend-only display model)
+   SECURITY CONTEXT (Backend shape — GET /alerts/{id}/security-context)
+   Mirrors backend/app/security/schemas.py :: SecurityContext
    ============================================================ */
 
-export interface ThreatIntelItem {
-  id: string;
-  type: 'mitre_technique' | 'cve' | 'ip_reputation' | 'domain' | 'indicator';
-  title: string;
-  description?: string;
-  severity?: SeverityLevel;
-  source?: string;
-  last_updated?: string;
-}
-
-/* ============================================================
-   INVESTIGATION (Frontend-only display model)
-   ============================================================ */
-
-export type InvestigationStage =
-  | 'alert_detected'
-  | 'normalized'
-  | 'context_extracted'
-  | 'threat_intelligence'
-  | 'evidence_retrieved'
-  | 'ai_analysis'
-  | 'analyst_review';
-
-export type StageStatus = 'completed' | 'in_progress' | 'pending' | 'not_available';
-
-export interface InvestigationTimelineStep {
-  stage: InvestigationStage;
-  label: string;
-  description: string;
-  status: StageStatus;
-  timestamp?: string;
-}
-
-export interface Investigation {
-  id: string;
-  alert_id: number;
-  alert: Alert;
-  status: 'open' | 'in_progress' | 'resolved' | 'escalated';
-  analyst?: string;
-  timeline: InvestigationTimelineStep[];
-  analysis?: Analysis;
-  created_at: string;
-  updated_at: string;
+export interface BackendSecurityContext {
+  alert_id: string;
+  event_type?: string | null;
+  severity: number;
+  rule_id?: string | null;
+  rule_description?: string | null;
+  agent_name?: string | null;
+  /** Structured entities extracted from the alert, e.g.
+   *  { source_ip: ["192.168.1.20"], username: ["test-user"], ... } */
+  entities: Record<string, string[]>;
+  mitre_techniques: string[];
+  mitre_tactics: string[];
+  keywords: string[];
 }
 
 /* ============================================================
@@ -182,17 +153,4 @@ export interface SystemComponent {
   name: string;
   status: SystemComponentStatus;
   description?: string;
-}
-
-/* ============================================================
-   PROJECT STATUS (Frontend-only display model)
-   ============================================================ */
-
-export type ProjectStatus = 'implemented' | 'in_progress' | 'integration_pending' | 'not_started';
-
-export interface ProjectModule {
-  name: string;
-  status: ProjectStatus;
-  description?: string;
-  owner?: string;
 }

@@ -8,24 +8,22 @@ import {
   ChevronDown,
   ChevronUp,
   ExternalLink,
-  SearchCode,
   RefreshCw,
   Terminal,
+  TriangleAlert,
 } from 'lucide-react';
 import type { Alert } from '../types/alert';
 import { alertService } from '../services/api';
-import { mockAlerts } from '../data/mockAlerts';
 import PageHeader from '../components/common/PageHeader';
 import SeverityBadge from '../components/common/SeverityBadge';
 import StatusBadge from '../components/common/StatusBadge';
-import MockDataDisclaimer from '../components/common/MockDataDisclaimer';
 import LoadingSkeleton from '../components/common/LoadingSkeleton';
 import EmptyState from '../components/common/EmptyState';
 
 const Alerts: React.FC = () => {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isUsingMock, setIsUsingMock] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSeverity, setSelectedSeverity] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
@@ -35,49 +33,26 @@ const Alerts: React.FC = () => {
 
   const fetchAlerts = async (showLoadingState = true) => {
     if (showLoadingState) setLoading(true);
+    setError(null);
     try {
+      // No silent fallback: an API failure is a visible error, and zero
+      // records is a real empty state.
       const data = await alertService.getAlerts();
-      if (Array.isArray(data) && data.length > 0) {
-        setAlerts(data);
-        setIsUsingMock(false);
-      } else {
-        setAlerts(mockAlerts);
-        setIsUsingMock(true);
-      }
-    } catch {
-      setAlerts(mockAlerts);
-      setIsUsingMock(true);
+      setAlerts(Array.isArray(data) ? data : []);
+    } catch (e: unknown) {
+      const message =
+        (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
+        (e as { message?: string })?.message ||
+        'Unknown error';
+      setError(message);
+      setAlerts([]);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    let mounted = true;
-    alertService
-      .getAlerts()
-      .then((data) => {
-        if (!mounted) return;
-        if (Array.isArray(data) && data.length > 0) {
-          setAlerts(data);
-          setIsUsingMock(false);
-        } else {
-          setAlerts(mockAlerts);
-          setIsUsingMock(true);
-        }
-      })
-      .catch(() => {
-        if (!mounted) return;
-        setAlerts(mockAlerts);
-        setIsUsingMock(true);
-      })
-      .finally(() => {
-        if (mounted) setLoading(false);
-      });
-
-    return () => {
-      mounted = false;
-    };
+    fetchAlerts(false);
   }, []);
 
   const filteredAlerts = useMemo(() => {
@@ -131,10 +106,10 @@ const Alerts: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Alert Stream & Triage Queue"
-        subtitle="Live telemetry and normalized threat events ingested from endpoint SIEM agents."
+    <div className="space-y-6">      <PageHeader
+        title="Alert Stream"
+        subtitle="Real persisted alerts served directly from the backend database.
+"
         breadcrumbs={[{ label: 'Home', href: '/' }, { label: 'Alerts' }]}
         badge={
           <span className="font-mono text-xs text-cyan-400 bg-cyan-950/80 px-2.5 py-0.5 rounded-full border border-cyan-800/40">
@@ -152,14 +127,27 @@ const Alerts: React.FC = () => {
         }
       />
 
-      {isUsingMock && (
-        <MockDataDisclaimer
-          label="MOCK / DEVELOPMENT DATA"
-          detail="Displaying development baseline alert telemetry. Real Wazuh SIEM collector connection pending."
-        />
+      {error && (
+        <div className="card p-8 flex flex-col items-center space-y-3 border-rose-500/30">
+          <TriangleAlert className="w-10 h-10 text-rose-400" />
+          <div className="text-center">
+            <h2 className="text-sm font-semibold text-zinc-200">Could not load alerts</h2>
+            <p className="text-xs text-zinc-400 mt-1 font-mono break-all max-w-lg">{error}</p>
+          </div>
+          <button
+            onClick={() => fetchAlerts()}
+            className="btn btn-secondary text-xs flex items-center gap-2"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Retry</span>
+          </button>
+        </div>
       )}
 
+      {!error && loading && <LoadingSkeleton type="table" count={6} />}
+
       {/* Filter and Search Bar */}
+      {!loading && (
       <div className="card p-4 space-y-3 bg-[#0c101a]">
         <div className="flex flex-col md:flex-row gap-3">
           {/* Search box */}
@@ -236,28 +224,35 @@ const Alerts: React.FC = () => {
           </div>
         )}
       </div>
+      )}
 
       {/* Alert Stream Table */}
-      {loading ? (
-        <LoadingSkeleton type="table" count={6} />
-      ) : filteredAlerts.length === 0 ? (
-        <EmptyState
-          icon={ShieldAlert}
-          title="No Matching Security Alerts"
-          description="Try broadening your search query or resetting active filters."
-          action={
-            <button
-              onClick={() => {
-                setSearchQuery('');
-                setSelectedSeverity('all');
-                setSelectedStatus('all');
-              }}
-              className="btn btn-secondary text-xs"
-            >
-              Reset Filters
-            </button>
-          }
-        />
+      {loading ? null : filteredAlerts.length === 0 ? (
+        alerts.length === 0 ? (
+          <EmptyState
+            icon={ShieldAlert}
+            title="No Alerts in the Database"
+            description="The database contains no alerts yet. Use Sync Alerts on the Dashboard, then refresh."
+          />
+        ) : (
+          <EmptyState
+            icon={ShieldAlert}
+            title="No Matching Security Alerts"
+            description="Try broadening your search query or resetting active filters."
+            action={
+              <button
+                onClick={() => {
+                  setSearchQuery('');
+                  setSelectedSeverity('all');
+                  setSelectedStatus('all');
+                }}
+                className="btn btn-secondary text-xs"
+              >
+                Reset Filters
+              </button>
+            }
+          />
+        )
       ) : (
         <div className="card overflow-hidden">
           <div className="overflow-x-auto">
@@ -362,10 +357,10 @@ const Alerts: React.FC = () => {
                               <ExternalLink className="w-4 h-4" />
                             </Link>
                             <Link
-                              to="/investigation"
+                              to={`/ai-analysis?alert=${alert.id}`}
                               className="px-2 py-1 rounded bg-cyan-950/80 hover:bg-cyan-900 text-cyan-300 border border-cyan-800/50 text-[11px] font-medium transition-colors"
                             >
-                              Triage
+                              Analyze
                             </Link>
                           </div>
                         </td>
@@ -436,11 +431,11 @@ const Alerts: React.FC = () => {
                                   Ingested at {new Date(alert.created_at).toISOString()}
                                 </span>
                                 <Link
-                                  to="/investigation"
+                                  to={`/ai-analysis?alert=${alert.id}`}
                                   className="btn btn-primary text-xs flex items-center gap-2"
                                 >
-                                  <SearchCode className="w-3.5 h-3.5" />
-                                  <span>Transfer to Investigation Workspace</span>
+                                  <Search className="w-3.5 h-3.5" />
+                                  <span>Run AI Analysis on This Alert</span>
                                 </Link>
                               </div>
                             </div>

@@ -26,6 +26,7 @@ const ConfidenceMeter: React.FC<ConfidenceMeterProps> = ({
 
   // Parse numerical confidence (e.g. "0.94", 0.94, "94%")
   let numericVal = 0;
+  let isNumeric = true;
   if (typeof confidence === 'number') {
     numericVal = confidence <= 1 ? confidence * 100 : confidence;
   } else {
@@ -33,7 +34,26 @@ const ConfidenceMeter: React.FC<ConfidenceMeterProps> = ({
     const parsed = parseFloat(clean);
     if (!isNaN(parsed)) {
       numericVal = parsed <= 1 ? parsed * 100 : parsed;
+    } else {
+      // Word-form confidence (LOW / MEDIUM / HIGH / CRITICAL) reported by the
+      // model — display it verbatim instead of inventing a percentage.
+      isNumeric = false;
     }
+  }
+
+  if (!isNumeric) {
+    const word = String(confidence).toUpperCase();
+    const wordColor =
+      word === 'HIGH' || word === 'CRITICAL' ? 'text-emerald-400' : word === 'MEDIUM' ? 'text-cyan-400' : 'text-amber-400';
+    return (
+      <div className={`flex items-center justify-between text-xs ${className}`}>
+        <div className="flex items-center gap-1.5 text-zinc-300 font-medium">
+          <ShieldCheck className={`w-4 h-4 ${wordColor}`} />
+          <span>{label}</span>
+        </div>
+        <span className={`font-bold font-mono ${wordColor}`}>{word}</span>
+      </div>
+    );
   }
 
   const rounded = Math.round(numericVal);
