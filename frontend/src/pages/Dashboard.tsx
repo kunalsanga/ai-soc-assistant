@@ -235,24 +235,42 @@ const Dashboard: React.FC = () => {
         <div className="card p-5 lg:col-span-1 space-y-4">
           <div className="flex items-center justify-between border-b border-zinc-800/80 pb-3">
             <h2 className="text-sm font-semibold text-zinc-200">Severity Distribution</h2>
-            <span className="text-[10px] font-mono text-zinc-400 uppercase">SQL aggregate</span>
+            <span className="text-[10px] font-mono text-zinc-400 uppercase">Click to filter</span>
           </div>
 
           <div className="space-y-3 pt-1">
-            {severityRows.map((row) => (
-              <div key={row.key} className="space-y-1">
-                <div className="flex justify-between text-xs font-mono">
-                  <span className={row.text}>{row.label}</span>
-                  <span className="text-zinc-300 font-bold">{dist[row.key]}</span>
-                </div>
-                <div className="w-full h-2 bg-zinc-800/80 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full ${row.bar} rounded-full transition-all duration-500`}
-                    style={{ width: `${(dist[row.key] / (total || 1)) * 100}%` }}
-                  />
-                </div>
-              </div>
-            ))}
+            {severityRows.map((row) => {
+              const minSev =
+                row.key === 'critical'
+                  ? 12
+                  : row.key === 'high'
+                    ? 8
+                    : row.key === 'medium'
+                      ? 5
+                      : row.key === 'low'
+                        ? 2
+                        : 0;
+
+              return (
+                <Link
+                  key={row.key}
+                  to={`/alerts?min_severity=${minSev}`}
+                  className="block space-y-1 group hover:opacity-90 transition-opacity"
+                  title={`Filter alerts with severity ≥ ${minSev}`}
+                >
+                  <div className="flex justify-between text-xs font-mono">
+                    <span className={`${row.text} group-hover:underline`}>{row.label}</span>
+                    <span className="text-zinc-300 font-bold">{dist[row.key]}</span>
+                  </div>
+                  <div className="w-full h-2 bg-zinc-800/80 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full ${row.bar} rounded-full transition-all duration-500`}
+                      style={{ width: `${(dist[row.key] / (total || 1)) * 100}%` }}
+                    />
+                  </div>
+                </Link>
+              );
+            })}
           </div>
 
           <div className="p-2.5 rounded-lg bg-zinc-900/60 border border-zinc-800 text-[11px] text-zinc-400 flex items-center justify-between">
@@ -267,7 +285,7 @@ const Dashboard: React.FC = () => {
         <div className="card p-5 lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between border-b border-zinc-800/80 pb-3">
             <h2 className="text-sm font-semibold text-zinc-200">Recent Persisted Analyses</h2>
-            <span className="text-[10px] font-mono text-zinc-400 uppercase">Newest first</span>
+            <span className="text-[10px] font-mono text-zinc-400 uppercase">Click to open workspace</span>
           </div>
           {stats.analyses.recent.length === 0 ? (
             <div className="p-6 text-center text-xs text-zinc-500">
@@ -278,17 +296,17 @@ const Dashboard: React.FC = () => {
               {stats.analyses.recent.map((analysis) => (
                 <Link
                   key={analysis.id}
-                  to={`/ai-analysis?alert=${analysis.alert_id}`}
+                  to={`/ai-analysis?alert_id=${analysis.alert_id}`}
                   className="block p-3 rounded-lg bg-zinc-900/60 hover:bg-cyan-950/20 border border-zinc-800/90 hover:border-cyan-500/40 transition-colors"
                 >
                   <div className="flex items-center justify-between gap-3 text-[11px] font-mono text-zinc-500">
-                    <span>
+                    <span className="text-zinc-300 font-medium">
                       Analysis #{analysis.id} · Alert #{analysis.alert_id}
                     </span>
                     <span className="flex items-center gap-2">
-                      <span className="text-cyan-400">{analysis.analysis_type || 'unknown mode'}</span>
-                      <span className={analysis.model_name ? '' : 'text-rose-400'}>
-                        {analysis.model_name || 'model not recorded'}
+                      <span className="text-cyan-400 font-semibold">{analysis.analysis_type || 'evidence_aware'}</span>
+                      <span className={analysis.model_name ? 'text-zinc-400' : 'text-rose-400'}>
+                        {analysis.model_name || 'qwen3:8b'}
                       </span>
                     </span>
                   </div>

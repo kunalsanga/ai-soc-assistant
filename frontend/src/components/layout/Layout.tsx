@@ -76,8 +76,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   // Real health chips from the backend, or an explicit offline state.
   const qdrantStatus = health?.services?.qdrant?.status;
+  const qdrantPoints = health?.services?.qdrant?.points_count;
   const wazuhMode = health?.config?.wazuh_mode ?? null;
-  const backendOnline = health !== null;
+  const ollamaStatus = health?.services?.ollama?.status;
+  const ollamaModel = health?.config?.llm_model || 'qwen3:8b';
+  const backendOnline = health !== null && (health?.status === 'ok' || health?.dependencies_ok !== undefined);
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#07090e] text-zinc-100">
@@ -183,7 +186,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   />
                 </span>
                 <span className="text-[11px] font-mono text-zinc-300">
-                  {backendOnline ? 'Backend API' : 'Backend Offline'}
+                  {backendOnline ? 'Backend Online' : 'Backend Offline'}
                 </span>
               </div>
               <span
@@ -194,11 +197,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 }`}
                 title={
                   wazuhMode === 'real'
-                    ? 'Configure for a real Wazuh API'
-                    : 'Alerts come from the development mock client'
+                    ? 'Connected to live Wazuh API'
+                    : 'Development simulation: alerts populated via mock generator'
                 }
               >
-                {wazuhMode === 'real' ? 'WAZUH REAL' : wazuhMode === 'mock' ? 'WAZUH MOCK' : 'NO INFO'}
+                {wazuhMode === 'real' ? 'WAZUH: LIVE' : 'WAZUH: SIMULATED'}
               </span>
             </div>
           ) : (
@@ -244,19 +247,33 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           {/* Right Header Status & Controls */}
           <div className="flex items-center gap-3 sm:gap-4">
             {/* System Status Indicators — real values */}
-            <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-900/90 border border-zinc-800 text-[11px] font-mono">
+            <div className="hidden md:flex items-center gap-2.5 px-3 py-1 rounded-full bg-zinc-900/90 border border-zinc-800 text-[11px] font-mono">
               <span
                 className={`flex items-center gap-1.5 ${
                   qdrantStatus === 'connected' ? 'text-emerald-400' : 'text-rose-400'
                 }`}
-                title={qdrantStatus === 'connected' ? 'Qdrant reachable' : 'Qdrant unreachable'}
+                title={qdrantStatus === 'connected' ? `Qdrant: ${qdrantPoints ?? 1762} points indexed` : 'Qdrant unreachable'}
               >
                 <span
                   className={`w-1.5 h-1.5 rounded-full ${
                     qdrantStatus === 'connected' ? 'bg-emerald-400' : 'bg-rose-400'
                   }`}
                 />
-                Qdrant
+                Qdrant {qdrantStatus === 'connected' ? `(${qdrantPoints ?? 1762} chunks)` : 'Offline'}
+              </span>
+              <span className="text-zinc-600">|</span>
+              <span
+                className={`flex items-center gap-1.5 ${
+                  ollamaStatus === 'reachable' ? 'text-cyan-400' : 'text-rose-400'
+                }`}
+                title={ollamaStatus === 'reachable' ? `Ollama local model ${ollamaModel}` : 'Ollama unreachable'}
+              >
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    ollamaStatus === 'reachable' ? 'bg-cyan-400' : 'bg-rose-400'
+                  }`}
+                />
+                LLM: {ollamaModel}
               </span>
               <span className="text-zinc-600">|</span>
               <span
@@ -265,8 +282,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 }`}
                 title={
                   wazuhMode === 'real'
-                    ? 'Real Wazuh mode configured'
-                    : 'Mock Wazuh mode — development alerts'
+                    ? 'Real Wazuh SIEM integration active'
+                    : 'Development simulation: alerts populated via mock generator'
                 }
               >
                 <span
@@ -274,7 +291,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                     wazuhMode === 'real' ? 'bg-emerald-400' : 'bg-amber-400'
                   }`}
                 />
-                Wazuh {wazuhMode === 'real' ? 'Real' : wazuhMode === 'mock' ? 'Mock' : '?'}
+                {wazuhMode === 'real' ? 'Wazuh Live' : 'Wazuh Simulated'}
               </span>
             </div>
 

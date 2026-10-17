@@ -16,6 +16,7 @@ from app.services.health import check_services
 router = APIRouter()
 
 
+@router.get("")
 @router.get("/")
 async def health_check():
     services = await check_services()

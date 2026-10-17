@@ -9,7 +9,8 @@
  */
 
 import axios from 'axios';
-import type { Alert, Analysis } from '../types/alert';
+import type { Alert, Analysis, Evidence } from '../types/alert';
+export type { Alert, Analysis, Evidence };
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
@@ -64,6 +65,18 @@ export const alertService = {
     return response.data;
   },
 
+  /** GET /alerts/:id/graph — Obsidian-style investigation entity graph */
+  getInvestigationGraph: async (id: string | number): Promise<InvestigationGraphData> => {
+    const response = await apiClient.get(`/alerts/${id}/graph`);
+    return response.data;
+  },
+
+  /** GET /alerts/:id/trace — pipeline execution trace */
+  getExecutionTrace: async (id: string | number): Promise<ExecutionTraceData> => {
+    const response = await apiClient.get(`/alerts/${id}/trace`);
+    return response.data;
+  },
+
   /** POST /alerts/sync — sync from Wazuh */
   syncAlerts: async (): Promise<SyncResult> => {
     const response = await apiClient.post('/alerts/sync');
@@ -75,6 +88,53 @@ export const alertService = {
     };
   },
 };
+
+export interface GraphNode {
+  id: string;
+  type: 'alert' | 'host' | 'user' | 'ip' | 'rule' | 'mitre' | 'cve' | 'evidence' | 'analysis' | 'claim';
+  label: string;
+  provenance: 'observed' | 'retrieved' | 'knowledge_base' | 'inferred';
+  status?: string;
+  attributes?: Record<string, unknown>;
+}
+
+export interface GraphEdge {
+  id: string;
+  source: string;
+  target: string;
+  relationship: string;
+  provenance: 'observed' | 'retrieved' | 'knowledge_base' | 'inferred';
+  status?: string;
+}
+
+export interface InvestigationGraphData {
+  alert_id: number;
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+  has_analysis: boolean;
+  node_count: number;
+  edge_count: number;
+}
+
+export interface ExecutionStage {
+  step: number;
+  name: string;
+  component: string;
+  status: 'succeeded' | 'skipped' | 'failed' | 'pending';
+  interface: string;
+  details: string;
+  records_processed: number;
+}
+
+export interface ExecutionTraceData {
+  alert_id: number;
+  analysis_id: number | null;
+  mode: string;
+  model_name: string;
+  created_at: string | null;
+  has_run: boolean;
+  stages: ExecutionStage[];
+}
 
 export interface SyncResult {
   client_mode: 'mock' | 'real';
@@ -187,6 +247,21 @@ export interface KnowledgeStats {
   counts: Record<string, number>;
 }
 
+export interface ThreatIntelRecord {
+  identifier: string;
+  title: string;
+  source: string;
+  source_identifier: string;
+  source_url: string | null;
+  description: string;
+  tactics: string[];
+  platforms: string[];
+  cvss_score: number | null;
+  relevance_score: number;
+  chunk_count: number;
+  provenance: string;
+}
+
 export const knowledgeService = {
   search: async (
     query: string,
@@ -201,6 +276,11 @@ export const knowledgeService = {
 
   getStats: async (): Promise<KnowledgeStats> => {
     const response = await apiClient.get('/knowledge/stats');
+    return response.data;
+  },
+
+  getThreatIntel: async (identifier: string): Promise<ThreatIntelRecord> => {
+    const response = await apiClient.get(`/knowledge/threat-intel/${encodeURIComponent(identifier)}`);
     return response.data;
   },
 };

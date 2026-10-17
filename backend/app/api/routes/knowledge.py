@@ -147,3 +147,78 @@ def provider_name(index: QdrantIndex) -> str:
         return index._provider.model_name
     except Exception:  # noqa: BLE001
         return settings.EMBEDDING_PROVIDER
+
+
+@router.get("/threat-intel/{identifier}")
+async def get_threat_intel(identifier: str) -> Dict[str, Any]:
+    """Retrieve structured threat intelligence for a MITRE technique or CVE.
+
+    Queries the indexed knowledge corpus for exact identifier matches using Qdrant scroll.
+    Does NOT fabricate live intelligence feeds; returns verified knowledge records.
+    """
+    clean_id = identifier.strip().upper()
+    index = _build_index()
+    client = index._get_client()
+    try:
+        from qdrant_client import models
+
+        # Search exact match in payload using Qdrant client scroll filter
+        exact_filter = models.Filter(
+            must=[models.FieldCondition(key="source_identifier", match=models.MatchValue(value=clean_id))]
+        )
+        points, _ = client.scroll(
+            collection_name=index._collection,
+            scroll_filter=exact_filter,
+            limit=5,
+            with_payload=True,
+        )
+        if not points:
+            # Try searching document_id
+            doc_filter = models.Filter(
+                must=[models.FieldCondition(key="document_id", match=models.MatchValue(value=clean_id))]
+            )
+            points, _ = client.scroll(
+                collection_name=index._collection,
+                scroll_filter=doc_filter,
+                limit=5,
+                with_payload=True,
+            )
+
+        if not points:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Threat intelligence record for '{clean_id}' not found in indexed knowledge base."
+            )
+
+        first_point = points[0]
+        payload = first_point.payload or {}
+        metadata = payload.get("metadata", {}) or {}
+
+        # Aggregate content from all matching chunks
+        chunks = [p.payload.get("content", "") for p in points if p.payload]
+
+        return {
+            "identifier": clean_id,
+            "title": payload.get("title") or clean_id,
+            "source": payload.get("source"),
+            "source_identifier": payload.get("source_identifier") or clean_id,
+            "source_url": payload.get("source_url") or (
+                f"https://attack.mitre.org/techniques/{clean_id}/" if clean_id.startswith("T")
+                else f"https://nvd.nist.gov/vuln/detail/{clean_id}" if clean_id.startswith("CVE")
+                else None
+            ),
+            "description": "\n\n".join(chunks[:3]),
+            "tactics": metadata.get("tactics", []) or metadata.get("mitre_techniques", []),
+            "platforms": metadata.get("platforms", []),
+            "cvss_score": metadata.get("cvss_score"),
+            "relevance_score": 1.0,
+            "chunk_count": len(points),
+            "provenance": "indexed_knowledge_corpus",
+        }
+    except HTTPException:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        logger.error(f"Failed to lookup threat intel for {clean_id}: {exc}")
+        raise HTTPException(status_code=503, detail=f"Failed to query knowledge index: {exc}") from exc
+    finally:
+        index.close()
