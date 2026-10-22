@@ -14,6 +14,10 @@ class AlertBase(BaseModel):
     username: Optional[str] = None
     raw_data: Optional[str] = None
     status: str = "open"
+    data_origin: Optional[str] = None
+    dataset_version: Optional[str] = None
+    scenario_id: Optional[str] = None
+    scenario_title: Optional[str] = None
 
 class AlertCreate(AlertBase):
     pass

@@ -23,18 +23,16 @@ vi.mocked(dashboardService.getStats).mockRejectedValue({
 });
 
 describe('App Routing', () => {
-  it('renders the dashboard route by default', () => {
+  it('renders the operations, intelligence, and research navigation links', () => {
     render(<App />);
-    expect(
-      screen.getByRole('link', { name: 'Dashboard' })
-    ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Alert Stream' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'AI Analysis' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Security Knowledge' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'RAG Evaluation' })).toBeInTheDocument();
-    // Retired pages must not appear in the navigation.
-    expect(screen.queryByRole('link', { name: 'Investigations' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Threat Intelligence' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /overview/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /alerts & triage/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /investigations/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /entity graph/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /architecture/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /pipeline execution/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /threat knowledge/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /rag evaluation/i })).toBeInTheDocument();
     expect(screen.queryByText('Bivan')).not.toBeInTheDocument();
   });
 });

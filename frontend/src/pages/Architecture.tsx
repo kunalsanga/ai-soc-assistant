@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Layers,
   RefreshCw,
   TriangleAlert,
   X,
   Code2,
+  GitCommit,
 } from 'lucide-react';
 import { healthService } from '../services/api';
 import type { DetailedHealth } from '../services/api';
@@ -294,10 +296,19 @@ export const Architecture: React.FC = () => {
         subtitle="Live system topology: click any component to inspect its code module, interface contract, and runtime verification evidence."
         breadcrumbs={[{ label: 'Home', href: '/' }, { label: 'Architecture & Live Status' }]}
         actions={
-          <button onClick={load} className="btn btn-secondary flex items-center gap-2 text-xs">
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-cyan-400' : ''}`} />
-            <span>Refresh Health</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={load} className="btn btn-secondary flex items-center gap-2 text-xs">
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-cyan-400' : ''}`} />
+              <span>Refresh Health</span>
+            </button>
+            <Link
+              to="/execution"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-950 hover:bg-cyan-900 border border-cyan-800/60 text-xs font-mono text-cyan-300 font-semibold shadow-[0_0_12px_rgba(6,182,212,0.15)] transition-all"
+            >
+              <GitCommit className="w-3.5 h-3.5" />
+              <span>Pipeline Execution Traces →</span>
+            </Link>
+          </div>
         }
       />
 
@@ -309,16 +320,16 @@ export const Architecture: React.FC = () => {
       )}
 
       {/* Interactive Topology Explorer */}
-      <div className="card p-6 bg-[#0a0d14] border-zinc-800 space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800 pb-3">
-          <div className="flex items-center gap-2">
-            <Layers className="w-4 h-4 text-cyan-400" />
-            <h2 className="text-sm font-semibold text-zinc-200">Interactive Pipeline Topology</h2>
-          </div>
-          <span className="text-[11px] font-mono text-zinc-500">
-            Click any component to inspect implementation details
-          </span>
-        </div>
+          <div className="card p-6 bg-[#0a0d14] border-zinc-800 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800 pb-3">
+              <div className="flex items-center gap-2">
+                <Layers className="w-4 h-4 text-cyan-400" />
+                <h2 className="text-sm font-semibold text-zinc-200">Interactive Pipeline Topology</h2>
+              </div>
+              <span className="text-[11px] font-mono text-zinc-500">
+                Click any component to inspect implementation details
+              </span>
+            </div>
 
         {/* Visual Pipeline Flow */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">

@@ -72,8 +72,31 @@ export const alertService = {
   },
 
   /** GET /alerts/:id/trace — pipeline execution trace */
-  getExecutionTrace: async (id: string | number): Promise<ExecutionTraceData> => {
-    const response = await apiClient.get(`/alerts/${id}/trace`);
+  getExecutionTrace: async (id: string | number, runId?: number): Promise<ExecutionTraceData> => {
+    const url = runId ? `/alerts/${id}/trace?run_id=${runId}` : `/alerts/${id}/trace`;
+    const response = await apiClient.get(url);
+    return response.data;
+  },
+
+  /** GET /alerts/graph/global — Obsidian-style global environment entity graph */
+  getGlobalGraph: async (scenarioId?: string, limit: number = 50): Promise<InvestigationGraphData> => {
+    const params = new URLSearchParams();
+    if (scenarioId) params.append('scenario_id', scenarioId);
+    if (limit) params.append('limit', limit.toString());
+    const query = params.toString() ? `?${params.toString()}` : '';
+    const response = await apiClient.get(`/alerts/graph/global${query}`);
+    return response.data;
+  },
+
+  /** GET /alerts/demo-manifest — dataset provenance manifest */
+  getDemoManifest: async (): Promise<DemoManifest> => {
+    const response = await apiClient.get('/alerts/demo-manifest');
+    return response.data;
+  },
+
+  /** POST /alerts/seed-demo — idempotently seed the demo scenarios */
+  seedDemoAlerts: async (): Promise<{ status: string; created: number; skipped: number }> => {
+    const response = await apiClient.post('/alerts/seed-demo');
     return response.data;
   },
 
@@ -88,6 +111,28 @@ export const alertService = {
     };
   },
 };
+
+export interface DemoScenario {
+  id: string;
+  title: string;
+  category: string;
+  mitre_techniques: string[];
+  cve_ids?: string[];
+  target_host: string;
+  attacker_ip: string | null;
+  event_count: number;
+  max_severity: number;
+}
+
+export interface DemoManifest {
+  dataset_version: string;
+  data_origin: string;
+  generation_method: string;
+  provenance_statement: string;
+  scenario_count: number;
+  total_records: number;
+  scenarios: DemoScenario[];
+}
 
 export interface GraphNode {
   id: string;
@@ -120,10 +165,26 @@ export interface ExecutionStage {
   step: number;
   name: string;
   component: string;
+  purpose?: string;
   status: 'succeeded' | 'skipped' | 'failed' | 'pending';
+  duration_ms?: number;
   interface: string;
+  input_summary?: string;
+  output_summary?: string;
+  evidence_ids?: string[];
+  error?: string;
   details: string;
   records_processed: number;
+}
+
+export interface ExecutionRunSummary {
+  id: number;
+  mode: string;
+  model_name: string;
+  created_at: string | null;
+  evidence_count: number;
+  severity_assessment?: string;
+  confidence?: string;
 }
 
 export interface ExecutionTraceData {
@@ -133,7 +194,10 @@ export interface ExecutionTraceData {
   model_name: string;
   created_at: string | null;
   has_run: boolean;
+  status?: string;
+  total_duration_ms?: number;
   stages: ExecutionStage[];
+  runs?: ExecutionRunSummary[];
 }
 
 export interface SyncResult {

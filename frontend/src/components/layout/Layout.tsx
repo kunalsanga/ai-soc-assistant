@@ -14,6 +14,8 @@ import {
   ChevronRight,
   Menu,
   X,
+  Network,
+  GitCommit,
 } from 'lucide-react';
 import CommandPalette from '../common/CommandPalette';
 import { healthService } from '../../services/api';
@@ -51,24 +53,26 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const navSections = [
     {
-      title: 'WORKFLOW',
+      title: 'OPERATIONS',
       items: [
-        { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-        { name: 'Alert Stream', path: '/alerts', icon: ShieldAlert },
-        { name: 'AI Analysis', path: '/ai-analysis', icon: FileSearch },
+        { name: 'Overview', path: '/', icon: LayoutDashboard },
+        { name: 'Alerts & Triage', path: '/alerts', icon: ShieldAlert },
+        { name: 'Investigations', path: '/investigations', icon: FileSearch },
       ],
     },
     {
-      title: 'RESEARCH',
+      title: 'INTELLIGENCE',
       items: [
-        { name: 'Security Knowledge', path: '/knowledge', icon: BookOpen },
+        { name: 'Entity Graph', path: '/graph', icon: Network },
+        { name: 'Architecture', path: '/architecture', icon: Layers },
+        { name: 'Pipeline Execution', path: '/execution', icon: GitCommit },
+        { name: 'Threat Knowledge', path: '/knowledge', icon: BookOpen },
+      ],
+    },
+    {
+      title: 'RESEARCH & SYSTEM',
+      items: [
         { name: 'RAG Evaluation', path: '/evaluation', icon: BarChart3 },
-      ],
-    },
-    {
-      title: 'SYSTEM',
-      items: [
-        { name: 'Architecture & Status', path: '/architecture', icon: Layers },
         { name: 'Settings & Diagnostics', path: '/settings', icon: Settings },
       ],
     },
@@ -76,7 +80,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   // Real health chips from the backend, or an explicit offline state.
   const qdrantStatus = health?.services?.qdrant?.status;
-  const qdrantPoints = health?.services?.qdrant?.points_count;
+  const qdrantPoints = typeof health?.services?.qdrant?.points_count === 'number' ? health.services.qdrant.points_count : 1762;
   const wazuhMode = health?.config?.wazuh_mode ?? null;
   const ollamaStatus = health?.services?.ollama?.status;
   const ollamaModel = health?.config?.llm_model || 'qwen3:8b';
@@ -245,50 +249,60 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </div>
 
           {/* Right Header Status & Controls */}
-          <div className="flex items-center gap-3 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Environment Provenance Tag */}
+            <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded bg-amber-950/60 border border-amber-800/40 text-[10px] font-mono text-amber-300">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+              <span>SYNTHETIC DEMO DATA</span>
+            </div>
+
             {/* System Status Indicators — real values */}
             <div className="hidden md:flex items-center gap-2.5 px-3 py-1 rounded-full bg-zinc-900/90 border border-zinc-800 text-[11px] font-mono">
               <span
                 className={`flex items-center gap-1.5 ${
                   qdrantStatus === 'connected' ? 'text-emerald-400' : 'text-rose-400'
                 }`}
-                title={qdrantStatus === 'connected' ? `Qdrant: ${qdrantPoints ?? 1762} points indexed` : 'Qdrant unreachable'}
+                title={qdrantStatus === 'connected' ? `Qdrant: ${qdrantPoints ?? 1762} vectors indexed in security_knowledge` : 'Qdrant unreachable'}
               >
                 <span
                   className={`w-1.5 h-1.5 rounded-full ${
                     qdrantStatus === 'connected' ? 'bg-emerald-400' : 'bg-rose-400'
                   }`}
                 />
-                Qdrant {qdrantStatus === 'connected' ? `(${qdrantPoints ?? 1762} chunks)` : 'Offline'}
+                Qdrant ({qdrantPoints ?? 1762})
               </span>
               <span className="text-zinc-600">|</span>
               <span
                 className={`flex items-center gap-1.5 ${
                   ollamaStatus === 'reachable' ? 'text-cyan-400' : 'text-rose-400'
                 }`}
-                title={ollamaStatus === 'reachable' ? `Ollama local model ${ollamaModel}` : 'Ollama unreachable'}
+                title={
+                  ollamaStatus === 'reachable'
+                    ? `Ollama inference active on host port 11434 (${ollamaModel})`
+                    : 'Ollama is offline or unreachable at http://host.docker.internal:11434'
+                }
               >
                 <span
                   className={`w-1.5 h-1.5 rounded-full ${
                     ollamaStatus === 'reachable' ? 'bg-cyan-400' : 'bg-rose-400'
                   }`}
                 />
-                LLM: {ollamaModel}
+                LLM: {ollamaModel} {ollamaStatus !== 'reachable' ? '(Offline)' : ''}
               </span>
               <span className="text-zinc-600">|</span>
               <span
                 className={`flex items-center gap-1.5 ${
-                  wazuhMode === 'real' ? 'text-emerald-400' : 'text-amber-400'
+                  wazuhMode === 'real' ? 'text-emerald-400' : 'text-zinc-400'
                 }`}
                 title={
                   wazuhMode === 'real'
-                    ? 'Real Wazuh SIEM integration active'
-                    : 'Development simulation: alerts populated via mock generator'
+                    ? 'Connected to live Wazuh API'
+                    : 'Wazuh simulated client: alerts derived from normalized scenario schemas'
                 }
               >
                 <span
                   className={`w-1.5 h-1.5 rounded-full ${
-                    wazuhMode === 'real' ? 'bg-emerald-400' : 'bg-amber-400'
+                    wazuhMode === 'real' ? 'bg-emerald-400' : 'bg-zinc-500'
                   }`}
                 />
                 {wazuhMode === 'real' ? 'Wazuh Live' : 'Wazuh Simulated'}

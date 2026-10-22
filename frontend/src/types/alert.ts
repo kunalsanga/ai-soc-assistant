@@ -25,6 +25,10 @@ export interface Alert {
   raw_data?: string;
   status: string;
   created_at: string;
+  data_origin?: 'synthetic_demo' | 'wazuh_mock' | 'live_wazuh' | string;
+  dataset_version?: string;
+  scenario_id?: string;
+  scenario_title?: string;
 }
 
 /** Frontend helper: map numeric severity to named level */

@@ -8,32 +8,40 @@ import SecurityKnowledge from './pages/SecurityKnowledge';
 import Evaluation from './pages/Evaluation';
 import Architecture from './pages/Architecture';
 import Settings from './pages/Settings';
+import EntityGraphPage from './pages/EntityGraphPage';
+import ExecutionTracesPage from './pages/ExecutionTracesPage';
 
 function App() {
   return (
     <Router>
       <Layout>
         <Routes>
-          {/* Core workflow */}
+          {/* Operations */}
           <Route path="/" element={<Dashboard />} />
           <Route path="/dashboard" element={<Navigate to="/" replace />} />
           <Route path="/alerts" element={<Alerts />} />
           <Route path="/alerts/:id" element={<AlertDetails />} />
-          <Route path="/ai-analysis" element={<AIAnalysis />} />
-          <Route path="/analysis" element={<Navigate to="/ai-analysis" replace />} />
+          <Route path="/investigations" element={<AIAnalysis />} />
+          <Route path="/investigations/:id" element={<AlertDetails />} />
+          <Route path="/ai-analysis" element={<Navigate to="/investigations" replace />} />
+          <Route path="/analysis" element={<Navigate to="/investigations" replace />} />
 
-          {/* Knowledge & research */}
+          {/* Intelligence */}
+          <Route path="/graph" element={<EntityGraphPage />} />
+          <Route path="/entity-graph" element={<Navigate to="/graph" replace />} />
           <Route path="/knowledge" element={<SecurityKnowledge />} />
-          <Route path="/evaluation" element={<Evaluation />} />
-
-          {/* Platform */}
+          <Route path="/threat-knowledge" element={<Navigate to="/knowledge" replace />} />
           <Route path="/architecture" element={<Architecture />} />
+          <Route path="/execution" element={<ExecutionTracesPage />} />
+          <Route path="/execution-traces" element={<Navigate to="/execution" replace />} />
           <Route path="/project-status" element={<Navigate to="/architecture" replace />} />
           <Route path="/evidence" element={<Navigate to="/knowledge" replace />} />
           <Route path="/security-context" element={<Navigate to="/knowledge" replace />} />
           <Route path="/threat-intelligence" element={<Navigate to="/knowledge" replace />} />
 
-          {/* System */}
+          {/* Research and System */}
+          <Route path="/evaluation" element={<Evaluation />} />
+          <Route path="/rag-evaluation" element={<Navigate to="/evaluation" replace />} />
           <Route path="/settings" element={<Settings />} />
 
           {/* Fallback to root */}

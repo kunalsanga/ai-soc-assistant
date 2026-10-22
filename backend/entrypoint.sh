@@ -1,5 +1,6 @@
 #!/bin/sh
 set -e
+export PYTHONUNBUFFERED=1
 
 echo "=========================================================="
 echo " Starting SOC Assistant Backend Container"

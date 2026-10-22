@@ -60,7 +60,7 @@ describe('Dashboard — real data flow', () => {
     });
     // Real aggregate values appear ("11" total alerts, 1618 knowledge points).
     expect(await screen.findByText('Alerts in Database')).toBeInTheDocument();
-    expect(screen.getByText('11')).toBeInTheDocument();
+    expect(screen.getAllByText('11').length).toBeGreaterThan(0);
     expect(screen.getByText('1618')).toBeInTheDocument();
   });
 

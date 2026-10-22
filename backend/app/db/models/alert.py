@@ -22,6 +22,46 @@ class Alert(Base):
 
     analyses = relationship("Analysis", back_populates="alert")
 
+    @property
+    def data_origin(self) -> str:
+        if not self.raw_data:
+            return "wazuh_mock"
+        try:
+            import json
+            return json.loads(self.raw_data).get("data_origin", "wazuh_mock")
+        except Exception:
+            return "wazuh_mock"
+
+    @property
+    def dataset_version(self) -> str | None:
+        if not self.raw_data:
+            return None
+        try:
+            import json
+            return json.loads(self.raw_data).get("dataset_version")
+        except Exception:
+            return None
+
+    @property
+    def scenario_id(self) -> str | None:
+        if not self.raw_data:
+            return None
+        try:
+            import json
+            return json.loads(self.raw_data).get("scenario_id")
+        except Exception:
+            return None
+
+    @property
+    def scenario_title(self) -> str | None:
+        if not self.raw_data:
+            return None
+        try:
+            import json
+            return json.loads(self.raw_data).get("scenario_title")
+        except Exception:
+            return None
+
 class Analysis(Base):
     __tablename__ = "analyses"
 

@@ -38,7 +38,14 @@ async def db_session():
 
 
 async def test_sync_mock_alerts_endpoint(db_session):
-    # Ensure a clean slate for the external ids used by the mock client.
+    # Ensure a clean slate for the external ids used by the mock client,
+    # removing any dependent analyses/evidence first.
+    await db_session.execute(
+        text("DELETE FROM evidence WHERE analysis_id IN (SELECT id FROM analyses WHERE alert_id IN (SELECT id FROM alerts WHERE external_alert_id LIKE 'mock-%'))")
+    )
+    await db_session.execute(
+        text("DELETE FROM analyses WHERE alert_id IN (SELECT id FROM alerts WHERE external_alert_id LIKE 'mock-%')")
+    )
     await db_session.execute(
         text("DELETE FROM alerts WHERE external_alert_id LIKE 'mock-%'")
     )

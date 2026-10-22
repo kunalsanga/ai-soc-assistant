@@ -21,18 +21,10 @@ import {
   ChevronUp,
 } from 'lucide-react';
 import { alertService } from '../services/api';
-import type {
-  Alert,
-  Analysis,
-  Evidence,
-  InvestigationGraphData,
-  ExecutionTraceData,
-} from '../services/api';
+import type { Alert, Analysis, Evidence } from '../services/api';
 import PageHeader from '../components/common/PageHeader';
 import SeverityBadge from '../components/common/SeverityBadge';
 import EmptyState from '../components/common/EmptyState';
-import InvestigationGraph from '../components/investigation/InvestigationGraph';
-import ExecutionTrace from '../components/investigation/ExecutionTrace';
 import ThreatIntelDrawer from '../components/investigation/ThreatIntelDrawer';
 
 const ANALYSIS_MODES = [
@@ -59,8 +51,6 @@ const ANALYSIS_MODES = [
 
 type AnalysisMode = (typeof ANALYSIS_MODES)[number]['id'];
 
-type WorkspaceTab = 'findings' | 'graph' | 'trace' | 'raw';
-
 const AIAnalysis: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation() as { state?: { alertId?: number } };
@@ -69,16 +59,11 @@ const AIAnalysis: React.FC = () => {
   const [alertsError, setAlertsError] = useState<string | null>(null);
   const [selectedAlertId, setSelectedAlertId] = useState<number | null>(null);
   const [mode, setMode] = useState<AnalysisMode>('evidence_aware');
-  const [activeTab, setActiveTab] = useState<WorkspaceTab>('findings');
 
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
-  const [graphData, setGraphData] = useState<InvestigationGraphData | null>(null);
-  const [traceData, setTraceData] = useState<ExecutionTraceData | null>(null);
 
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [graphLoading, setGraphLoading] = useState(false);
-  const [traceLoading, setTraceLoading] = useState(false);
   const [running, setRunning] = useState(false);
 
   // Threat Intel Drawer State
@@ -129,10 +114,8 @@ const AIAnalysis: React.FC = () => {
     setLoading(true);
     setLoadError(null);
     setAnalysis(null);
-    setGraphData(null);
-    setTraceData(null);
 
-    // 1. Load Analysis
+    // Load Analysis
     try {
       const data = await alertService.getAnalysis(alertId);
       setAnalysis(data);
@@ -151,32 +134,6 @@ const AIAnalysis: React.FC = () => {
     } finally {
       setLoading(false);
     }
-
-    // 2. Load Investigation Graph if service method exists
-    setGraphLoading(true);
-    try {
-      if (typeof alertService.getInvestigationGraph === 'function') {
-        const graph = await alertService.getInvestigationGraph(alertId);
-        setGraphData(graph);
-      }
-    } catch {
-      setGraphData(null);
-    } finally {
-      setGraphLoading(false);
-    }
-
-    // 3. Load Execution Trace if service method exists
-    setTraceLoading(true);
-    try {
-      if (typeof alertService.getExecutionTrace === 'function') {
-        const trace = await alertService.getExecutionTrace(alertId);
-        setTraceData(trace);
-      }
-    } catch {
-      setTraceData(null);
-    } finally {
-      setTraceLoading(false);
-    }
   }, []);
 
   useEffect(() => {
@@ -184,8 +141,6 @@ const AIAnalysis: React.FC = () => {
       loadAlertDetails(selectedAlertId);
     } else {
       setAnalysis(null);
-      setGraphData(null);
-      setTraceData(null);
       setLoadError(null);
     }
   }, [selectedAlertId, loadAlertDetails]);
@@ -202,19 +157,6 @@ const AIAnalysis: React.FC = () => {
     try {
       const result = await alertService.analyzeAlert(selectedAlertId, mode);
       setAnalysis(result);
-      // Reload graph and trace if service methods exist
-      if (typeof alertService.getInvestigationGraph === 'function') {
-        try {
-          const updatedGraph = await alertService.getInvestigationGraph(selectedAlertId);
-          setGraphData(updatedGraph);
-        } catch { /* ignore */ }
-      }
-      if (typeof alertService.getExecutionTrace === 'function') {
-        try {
-          const updatedTrace = await alertService.getExecutionTrace(selectedAlertId);
-          setTraceData(updatedTrace);
-        } catch { /* ignore */ }
-      }
     } catch (e: unknown) {
       const err = e as {
         code?: string;
@@ -575,50 +517,34 @@ ${(analysis.evidence || []).map((e: Evidence) => `- [${e.document_id}] ${e.title
               </div>
             )}
 
-            {/* MAIN COLUMN: INVESTIGATION TABS (8 cols) */}
+            {/* MAIN COLUMN: INVESTIGATION WORKSPACE (8 cols) */}
             <div className={selectedAlert ? 'lg:col-span-8 space-y-4' : 'space-y-4'}>
-              {/* Workspace Navigation Tabs */}
-              <div className="flex items-center gap-2 border-b border-zinc-800 pb-2">
-                <button
-                  onClick={() => setActiveTab('findings')}
-                  className={`px-3 py-2 rounded-lg text-xs font-medium font-mono flex items-center gap-2 transition-all ${
-                    activeTab === 'findings'
-                      ? 'bg-cyan-950/80 text-cyan-300 border border-cyan-500/40 shadow-[0_0_12px_rgba(6,182,212,0.2)]'
-                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/40'
-                  }`}
-                >
+              {/* Workspace Navigation Header & Standalone Actions */}
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800 pb-3">
+                <div className="flex items-center gap-2">
                   <Cpu className="w-4 h-4 text-cyan-400" />
-                  <span>AI Investigation Findings</span>
-                </button>
+                  <span className="text-sm font-semibold font-mono text-zinc-100">AI Investigation Findings</span>
+                </div>
 
-                <button
-                  onClick={() => setActiveTab('graph')}
-                  className={`px-3 py-2 rounded-lg text-xs font-medium font-mono flex items-center gap-2 transition-all ${
-                    activeTab === 'graph'
-                      ? 'bg-cyan-950/80 text-cyan-300 border border-cyan-500/40 shadow-[0_0_12px_rgba(6,182,212,0.2)]'
-                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/40'
-                  }`}
-                >
-                  <Network className="w-4 h-4 text-cyan-400" />
-                  <span>Obsidian Entity Graph</span>
-                  {graphData && (
-                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-cyan-900/60 text-cyan-300">
-                      {graphData.node_count}
-                    </span>
-                  )}
-                </button>
+                <div className="flex items-center gap-2">
+                  <Link
+                    to={selectedAlertId ? `/graph?alertId=${selectedAlertId}` : '/graph'}
+                    className="px-3 py-1.5 rounded-lg text-xs font-mono font-medium bg-[#1a0a2a] hover:bg-[#280d40] text-pink-300 border border-pink-700/50 shadow-[0_0_12px_rgba(236,72,153,0.15)] flex items-center gap-1.5 transition-all"
+                  >
+                    <Network className="w-3.5 h-3.5 text-pink-400" />
+                    <span>Explore Entity Graph</span>
+                    <ExternalLink className="w-3 h-3 text-pink-400/70" />
+                  </Link>
 
-                <button
-                  onClick={() => setActiveTab('trace')}
-                  className={`px-3 py-2 rounded-lg text-xs font-medium font-mono flex items-center gap-2 transition-all ${
-                    activeTab === 'trace'
-                      ? 'bg-cyan-950/80 text-cyan-300 border border-cyan-500/40 shadow-[0_0_12px_rgba(6,182,212,0.2)]'
-                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/40'
-                  }`}
-                >
-                  <GitCommit className="w-4 h-4 text-cyan-400" />
-                  <span>Pipeline Execution Trace</span>
-                </button>
+                  <Link
+                    to={selectedAlertId ? `/execution?alertId=${selectedAlertId}` : '/execution'}
+                    className="px-3 py-1.5 rounded-lg text-xs font-mono font-medium bg-[#082030] hover:bg-[#0c2f45] text-cyan-300 border border-cyan-700/50 shadow-[0_0_12px_rgba(6,182,212,0.15)] flex items-center gap-1.5 transition-all"
+                  >
+                    <GitCommit className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>View Execution Trace</span>
+                    <ExternalLink className="w-3 h-3 text-cyan-400/70" />
+                  </Link>
+                </div>
               </div>
 
               {/* Error State */}
@@ -652,10 +578,9 @@ ${(analysis.evidence || []).map((e: Evidence) => `- [${e.document_id}] ${e.title
                 </div>
               )}
 
-              {/* TAB 1: AI FINDINGS */}
-              {activeTab === 'findings' && (
-                <>
-                  {!analysis && !loading && !loadError && selectedAlert && (
+              {/* AI FINDINGS */}
+              <>
+                {!analysis && !loading && !loadError && selectedAlert && (
                     <div className="card p-12 flex flex-col items-center space-y-3 border-zinc-800 bg-[#0c101a] text-center">
                       <HelpCircle className="w-10 h-10 text-zinc-600 mb-1" />
                       <h3 className="text-sm font-semibold text-zinc-200">
@@ -824,50 +749,9 @@ ${(analysis.evidence || []).map((e: Evidence) => `- [${e.document_id}] ${e.title
                     </div>
                   )}
                 </>
-              )}
-
-              {/* TAB 2: OBSIDIAN ENTITY GRAPH */}
-              {activeTab === 'graph' && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-xs font-mono uppercase font-bold text-cyan-400">
-                        Obsidian-Style Investigation Knowledge Graph
-                      </h3>
-                      <p className="text-xs text-zinc-400">
-                        Interactive graph connecting alert telemetry, ATT&CK techniques, CVEs, and retrieved evidence.
-                      </p>
-                    </div>
-                  </div>
-
-                  <InvestigationGraph
-                    data={graphData}
-                    loading={graphLoading}
-                    onSearchKnowledge={(techId) => setSelectedIntelId(techId)}
-                  />
-                </div>
-              )}
-
-              {/* TAB 3: PIPELINE EXECUTION TRACE */}
-              {activeTab === 'trace' && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-xs font-mono uppercase font-bold text-cyan-400">
-                        End-to-End Pipeline Trace
-                      </h3>
-                      <p className="text-xs text-zinc-400">
-                        Actual execution checkpoints through FastAPI, Qdrant vector retrieval, and Ollama inference.
-                      </p>
-                    </div>
-                  </div>
-
-                  <ExecutionTrace trace={traceData} loading={traceLoading} />
-                </div>
-              )}
+              </div>
             </div>
-          </div>
-        </>
+          </>
       )}
 
       {/* Slide-out Threat Intelligence Context Drawer */}
