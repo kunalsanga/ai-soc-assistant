@@ -95,6 +95,8 @@ export const EntityGraphPage: React.FC = () => {
   const [sizeByDegree, setSizeByDegree] = useState<boolean>(true);
   const [clusterByScenario, setClusterByScenario] = useState<boolean>(true);
   const [edgeOpacity, setEdgeOpacity] = useState<number>(0.35);
+  const [nodeScale, setNodeScale] = useState<number>(1.0);
+  const [zoomAdaptiveScaling, setZoomAdaptiveScaling] = useState<boolean>(true);
 
   const [containerDimensions, setContainerDimensions] = useState<{ width: number; height: number }>({
     width: 1200,
@@ -802,6 +804,34 @@ export const EntityGraphPage: React.FC = () => {
                       />
                     </label>
 
+                    <label className="flex items-center justify-between text-[11px] text-zinc-300 cursor-pointer">
+                      <span>Adaptive Zoom Sizing</span>
+                      <input
+                        type="checkbox"
+                        checked={zoomAdaptiveScaling}
+                        onChange={(e) => setZoomAdaptiveScaling(e.target.checked)}
+                        className="rounded border-zinc-700 text-pink-500 focus:ring-0 cursor-pointer"
+                      />
+                    </label>
+
+                    {/* Node Size Slider */}
+                    <div className="space-y-1 pt-1">
+                      <div className="flex items-center justify-between text-[10px] text-zinc-400">
+                        <span>Node Size</span>
+                        <span>{Math.round(nodeScale * 100)}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        aria-label="Node Size Slider"
+                        min="0.5"
+                        max="2.0"
+                        step="0.05"
+                        value={nodeScale}
+                        onChange={(e) => setNodeScale(parseFloat(e.target.value))}
+                        className="w-full accent-pink-500 cursor-pointer h-1.5 bg-zinc-800 rounded-lg appearance-none"
+                      />
+                    </div>
+
                     <div className="space-y-1 pt-1">
                       <div className="flex items-center justify-between text-[10px] text-zinc-400">
                         <span>Edge Opacity</span>
@@ -994,6 +1024,7 @@ export const EntityGraphPage: React.FC = () => {
                           stroke={strokeColor}
                           strokeWidth={strokeWidth}
                           strokeOpacity={strokeOpacity}
+                          vectorEffect="non-scaling-stroke"
                           strokeLinecap="round"
                         />
                       </g>
@@ -1009,7 +1040,13 @@ export const EntityGraphPage: React.FC = () => {
 
                     const style = NODE_COLORS[node.type] || NODE_COLORS.alert;
                     const degree = nodeDegrees[node.id] || 1;
-                    const radius = sizeByDegree ? Math.min(Math.max(13 + degree * 2.2, 14), 28) : 16;
+                    const baseRadius = (sizeByDegree ? Math.min(Math.max(12 + degree * 1.8, 13), 26) : 15) * nodeScale;
+                    // Damped zoom-adaptive radius:
+                    // In SVG, screen radius = svgRadius * viewport.zoom.
+                    // Damping by zoom^0.65 keeps screen radius between 8px and 28px across 0.2x to 3.0x zoom levels.
+                    const zoomDamp = Math.pow(viewport.zoom, 0.65);
+                    const radius = zoomAdaptiveScaling ? Math.max(6, baseRadius / zoomDamp) : baseRadius;
+
                     const isSelected = selectedNode?.id === node.id;
                     const isNeighbor = selectedNeighborIds.has(node.id) && !isSelected;
                     const isDimmed = selectedNode && !isSelected && !isNeighbor;
@@ -1018,6 +1055,11 @@ export const EntityGraphPage: React.FC = () => {
                     // At low zoom (< 0.65), only render high-degree hubs or selected node to prevent visual clutter
                     const shouldShowLabel =
                       showLabels && (viewport.zoom >= 0.65 || degree >= 4 || isSelected || isNeighbor);
+
+                    const labelFontSize = zoomAdaptiveScaling
+                      ? Math.max(5.5, Math.min(12, 9.5 / Math.pow(viewport.zoom, 0.6)))
+                      : 9;
+                    const labelOffsetY = radius + (zoomAdaptiveScaling ? Math.max(7, 10 / Math.pow(viewport.zoom, 0.5)) : 12);
 
                     return (
                       <g
@@ -1037,10 +1079,11 @@ export const EntityGraphPage: React.FC = () => {
                         {/* Selection Halo Ring */}
                         {isSelected && (
                           <circle
-                            r={radius + 8}
+                            r={radius + (zoomAdaptiveScaling ? 6 / Math.pow(viewport.zoom, 0.4) : 8)}
                             fill="none"
                             stroke={style.ring}
-                            strokeWidth="2.5"
+                            strokeWidth={isSelected ? 2.5 : 1.8}
+                            vectorEffect="non-scaling-stroke"
                             strokeDasharray="5 4"
                             opacity="0.9"
                           />
@@ -1049,10 +1092,11 @@ export const EntityGraphPage: React.FC = () => {
                         {/* Neighbor Accent Ring */}
                         {isNeighbor && (
                           <circle
-                            r={radius + 4}
+                            r={radius + (zoomAdaptiveScaling ? 3 / Math.pow(viewport.zoom, 0.4) : 4)}
                             fill="none"
                             stroke="#38bdf8"
-                            strokeWidth="1.5"
+                            strokeWidth={1.5}
+                            vectorEffect="non-scaling-stroke"
                             opacity="0.65"
                           />
                         )}
@@ -1063,6 +1107,7 @@ export const EntityGraphPage: React.FC = () => {
                           fill={style.bg}
                           stroke={isSelected ? '#ffffff' : style.border}
                           strokeWidth={isSelected ? 2.5 : 1.8}
+                          vectorEffect="non-scaling-stroke"
                           filter="drop-shadow(0 2px 6px rgba(0,0,0,0.6))"
                         />
 
@@ -1078,10 +1123,10 @@ export const EntityGraphPage: React.FC = () => {
                         {/* Label Text */}
                         {shouldShowLabel && (
                           <text
-                            y={radius + 12}
+                            y={labelOffsetY}
                             textAnchor="middle"
                             fill={isSelected ? '#38bdf8' : isNeighbor ? '#e2e8f0' : '#94a3b8'}
-                            fontSize="9"
+                            fontSize={labelFontSize}
                             fontFamily="monospace"
                             fontWeight={isSelected ? '700' : '500'}
                             className="pointer-events-none select-none drop-shadow-sm"

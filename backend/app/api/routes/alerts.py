@@ -14,7 +14,10 @@ so that the literal sub-paths ("analyze", "analysis") are never captured as
 integer alert_id values.
 """
 from fastapi import APIRouter, Depends, HTTPException
-from typing import List
+from fastapi.responses import StreamingResponse
+from typing import List, Optional
+import asyncio
+import json
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
@@ -704,6 +707,20 @@ async def get_alert_execution_trace(
         for a in all_analyses
     ]
 
+    mode_comparison = {}
+    for a in all_analyses:
+        m = a.analysis_type or "evidence_aware"
+        if m not in mode_comparison:
+            mode_comparison[m] = {
+                "id": a.id,
+                "mode": m,
+                "model_name": a.model_name,
+                "created_at": a.created_at.isoformat() if a.created_at else None,
+                "evidence_count": len(a.evidence) if a.evidence else 0,
+                "severity_assessment": a.severity_assessment,
+                "confidence": a.confidence,
+            }
+
     return {
         "alert_id": alert_id,
         "analysis_id": analysis.id if analysis else None,
@@ -715,6 +732,7 @@ async def get_alert_execution_trace(
         "total_duration_ms": total_duration_ms,
         "stages": stages,
         "runs": runs_list,
+        "mode_comparison": mode_comparison,
     }
 
 
@@ -779,6 +797,74 @@ async def analyze_alert(
         raise HTTPException(status_code=502, detail=str(exc))
 
     return analysis
+
+
+@router.get("/{alert_id}/analyze/stream")
+async def stream_analyze_alert(
+    alert_id: int,
+    mode: str = "evidence_aware",
+    db: AsyncSession = Depends(get_db),
+):
+    """Stream real-time stage execution trace events using Server-Sent Events (SSE)."""
+    from app.services.orchestrator import AnalysisMode
+
+    try:
+        analysis_mode = AnalysisMode(mode)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Invalid mode: {mode}")
+
+    orchestrator = get_orchestrator()
+    queue: asyncio.Queue = asyncio.Queue()
+
+    async def event_generator():
+        yield f"event: connect\ndata: {json.dumps({'status': 'connected', 'alert_id': alert_id, 'mode': mode})}\n\n"
+
+        async def trace_listener(payload: dict):
+            await queue.put(payload)
+
+        async def runner():
+            try:
+                analysis = await orchestrator.analyze_alert(
+                    db=db, alert_id=alert_id, mode=analysis_mode, on_trace_event=trace_listener
+                )
+                await queue.put({
+                    "event_type": "analysis_ready",
+                    "status": "completed",
+                    "analysis_id": analysis.id,
+                    "confidence": analysis.confidence,
+                    "model_name": analysis.model_name,
+                })
+            except Exception as err:
+                await queue.put({
+                    "event_type": "run_error",
+                    "status": "failed",
+                    "error_type": type(err).__name__,
+                    "safe_error_message": str(err),
+                })
+            finally:
+                await queue.put(None)
+
+        task = asyncio.create_task(runner())
+
+        try:
+            while True:
+                item = await queue.get()
+                if item is None:
+                    break
+                yield f"event: trace_event\ndata: {json.dumps(item)}\n\n"
+        except asyncio.CancelledError:
+            task.cancel()
+            raise
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 # ---------------------------------------------------------------------------

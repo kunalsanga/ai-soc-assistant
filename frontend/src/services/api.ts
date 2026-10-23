@@ -78,6 +78,42 @@ export const alertService = {
     return response.data;
   },
 
+  /** Stream real-time stage execution trace events using Server-Sent Events (SSE) */
+  streamExecutionTrace: (
+    alertId: string | number,
+    mode: string,
+    onEvent: (event: any) => void,
+    onError: (err: any) => void,
+    onComplete: () => void
+  ): (() => void) => {
+    const baseURL = (apiClient.defaults.baseURL || '/api/v1').replace(/\/+$/, '');
+    const url = `${baseURL}/alerts/${alertId}/analyze/stream?mode=${encodeURIComponent(mode)}`;
+    const eventSource = new EventSource(url);
+
+    eventSource.addEventListener('trace_event', (e: MessageEvent) => {
+      try {
+        const data = JSON.parse(e.data);
+        onEvent(data);
+        if (data.event_type === 'run_complete' || data.event_type === 'run_error') {
+          eventSource.close();
+          onComplete();
+        }
+      } catch (err) {
+        onError(err);
+      }
+    });
+
+    eventSource.onerror = (err) => {
+      onError(err);
+      eventSource.close();
+      onComplete();
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  },
+
   /** GET /alerts/graph/global — Obsidian-style global environment entity graph */
   getGlobalGraph: async (scenarioId?: string, limit: number = 50): Promise<InvestigationGraphData> => {
     const params = new URLSearchParams();
@@ -163,18 +199,25 @@ export interface InvestigationGraphData {
 
 export interface ExecutionStage {
   step: number;
+  stage_id?: string;
   name: string;
   component: string;
   purpose?: string;
-  status: 'succeeded' | 'skipped' | 'failed' | 'pending';
+  status: 'succeeded' | 'skipped' | 'failed' | 'running' | 'pending';
   duration_ms?: number;
+  started_at?: string;
+  completed_at?: string;
   interface: string;
   input_summary?: string;
   output_summary?: string;
   evidence_ids?: string[];
   error?: string;
+  error_type?: string;
+  safe_error_message?: string;
   details: string;
   records_processed: number;
+  source_module?: string;
+  tokens_used?: { prompt: number; completion: number };
 }
 
 export interface ExecutionRunSummary {
@@ -185,6 +228,17 @@ export interface ExecutionRunSummary {
   evidence_count: number;
   severity_assessment?: string;
   confidence?: string;
+}
+
+export interface ModeComparisonItem {
+  id: number;
+  mode: string;
+  model_name: string;
+  created_at: string | null;
+  evidence_count: number;
+  severity_assessment?: string;
+  confidence?: string;
+  total_duration_ms?: number;
 }
 
 export interface ExecutionTraceData {
@@ -198,6 +252,7 @@ export interface ExecutionTraceData {
   total_duration_ms?: number;
   stages: ExecutionStage[];
   runs?: ExecutionRunSummary[];
+  mode_comparison?: Record<string, ModeComparisonItem>;
 }
 
 export interface SyncResult {
