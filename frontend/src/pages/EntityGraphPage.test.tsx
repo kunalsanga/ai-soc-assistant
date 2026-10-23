@@ -232,4 +232,21 @@ describe('EntityGraphPage', () => {
       expect(screen.getByText(/Database network timeout/i)).toBeInTheDocument();
     });
   });
+
+  it('allows adjusting node scale and toggling adaptive zoom sizing', async () => {
+    renderEntityGraph();
+
+    await waitFor(() => {
+      expect(screen.getByText('Display & Physics')).toBeInTheDocument();
+      expect(screen.getByText('Adaptive Zoom Sizing')).toBeInTheDocument();
+      expect(screen.getByText('Node Size')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('100%')).toBeInTheDocument();
+
+    const slider = screen.getByLabelText(/Node Size Slider/i);
+    fireEvent.change(slider, { target: { value: '1.4' } });
+
+    expect(screen.getByText('140%')).toBeInTheDocument();
+  });
 });
