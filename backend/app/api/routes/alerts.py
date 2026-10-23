@@ -89,7 +89,7 @@ async def seed_demo_endpoint():
 @router.get("/graph/global")
 async def get_global_environment_graph(
     scenario_id: str | None = None,
-    limit: int = 50,
+    limit: int = 60,
     db: AsyncSession = Depends(get_db),
 ):
     """Generate an interactive Obsidian-style entity relationship graph across the entire environment.
@@ -113,23 +113,37 @@ async def get_global_environment_graph(
 
     nodes = []
     edges = []
-    seen_nodes = set()
+    node_map = {}
     seen_edges = set()
 
-    def add_node(node_id: str, node_type: str, label: str, provenance: str, status: str = "observed", attributes: dict = None):
-        if node_id not in seen_nodes:
-            seen_nodes.add(node_id)
-            nodes.append({
+    def add_or_merge_node(node_id: str, node_type: str, label: str, provenance: str, status: str = "observed", attributes: dict = None):
+        attrs = attributes or {}
+        if node_id not in node_map:
+            node_entry = {
                 "id": node_id,
                 "type": node_type,
                 "label": label,
                 "provenance": provenance,
                 "status": status,
-                "attributes": attributes or {}
-            })
+                "attributes": attrs,
+            }
+            if attrs.get("scenario_id") and "scenarios" not in attrs:
+                node_entry["attributes"]["scenarios"] = [attrs["scenario_id"]]
+            node_map[node_id] = node_entry
+            nodes.append(node_entry)
+        else:
+            # Merge scenario if seen in another alert
+            existing_attrs = node_map[node_id]["attributes"]
+            sc_id = attrs.get("scenario_id")
+            if sc_id:
+                sc_list = existing_attrs.setdefault("scenarios", [])
+                if sc_id not in sc_list:
+                    sc_list.append(sc_id)
+                if not existing_attrs.get("scenario_id"):
+                    existing_attrs["scenario_id"] = sc_id
 
     def add_edge(edge_id: str, source: str, target: str, relationship: str, provenance: str, status: str = "confirmed"):
-        if edge_id not in seen_edges and source in seen_nodes and target in seen_nodes:
+        if edge_id not in seen_edges and source in node_map and target in node_map:
             seen_edges.add(edge_id)
             edges.append({
                 "id": edge_id,
@@ -147,7 +161,7 @@ async def get_global_environment_graph(
         alert_node_id = f"alert-{alert.id}"
         rule_desc = alert.rule_description or "Security Alert"
         label_text = f"Alert #{alert.id}: {rule_desc[:32]}..." if len(rule_desc) > 32 else f"Alert #{alert.id}: {rule_desc}"
-        add_node(
+        add_or_merge_node(
             node_id=alert_node_id,
             node_type="alert",
             label=label_text,
@@ -167,22 +181,39 @@ async def get_global_environment_graph(
 
         if alert.agent_name:
             host_id = f"host-{alert.agent_name}"
-            add_node(host_id, "host", f"{alert.agent_name}", "observed", "active", {"hostname": alert.agent_name})
+            add_or_merge_node(host_id, "host", f"{alert.agent_name}", "observed", "active", {
+                "hostname": alert.agent_name,
+                "scenario_id": alert.scenario_id,
+            })
 
         if alert.username:
             user_id = f"user-{alert.username}"
-            add_node(user_id, "user", f"{alert.username}", "observed", "active", {"username": alert.username})
+            add_or_merge_node(user_id, "user", f"{alert.username}", "observed", "active", {
+                "username": alert.username,
+                "scenario_id": alert.scenario_id,
+            })
 
         if alert.source_ip:
             src_ip_id = f"ip-{alert.source_ip}"
-            add_node(src_ip_id, "ip", f"{alert.source_ip}", "observed", "external", {"ip": alert.source_ip, "direction": "source"})
+            add_or_merge_node(src_ip_id, "ip", f"{alert.source_ip}", "observed", "external", {
+                "ip": alert.source_ip,
+                "direction": "source",
+                "scenario_id": alert.scenario_id,
+            })
 
         if alert.destination_ip:
             dst_ip_id = f"ip-{alert.destination_ip}"
-            add_node(dst_ip_id, "ip", f"{alert.destination_ip}", "observed", "internal", {"ip": alert.destination_ip, "direction": "destination"})
+            add_or_merge_node(dst_ip_id, "ip", f"{alert.destination_ip}", "observed", "internal", {
+                "ip": alert.destination_ip,
+                "direction": "destination",
+                "scenario_id": alert.scenario_id,
+            })
 
         rule_id = f"rule-{alert.rule_id}"
-        add_node(rule_id, "rule", f"Rule: {alert.rule_id}", "observed", "triggered", {"description": alert.rule_description})
+        add_or_merge_node(rule_id, "rule", f"Rule: {alert.rule_id}", "observed", "triggered", {
+            "description": alert.rule_description,
+            "scenario_id": alert.scenario_id,
+        })
 
         # Knowledge mappings
         raw_dict = json.loads(alert.raw_data) if alert.raw_data else {}
@@ -191,11 +222,17 @@ async def get_global_environment_graph(
             context, _ = service.get_security_context(normalized)
             for tech in context.mitre_techniques:
                 tech_id = f"mitre-{tech}"
-                add_node(tech_id, "mitre", f"ATT&CK {tech}", "knowledge_base", "mapped", {"technique_id": tech})
+                add_or_merge_node(tech_id, "mitre", f"ATT&CK {tech}", "knowledge_base", "mapped", {
+                    "technique_id": tech,
+                    "scenario_id": alert.scenario_id,
+                })
 
             for cve in context.cve_ids:
                 cve_id = f"cve-{cve}"
-                add_node(cve_id, "cve", f"{cve}", "knowledge_base", "contextual", {"cve_id": cve})
+                add_or_merge_node(cve_id, "cve", f"{cve}", "knowledge_base", "contextual", {
+                    "cve_id": cve,
+                    "scenario_id": alert.scenario_id,
+                })
         except Exception:
             pass
 
@@ -278,159 +315,6 @@ async def seed_demo_endpoint():
     """Idempotently seed the 52-record demonstration scenarios dataset into PostgreSQL."""
     from scripts.seed_demo_scenarios import seed_demo_alerts
     return await seed_demo_alerts()
-
-
-@router.get("/graph/global")
-async def get_global_environment_graph(
-    scenario_id: str | None = None,
-    limit: int = 50,
-    db: AsyncSession = Depends(get_db),
-):
-    """Generate an interactive Obsidian-style entity relationship graph across the entire environment.
-
-    Derives nodes (Alerts, Hosts, Users, IPs, Rules, MITRE Techniques, CVEs, Analyses)
-    and explicit relationships with traceable provenance.
-    """
-    import json
-    from app.db.models.alert import Alert
-    from app.security.normalization import normalize_wazuh_alert
-    from app.wazuh.service import AlertService
-
-    stmt = select(Alert).order_by(Alert.severity.desc(), Alert.id.desc()).limit(limit)
-    result = await db.execute(stmt)
-    all_alerts = result.scalars().all()
-
-    if scenario_id:
-        alerts = [a for a in all_alerts if a.scenario_id == scenario_id]
-    else:
-        alerts = all_alerts
-
-    nodes = []
-    edges = []
-    seen_nodes = set()
-    seen_edges = set()
-
-    def add_node(node_id: str, node_type: str, label: str, provenance: str, status: str = "observed", attributes: dict = None):
-        if node_id not in seen_nodes:
-            seen_nodes.add(node_id)
-            nodes.append({
-                "id": node_id,
-                "type": node_type,
-                "label": label,
-                "provenance": provenance,
-                "status": status,
-                "attributes": attributes or {}
-            })
-
-    def add_edge(edge_id: str, source: str, target: str, relationship: str, provenance: str, status: str = "confirmed"):
-        if edge_id not in seen_edges and source in seen_nodes and target in seen_nodes:
-            seen_edges.add(edge_id)
-            edges.append({
-                "id": edge_id,
-                "source": source,
-                "target": target,
-                "relationship": relationship,
-                "provenance": provenance,
-                "status": status,
-            })
-
-    service = AlertService()
-
-    # Pass 1: Add all nodes first
-    for alert in alerts:
-        alert_node_id = f"alert-{alert.id}"
-        rule_desc = alert.rule_description or "Security Alert"
-        label_text = f"Alert #{alert.id}: {rule_desc[:32]}..." if len(rule_desc) > 32 else f"Alert #{alert.id}: {rule_desc}"
-        add_node(
-            node_id=alert_node_id,
-            node_type="alert",
-            label=label_text,
-            provenance="observed",
-            status=f"severity_{alert.severity}",
-            attributes={
-                "id": alert.id,
-                "external_id": alert.external_alert_id,
-                "severity": alert.severity,
-                "rule_id": alert.rule_id,
-                "timestamp": alert.timestamp,
-                "scenario_id": alert.scenario_id,
-                "scenario_title": alert.scenario_title,
-                "data_origin": alert.data_origin,
-            }
-        )
-
-        if alert.agent_name:
-            host_id = f"host-{alert.agent_name}"
-            add_node(host_id, "host", f"{alert.agent_name}", "observed", "active", {"hostname": alert.agent_name})
-
-        if alert.username:
-            user_id = f"user-{alert.username}"
-            add_node(user_id, "user", f"{alert.username}", "observed", "active", {"username": alert.username})
-
-        if alert.source_ip:
-            src_ip_id = f"ip-{alert.source_ip}"
-            add_node(src_ip_id, "ip", f"{alert.source_ip}", "observed", "external", {"ip": alert.source_ip, "direction": "source"})
-
-        if alert.destination_ip:
-            dst_ip_id = f"ip-{alert.destination_ip}"
-            add_node(dst_ip_id, "ip", f"{alert.destination_ip}", "observed", "internal", {"ip": alert.destination_ip, "direction": "destination"})
-
-        rule_id = f"rule-{alert.rule_id}"
-        add_node(rule_id, "rule", f"Rule: {alert.rule_id}", "observed", "triggered", {"description": alert.rule_description})
-
-        # Knowledge mappings
-        raw_dict = json.loads(alert.raw_data) if alert.raw_data else {}
-        try:
-            normalized = normalize_wazuh_alert(raw_dict)
-            context, _ = service.get_security_context(normalized)
-            for tech in context.mitre_techniques:
-                tech_id = f"mitre-{tech}"
-                add_node(tech_id, "mitre", f"ATT&CK {tech}", "knowledge_base", "mapped", {"technique_id": tech})
-
-            for cve in context.cve_ids:
-                cve_id = f"cve-{cve}"
-                add_node(cve_id, "cve", f"{cve}", "knowledge_base", "contextual", {"cve_id": cve})
-        except Exception:
-            pass
-
-    # Pass 2: Add all edges
-    for alert in alerts:
-        alert_node_id = f"alert-{alert.id}"
-        rule_id = f"rule-{alert.rule_id}"
-
-        if alert.agent_name:
-            add_edge(f"e-alert-{alert.id}-host", alert_node_id, f"host-{alert.agent_name}", "occurred_on_host", "observed")
-
-        if alert.username:
-            add_edge(f"e-alert-{alert.id}-user", alert_node_id, f"user-{alert.username}", "associated_user", "observed")
-
-        if alert.source_ip:
-            add_edge(f"e-alert-{alert.id}-srcip", alert_node_id, f"ip-{alert.source_ip}", "source_ip", "observed")
-
-        if alert.destination_ip:
-            add_edge(f"e-alert-{alert.id}-dstip", alert_node_id, f"ip-{alert.destination_ip}", "destination_ip", "observed")
-
-        add_edge(f"e-alert-{alert.id}-rule", alert_node_id, rule_id, "triggered_rule", "observed")
-
-        raw_dict = json.loads(alert.raw_data) if alert.raw_data else {}
-        try:
-            normalized = normalize_wazuh_alert(raw_dict)
-            context, _ = service.get_security_context(normalized)
-            for tech in context.mitre_techniques:
-                add_edge(f"e-rule-{alert.rule_id}-{tech}", rule_id, f"mitre-{tech}", "maps_to_technique", "knowledge_base")
-            for cve in context.cve_ids:
-                add_edge(f"e-alert-{alert.id}-{cve}", alert_node_id, f"cve-{cve}", "potential_vulnerability", "knowledge_base")
-        except Exception:
-            pass
-
-    return {
-        "scenario_id": scenario_id,
-        "total_alerts": len(alerts),
-        "node_count": len(nodes),
-        "edge_count": len(edges),
-        "nodes": nodes,
-        "edges": edges,
-    }
 
 
 @router.get("/{alert_id}/graph")
