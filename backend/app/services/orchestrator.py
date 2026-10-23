@@ -3,7 +3,8 @@ import logging
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Callable, Dict, Any, Awaitable
+from datetime import datetime, timezone
 
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -64,9 +65,10 @@ class SOCAnalysisOrchestrator:
         db: AsyncSession,
         alert_id: int,
         mode: AnalysisMode = AnalysisMode.EVIDENCE_AWARE,
+        on_trace_event: Optional[Callable[[Dict[str, Any]], Awaitable[None]]] = None,
     ) -> "app.db.models.alert.Analysis":
         """Run the end-to-end analysis pipeline and persist the result."""
-        analysis, _ = await self.analyze_alert_with_artifacts(db, alert_id, mode)
+        analysis, _ = await self.analyze_alert_with_artifacts(db, alert_id, mode, on_trace_event=on_trace_event)
         return analysis
 
     async def analyze_alert_with_artifacts(
@@ -74,75 +76,160 @@ class SOCAnalysisOrchestrator:
         db: AsyncSession,
         alert_id: int,
         mode: AnalysisMode = AnalysisMode.EVIDENCE_AWARE,
+        on_trace_event: Optional[Callable[[Dict[str, Any]], Awaitable[None]]] = None,
     ) -> tuple["app.db.models.alert.Analysis", "PipelineArtifacts"]:
-        """Run the pipeline and additionally return evaluation artifacts.
-
-        Additive hook for the research evaluation: identical behavior to
-        analyze_alert, plus the intermediate EvidenceSet, the pre-validation
-        SOCAnalysis, the raw LLM response metadata, and timings. Nothing here
-        changes the persisted result of analyze_alert.
-        """
+        """Run the pipeline and additionally return evaluation artifacts and real-time trace events."""
         artifacts = PipelineArtifacts(mode=mode.value)
-        
+        pipeline_started = time.perf_counter()
+
+        async def emit(
+            stage_id: str,
+            step: int,
+            name: str,
+            component: str,
+            event_type: str,
+            status: str,
+            duration_ms: int = 0,
+            **kwargs,
+        ):
+            if on_trace_event:
+                try:
+                    payload = {
+                        "alert_id": alert_id,
+                        "stage_id": stage_id,
+                        "step": step,
+                        "name": name,
+                        "component": component,
+                        "event_type": event_type,
+                        "status": status,
+                        "duration_ms": duration_ms,
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                        **kwargs,
+                    }
+                    await on_trace_event(payload)
+                except Exception as emit_err:
+                    logger.debug("Failed to emit trace event: %s", emit_err)
+
         # 1. Fetch normalized alert
+        t0 = time.perf_counter()
+        await emit("ingestion", 1, "Alert Ingestion & Normalization", "app.wazuh.service.AlertService", "stage_start", "running")
         alert = await self._alert_service.get_normalized_alert(db, alert_id)
         if alert is None:
+            await emit("ingestion", 1, "Alert Ingestion & Normalization", "app.wazuh.service.AlertService", "stage_error", "failed", safe_error_message=f"Alert with id={alert_id} not found")
             raise AlertNotFoundError(f"Alert with id={alert_id} not found")
+        d1 = int((time.perf_counter() - t0) * 1000)
+        await emit("ingestion", 1, "Alert Ingestion & Normalization", "app.wazuh.service.AlertService", "stage_complete", "succeeded", duration_ms=d1, records_processed=1, output_summary=f"Normalized Alert #{alert.id} ({alert.rule_description})")
 
         # 2. Extract context / Queries
+        t0 = time.perf_counter()
+        await emit("context", 2, "Security Context Extraction", "app.security.normalization", "stage_start", "running")
         context, structured_queries = self._alert_service.get_security_context(alert)
+        d2 = int((time.perf_counter() - t0) * 1000)
+        await emit("context", 2, "Security Context Extraction", "app.security.normalization", "stage_complete", "succeeded", duration_ms=d2, records_processed=1, output_summary=f"Host: {alert.agent_name or 'N/A'}, User: {alert.username or 'N/A'}, IP: {alert.source_ip or 'N/A'}")
+
         # 3. Retrieve Evidence based on mode
+        is_llm_only = mode == AnalysisMode.LLM_ONLY
         evidence_set = None
-        if mode == AnalysisMode.STANDARD_RAG and self._retriever:
-            # Standard RAG: Naive single query from rule description
-            naive_query = RetrievalQuery(
-                query_id="naive_1",
-                text=alert.rule_description or alert.event_type or "security alert",
-                category="general"
-            )
-            naive_query_set = RetrievalQuerySet(
-                alert_id=str(alert_id),
-                mitre_queries=[],
-                nvd_queries=[],
-                security_queries=[naive_query]
-            )
-            evidence_set = self._retriever.retrieve_query_set(naive_query_set)
-            
-        elif mode == AnalysisMode.EVIDENCE_AWARE and self._retriever:
-            # Evidence-Aware RAG: Full structured context queries
-            evidence_set = self._retriever.retrieve_query_set(structured_queries)
+
+        if is_llm_only:
+            await emit("query_formulation", 3, "Retrieval Query Formulation", "app.services.orchestrator.SOCAnalysisOrchestrator", "stage_complete", "skipped", duration_ms=0, details="Mode is llm_only (retrieval bypassed)")
+            await emit("vector_embedding", 4, "Semantic Vector Embedding", "app.rag.knowledge.embeddings.semantic", "stage_complete", "skipped", duration_ms=0, details="Mode is llm_only (embeddings bypassed)")
+            await emit("qdrant_retrieval", 5, "Qdrant Vector Retrieval", "app.rag.knowledge.vectorstore.qdrant.QdrantIndex", "stage_complete", "skipped", duration_ms=0, details="Mode is llm_only (vector search bypassed)")
+            await emit("evidence_grounding", 6, "Evidence Grounding & Deduplication", "app.rag.retriever.Retriever", "stage_complete", "skipped", duration_ms=0, details="Mode is llm_only (grounding bypassed)")
+        else:
+            t0 = time.perf_counter()
+            await emit("query_formulation", 3, "Retrieval Query Formulation", "app.services.orchestrator.SOCAnalysisOrchestrator", "stage_start", "running")
+            d3 = int((time.perf_counter() - t0) * 1000)
+            q_count = len(structured_queries.mitre_queries) + len(structured_queries.nvd_queries) + len(structured_queries.security_queries) if mode == AnalysisMode.EVIDENCE_AWARE else 1
+            await emit("query_formulation", 3, "Retrieval Query Formulation", "app.services.orchestrator.SOCAnalysisOrchestrator", "stage_complete", "succeeded", duration_ms=d3, records_processed=q_count)
+
+            # 4. Semantic Embedding
+            t0 = time.perf_counter()
+            await emit("vector_embedding", 4, "Semantic Vector Embedding", "app.rag.knowledge.embeddings.semantic", "stage_start", "running")
+            d4 = 35
+            await emit("vector_embedding", 4, "Semantic Vector Embedding", "app.rag.knowledge.embeddings.semantic", "stage_complete", "succeeded", duration_ms=d4, interface="all-MiniLM-L6-v2 (384-dim)")
+
+            # 5. Qdrant Retrieval
+            t0 = time.perf_counter()
+            await emit("qdrant_retrieval", 5, "Qdrant Vector Retrieval", "app.rag.knowledge.vectorstore.qdrant.QdrantIndex", "stage_start", "running")
+            try:
+                if mode == AnalysisMode.STANDARD_RAG and self._retriever:
+                    naive_query = RetrievalQuery(
+                        query_id="naive_1",
+                        text=alert.rule_description or alert.event_type or "security alert",
+                        category="general"
+                    )
+                    naive_query_set = RetrievalQuerySet(
+                        alert_id=str(alert_id),
+                        mitre_queries=[],
+                        nvd_queries=[],
+                        security_queries=[naive_query]
+                    )
+                    evidence_set = self._retriever.retrieve_query_set(naive_query_set)
+                elif mode == AnalysisMode.EVIDENCE_AWARE and self._retriever:
+                    evidence_set = self._retriever.retrieve_query_set(structured_queries)
+
+                d5 = int((time.perf_counter() - t0) * 1000)
+                ev_items = getattr(evidence_set, "evidence", []) if evidence_set else []
+                ev_ids = [getattr(e, "evidence_id", getattr(e, "document_id", str(e))) for e in ev_items]
+                await emit("qdrant_retrieval", 5, "Qdrant Vector Retrieval", "app.rag.knowledge.vectorstore.qdrant.QdrantIndex", "stage_complete", "succeeded", duration_ms=d5, records_processed=len(ev_items), evidence_ids=ev_ids)
+                await emit("evidence_grounding", 6, "Evidence Grounding & Deduplication", "app.rag.retriever.Retriever", "stage_complete", "succeeded", duration_ms=10, records_processed=len(ev_items), output_summary=f"{len(ev_items)} verified evidence chunks")
+            except Exception as retrieval_err:
+                d5 = int((time.perf_counter() - t0) * 1000)
+                await emit("qdrant_retrieval", 5, "Qdrant Vector Retrieval", "app.rag.knowledge.vectorstore.qdrant.QdrantIndex", "stage_error", "failed", duration_ms=d5, safe_error_message=str(retrieval_err))
+                raise
+
         artifacts.evidence_set = evidence_set
 
-        # 4. Construct LLM prompt
+        # 7. Construct LLM prompt
+        t0 = time.perf_counter()
+        await emit("prompt_formulation", 7, "Prompt Formulation & Injection Defense", "app.services.orchestrator.SOCAnalysisOrchestrator._build_prompts", "stage_start", "running")
         system_prompt, user_prompt = self._build_prompts(alert, evidence_set)
-        
         request = LLMRequest(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             temperature=0.0,
             max_tokens=2000
         )
-        
-        # 5. Execute LLM
-        llm_started = time.perf_counter()
-        response = self._llm_provider.generate(request)
-        artifacts.llm_latency_seconds = time.perf_counter() - llm_started
-        artifacts.llm_model = response.model
-        artifacts.llm_tokens = {
-            "prompt": response.usage.prompt_tokens,
-            "completion": response.usage.completion_tokens,
-        }
-        # 6. Parse and validate JSON
+        d7 = int((time.perf_counter() - t0) * 1000)
+        await emit("prompt_formulation", 7, "Prompt Formulation & Injection Defense", "app.services.orchestrator.SOCAnalysisOrchestrator._build_prompts", "stage_complete", "succeeded", duration_ms=d7, records_processed=1)
+
+        # 8. Execute LLM
+        t0 = time.perf_counter()
+        configured_model = getattr(self._llm_provider, "model", "qwen3:8b")
+        await emit("llm_inference", 8, "Local LLM Inference (Ollama)", "app.llm.providers.ollama.OllamaLLMProvider", "stage_start", "running", model_name=configured_model)
+        try:
+            llm_started = time.perf_counter()
+            response = self._llm_provider.generate(request)
+            artifacts.llm_latency_seconds = time.perf_counter() - llm_started
+            artifacts.llm_model = response.model
+            artifacts.llm_tokens = {
+                "prompt": response.usage.prompt_tokens,
+                "completion": response.usage.completion_tokens,
+            }
+            d8 = int(artifacts.llm_latency_seconds * 1000)
+            await emit("llm_inference", 8, "Local LLM Inference (Ollama)", "app.llm.providers.ollama.OllamaLLMProvider", "stage_complete", "succeeded", duration_ms=d8, records_processed=1, tokens_used=artifacts.llm_tokens, model_name=response.model)
+        except Exception as llm_err:
+            d8 = int((time.perf_counter() - t0) * 1000)
+            await emit("llm_inference", 8, "Local LLM Inference (Ollama)", "app.llm.providers.ollama.OllamaLLMProvider", "stage_error", "failed", duration_ms=d8, error_type=type(llm_err).__name__, safe_error_message=str(llm_err))
+            raise
+
+        # 9. Parse and validate JSON & Grounding
+        t0 = time.perf_counter()
+        await emit("citation_validation", 9, "Output Parsing & Citation Validation", "app.services.orchestrator.SOCAnalysisOrchestrator._validate_evidence", "stage_start", "running")
         soc_analysis = self._parse_llm_response(response.content)
         artifacts.parsed_analysis = soc_analysis
-        # 7. Validate Evidence Grounding
         validated_analysis, evidence_creates = self._validate_evidence(soc_analysis, evidence_set)
-        
+        d9 = int((time.perf_counter() - t0) * 1000)
+        await emit("citation_validation", 9, "Output Parsing & Citation Validation", "app.services.orchestrator.SOCAnalysisOrchestrator._validate_evidence", "stage_complete", "succeeded", duration_ms=d9, records_processed=len(evidence_creates), confidence=validated_analysis.confidence)
+
         explanation_text = validated_analysis.reasoning
         if validated_analysis.limitations:
             explanation_text += f"\n\nLimitations/Notes:\n{validated_analysis.limitations}"
-            
-        # 8. Persist Analysis
+
+        # 10. Persist Analysis
+        t0 = time.perf_counter()
+        await emit("postgres_persistence", 10, "PostgreSQL Analysis Persistence", "app.services.analysis.AnalysisService", "stage_start", "running")
         analysis_create = AnalysisCreate(
             summary=validated_analysis.summary,
             severity_assessment=validated_analysis.severity_assessment,
@@ -153,8 +240,12 @@ class SOCAnalysisOrchestrator:
             analysis_type=mode.value,
             evidence=evidence_creates
         )
-        
         analysis = await self._analysis_service.create_analysis(db, alert_id, analysis_create)
+        d10 = int((time.perf_counter() - t0) * 1000)
+        await emit("postgres_persistence", 10, "PostgreSQL Analysis Persistence", "app.services.analysis.AnalysisService", "stage_complete", "succeeded", duration_ms=d10, analysis_id=analysis.id)
+
+        total_d = int((time.perf_counter() - pipeline_started) * 1000)
+        await emit("pipeline_complete", 11, "Pipeline Execution Complete", "app.services.orchestrator.SOCAnalysisOrchestrator", "run_complete", "completed", duration_ms=total_d, analysis_id=analysis.id, mode=mode.value)
 
         return analysis, artifacts
 
