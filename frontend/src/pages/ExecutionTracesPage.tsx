@@ -341,6 +341,9 @@ export const ExecutionTracesPage: React.FC = () => {
   const [loadingAlerts, setLoadingAlerts] = useState(true);
   const [loadingTrace, setLoadingTrace] = useState(false);
   const [streaming, setStreaming] = useState(false);
+  const [streamingElapsed, setStreamingElapsed] = useState<number>(0);
+  const [currentStreamingStage, setCurrentStreamingStage] = useState<string>('');
+  const streamingTimerRef = useRef<number | null>(null);
   const [analysisMode, setAnalysisMode] = useState<string>('evidence_aware');
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -490,6 +493,7 @@ export const ExecutionTracesPage: React.FC = () => {
     return () => {
       if (streamCleanupRef.current) streamCleanupRef.current();
       if (replayTimerRef.current) window.clearInterval(replayTimerRef.current);
+      if (streamingTimerRef.current) window.clearInterval(streamingTimerRef.current);
     };
   }, []);
 
@@ -497,10 +501,18 @@ export const ExecutionTracesPage: React.FC = () => {
   const handleTriggerLiveAnalysis = () => {
     if (!selectedAlertId) return;
     setStreaming(true);
+    setStreamingElapsed(0);
+    setCurrentStreamingStage('Alert Ingestion & Normalization');
     setError(null);
     setSuccessMsg(null);
     setIsReplaying(false);
     setEventLogs([]);
+
+    if (streamingTimerRef.current) window.clearInterval(streamingTimerRef.current);
+    const startTs = Date.now();
+    streamingTimerRef.current = window.setInterval(() => {
+      setStreamingElapsed(Math.round((Date.now() - startTs) / 1000));
+    }, 500);
 
     // Temporary live trace state
     setTrace((prev) => ({
@@ -520,6 +532,7 @@ export const ExecutionTracesPage: React.FC = () => {
       analysisMode,
       (eventData: any) => {
         if (eventData.event_type === 'stage_start') {
+          setCurrentStreamingStage(eventData.name || '');
           // Highlight running node
           const matchedNode = ARCH_NODES.find((n) => n.stage_id === eventData.stage_id || n.step === eventData.step);
           if (matchedNode) setSelectedNodeId(matchedNode.id);
@@ -628,10 +641,18 @@ export const ExecutionTracesPage: React.FC = () => {
         }
       },
       (err: any) => {
+        if (streamingTimerRef.current) {
+          window.clearInterval(streamingTimerRef.current);
+          streamingTimerRef.current = null;
+        }
         setStreaming(false);
         setError(`Live stream error: ${err?.message || 'Connection interrupted'}`);
       },
       () => {
+        if (streamingTimerRef.current) {
+          window.clearInterval(streamingTimerRef.current);
+          streamingTimerRef.current = null;
+        }
         setStreaming(false);
       }
     );
@@ -1030,9 +1051,17 @@ export const ExecutionTracesPage: React.FC = () => {
 
         {/* Live status indicators & Alerts banner */}
         {streaming && (
-          <div className="mt-2 p-1.5 rounded bg-cyan-950/60 border border-cyan-800/60 text-xs font-mono text-cyan-300 flex items-center gap-2">
-            <RefreshCw className="w-3.5 h-3.5 animate-spin text-cyan-400" />
-            <span>Streaming real-time execution telemetry from FastAPI backend via SSE...</span>
+          <div className="mt-2 p-2 rounded-lg bg-cyan-950/70 border border-cyan-800 text-xs font-mono text-cyan-200 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <RefreshCw className="w-4 h-4 animate-spin text-cyan-400 shrink-0" />
+              <span>
+                Streaming live telemetry: <strong className="text-amber-300">{currentStreamingStage || 'Executing pipeline...'}</strong>
+                {currentStreamingStage?.includes('LLM') && ' (Local Qwen3-8B model inference on CPU · ~15-45s)'}
+              </span>
+            </div>
+            <span className="text-cyan-400 font-bold bg-cyan-900/60 px-2 py-0.5 rounded border border-cyan-700/80">
+              {streamingElapsed}s elapsed
+            </span>
           </div>
         )}
 

@@ -33,7 +33,7 @@ class OllamaLLMProvider(LLMProvider):
             "options": {
                 "temperature": request.temperature,
                 "num_predict": request.max_tokens,
-                "num_ctx": 8192
+                "num_ctx": 4096
             },
             "stream": False
         }
