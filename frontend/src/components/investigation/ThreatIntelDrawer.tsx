@@ -59,7 +59,13 @@ export const ThreatIntelDrawer: React.FC<ThreatIntelDrawerProps> = ({ identifier
   const isCve = identifier.toUpperCase().startsWith('CVE');
 
   return (
-    <div className="fixed inset-y-0 right-0 w-96 max-w-full z-50 bg-[#0c101a] border-l border-zinc-800 shadow-2xl flex flex-col justify-between overflow-hidden animate-in slide-in-from-right duration-200">
+    <>
+      {/* Backdrop overlay */}
+      <div
+        className="fixed inset-0 z-40 bg-black/60 backdrop-blur-xs transition-opacity"
+        onClick={onClose}
+      />
+      <div className="fixed inset-y-0 right-0 w-96 max-w-[calc(100vw-2rem)] z-50 bg-[#0c101a] border-l border-zinc-800 shadow-2xl flex flex-col justify-between overflow-hidden animate-in slide-in-from-right duration-200">
       {/* Drawer Header */}
       <div className="p-4 border-b border-zinc-800/80 bg-[#090d16] flex items-center justify-between">
         <div className="flex items-center gap-2.5">
@@ -175,7 +181,8 @@ export const ThreatIntelDrawer: React.FC<ThreatIntelDrawerProps> = ({ identifier
         <span>Local Qdrant Collection</span>
       </div>
     </div>
-  );
+  </>
+);
 };
 
 export default ThreatIntelDrawer;

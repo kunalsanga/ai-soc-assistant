@@ -721,11 +721,24 @@ export const ExecutionTracesPage: React.FC = () => {
     setViewport({ x: 30, y: 30, zoom: 0.8 });
   };
 
-  // Auto fit on mount and window resize
+  // Auto fit on mount, window resize, and container dimension changes
   useEffect(() => {
     handleFitToView();
     window.addEventListener('resize', handleFitToView);
-    return () => window.removeEventListener('resize', handleFitToView);
+
+    const container = canvasContainerRef.current;
+    let observer: ResizeObserver | null = null;
+    if (container && typeof ResizeObserver !== 'undefined') {
+      observer = new ResizeObserver(() => {
+        handleFitToView();
+      });
+      observer.observe(container);
+    }
+
+    return () => {
+      window.removeEventListener('resize', handleFitToView);
+      if (observer) observer.disconnect();
+    };
   }, [handleFitToView]);
 
   // Canvas Mouse Pan & Zoom
@@ -843,7 +856,7 @@ export const ExecutionTracesPage: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-80px)] overflow-hidden bg-[#06080e] text-zinc-200">
+    <div className="flex flex-col h-full w-full flex-1 min-h-0 overflow-hidden rounded-xl border border-zinc-800/90 bg-[#06080e] text-zinc-200 shadow-xl">
       {/* 1. TOP COMPACT HEADER & CONTROL STRIP */}
       <header className="px-4 py-2 border-b border-zinc-800/80 bg-[#080b12] shrink-0">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -887,7 +900,7 @@ export const ExecutionTracesPage: React.FC = () => {
           </div>
 
           {/* Controls: Alert selection, Mode, Run Button, Replay, Toolbar */}
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {/* Synthetic source label badge */}
             <span
               className={`text-[10px] font-mono px-2 py-1 rounded font-bold border ${
@@ -1330,7 +1343,7 @@ export const ExecutionTracesPage: React.FC = () => {
 
         {/* 3. COLLAPSIBLE TECHNICAL INSPECTOR (SLIDING RIGHT DRAWER) */}
         {inspectorOpen && (
-          <aside className="w-96 rounded-l-xl border-l border-zinc-800 bg-[#0c101a] flex flex-col shrink-0 shadow-2xl z-20 transition-all duration-200">
+          <aside className="absolute md:relative inset-y-0 right-0 w-full sm:w-96 md:w-80 lg:w-96 rounded-l-xl border-l border-zinc-800 bg-[#0c101a] flex flex-col shrink-0 shadow-2xl z-30 transition-all duration-200">
             {/* Inspector Header */}
             <div className="flex items-center justify-between border-b border-zinc-800 p-3 bg-[#080b12]">
               <div className="flex items-center gap-2 min-w-0">

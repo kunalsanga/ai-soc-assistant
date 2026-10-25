@@ -13,3 +13,7 @@ venv/
 # Large downloaded datasets (auto-downloaded by scripts/ingest.py)
 backend/knowledge/*.json
 knowledge/*.json
+
+# Backups
+*.backup.json
+*.bak

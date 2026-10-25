@@ -11,6 +11,8 @@ import {
   Settings as SettingsIcon,
   X,
   ExternalLink,
+  Network,
+  GitCommit,
 } from 'lucide-react';
 import { alertService } from '../../services/api';
 import type { Alert } from '../../types/alert';
@@ -69,12 +71,14 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   const navItems = [
-    { label: 'Dashboard', path: '/', icon: LayoutDashboard, category: 'Workflow' },
-    { label: 'Alert Stream', path: '/alerts', icon: ShieldAlert, category: 'Workflow' },
-    { label: 'AI Analysis', path: '/ai-analysis', icon: FileSearch, category: 'Workflow' },
-    { label: 'Security Knowledge', path: '/knowledge', icon: BookOpen, category: 'Research' },
+    { label: 'Dashboard', path: '/', icon: LayoutDashboard, category: 'Operations' },
+    { label: 'Alerts & Triage', path: '/alerts', icon: ShieldAlert, category: 'Operations' },
+    { label: 'Investigations', path: '/investigations', icon: FileSearch, category: 'Operations' },
+    { label: 'Entity Graph', path: '/graph', icon: Network, category: 'Intelligence' },
+    { label: 'Pipeline Execution', path: '/execution', icon: GitCommit, category: 'Intelligence' },
+    { label: 'Architecture & Status', path: '/architecture', icon: Layers, category: 'Intelligence' },
+    { label: 'Threat Knowledge', path: '/knowledge', icon: BookOpen, category: 'Intelligence' },
     { label: 'RAG Evaluation', path: '/evaluation', icon: BarChart3, category: 'Research' },
-    { label: 'Architecture & Status', path: '/architecture', icon: Layers, category: 'System' },
     { label: 'Settings & Diagnostics', path: '/settings', icon: SettingsIcon, category: 'System' },
   ];
 

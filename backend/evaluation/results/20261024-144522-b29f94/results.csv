@@ -1,0 +1,4 @@
+case_id,category,mode,db_alert_id,analysis_id,error,wall_latency_seconds,llm_latency_seconds,confidence,is_benign,severity_band_match,expected_severity_band,technique_precision,technique_recall,technique_f1,expected_cves,predicted_cves,cve_precision,cve_recall,cve_f1,is_false_alarm,valid_evidence_reference_rate,evidence_reference_count,retrieval_first_relevant_rank,predicted_techniques
+case-01-ssh-bruteforce,credential_access,llm_only,4,7,,52.29134769199936,52.2234275969995,MEDIUM,False,True,high,1.0,0.5,0.6666666666666666,,,1.0,1.0,1.0,,,0,,T1110
+case-01-ssh-bruteforce,credential_access,standard_rag,4,8,,85.44900275500004,70.07335714300007,MEDIUM,False,True,high,1.0,0.5,0.6666666666666666,,,1.0,1.0,1.0,,1.0,2,,T1110
+case-01-ssh-bruteforce,credential_access,evidence_aware,4,9,,64.88886669000021,64.67529386999922,MEDIUM,False,True,high,1.0,0.5,0.6666666666666666,,,1.0,1.0,1.0,,1.0,2,1,T1110

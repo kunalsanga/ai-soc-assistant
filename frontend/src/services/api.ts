@@ -416,6 +416,13 @@ export interface EvaluationAggregateMode {
   technique_precision: number | null;
   technique_recall: number | null;
   technique_f1: number | null;
+  cve_precision?: number | null;
+  cve_recall?: number | null;
+  cve_f1?: number | null;
+  benign_cases_count?: number;
+  false_alarms_on_benign?: number;
+  false_alarm_rate_on_benign?: number | null;
+  benign_accuracy?: number | null;
   valid_evidence_reference_rate: number | null;
   grounding_coverage: number;
   'retrieval_recall@5': number | null;
@@ -424,13 +431,16 @@ export interface EvaluationAggregateMode {
 }
 
 export interface EvaluationLatest {
-  available: boolean;
+  available?: boolean;
   reason?: string;
   run_id?: string;
+  status?: string;
   meta?: {
     run_id: string;
     timestamp_utc: string;
     dataset_version: string;
+    dataset_path?: string;
+    synthetic?: boolean;
     num_cases: number;
     llm_model: string;
     embedding_model: string;
@@ -440,14 +450,56 @@ export interface EvaluationLatest {
   };
   aggregate?: Record<string, EvaluationAggregateMode>;
   records?: Array<Record<string, unknown>>;
+  total_records?: number;
+  report?: string | null;
+  csv?: string | null;
+}
+
+export interface EvaluationRunSummary {
+  run_id: string;
+  timestamp_utc: string | null;
+  dataset_version: string;
+  num_cases: number;
+  modes: string[];
+  status: string;
+  llm_model: string | null;
+  synthetic: boolean;
+  modes_evaluated: string[];
+}
+
+export interface EvaluationDatasetInfo {
+  filename: string;
+  dataset_version: string;
+  description: string;
+  synthetic: boolean;
+  num_cases: number;
+  categories: string[];
+  benign_cases: number;
+  attack_cases: number;
 }
 
 export const evaluationService = {
-  getLatest: async (includeRecords = true): Promise<EvaluationLatest> => {
+  getLatest: async (limit = 100): Promise<EvaluationLatest> => {
     const response = await apiClient.get('/evaluation/latest', {
-      params: { include_records: includeRecords },
+      params: { limit },
       timeout: 15_000,
     });
     return response.data;
   },
+  listRuns: async (): Promise<EvaluationRunSummary[]> => {
+    const response = await apiClient.get('/evaluation/runs', { timeout: 10_000 });
+    return response.data;
+  },
+  getRun: async (runId: string, limit = 100): Promise<EvaluationLatest> => {
+    const response = await apiClient.get(`/evaluation/runs/${runId}`, {
+      params: { limit },
+      timeout: 15_000,
+    });
+    return response.data;
+  },
+  listDatasets: async (): Promise<EvaluationDatasetInfo[]> => {
+    const response = await apiClient.get('/evaluation/datasets', { timeout: 10_000 });
+    return response.data;
+  },
 };
+

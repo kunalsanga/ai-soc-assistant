@@ -1,0 +1,331 @@
+{
+  "meta": {
+    "run_id": "20261024-144522-b29f94",
+    "timestamp_utc": "2026-10-24T14:48:45.800796+00:00",
+    "dataset_version": "v2",
+    "dataset_path": "/app/evaluation/dataset_v2.json",
+    "synthetic": true,
+    "num_cases": 1,
+    "llm_model": "qwen3:8b",
+    "llm_base_url": "http://host.docker.internal:11434",
+    "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+    "qdrant_collection": "security_knowledge",
+    "modes": [
+      "llm_only",
+      "standard_rag",
+      "evidence_aware"
+    ],
+    "temperature": 0.0
+  },
+  "aggregate": {
+    "llm_only": {
+      "cases": 1,
+      "errors": 0,
+      "wall_latency_seconds": {
+        "mean": 52.29134769199936,
+        "median": 52.29134769199936,
+        "stdev": null
+      },
+      "llm_latency_seconds": {
+        "mean": 52.2234275969995,
+        "median": 52.2234275969995,
+        "stdev": null
+      },
+      "severity_band_accuracy": 1.0,
+      "severity_parseable_count": 1,
+      "technique_precision": 1.0,
+      "technique_recall": 0.5,
+      "technique_f1": 0.6666666666666666,
+      "cve_precision": 1.0,
+      "cve_recall": 1.0,
+      "cve_f1": 1.0,
+      "benign_cases_count": 0,
+      "false_alarms_on_benign": 0,
+      "false_alarm_rate_on_benign": null,
+      "benign_accuracy": null,
+      "valid_evidence_reference_rate": null,
+      "grounding_coverage": 0,
+      "retrieval_recall@5": 0.0,
+      "retrieval_recall@1": 0.0,
+      "retrieval_mrr": 0.0
+    },
+    "standard_rag": {
+      "cases": 1,
+      "errors": 0,
+      "wall_latency_seconds": {
+        "mean": 85.44900275500004,
+        "median": 85.44900275500004,
+        "stdev": null
+      },
+      "llm_latency_seconds": {
+        "mean": 70.07335714300007,
+        "median": 70.07335714300007,
+        "stdev": null
+      },
+      "severity_band_accuracy": 1.0,
+      "severity_parseable_count": 1,
+      "technique_precision": 1.0,
+      "technique_recall": 0.5,
+      "technique_f1": 0.6666666666666666,
+      "cve_precision": 1.0,
+      "cve_recall": 1.0,
+      "cve_f1": 1.0,
+      "benign_cases_count": 0,
+      "false_alarms_on_benign": 0,
+      "false_alarm_rate_on_benign": null,
+      "benign_accuracy": null,
+      "valid_evidence_reference_rate": 1.0,
+      "grounding_coverage": 1,
+      "retrieval_recall@5": 0.0,
+      "retrieval_recall@1": 0.0,
+      "retrieval_mrr": 0.0
+    },
+    "evidence_aware": {
+      "cases": 1,
+      "errors": 0,
+      "wall_latency_seconds": {
+        "mean": 64.88886669000021,
+        "median": 64.88886669000021,
+        "stdev": null
+      },
+      "llm_latency_seconds": {
+        "mean": 64.67529386999922,
+        "median": 64.67529386999922,
+        "stdev": null
+      },
+      "severity_band_accuracy": 1.0,
+      "severity_parseable_count": 1,
+      "technique_precision": 1.0,
+      "technique_recall": 0.5,
+      "technique_f1": 0.6666666666666666,
+      "cve_precision": 1.0,
+      "cve_recall": 1.0,
+      "cve_f1": 1.0,
+      "benign_cases_count": 0,
+      "false_alarms_on_benign": 0,
+      "false_alarm_rate_on_benign": null,
+      "benign_accuracy": null,
+      "valid_evidence_reference_rate": 1.0,
+      "grounding_coverage": 1,
+      "retrieval_recall@5": 1.0,
+      "retrieval_recall@1": 1.0,
+      "retrieval_mrr": 1.0
+    }
+  },
+  "records": [
+    {
+      "case_id": "case-01-ssh-bruteforce",
+      "category": "credential_access",
+      "mode": "llm_only",
+      "db_alert_id": 4,
+      "error": null,
+      "wall_latency_seconds": 52.29134769199936,
+      "llm_latency_seconds": 52.2234275969995,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 1125,
+        "completion": 304
+      },
+      "analysis_id": 7,
+      "summary": "A failed authentication attempt was detected using a non-existent user 'admin-test' from IP 198.51.100.77 on the Ubuntu host linux-lab.",
+      "confidence": "MEDIUM",
+      "predicted_techniques": [
+        "T1110"
+      ],
+      "technique_prf1": {
+        "precision": 1.0,
+        "recall": 0.5,
+        "f1": 0.6666666666666666,
+        "predicted_count": 1
+      },
+      "expected_cves": [],
+      "predicted_cves": [],
+      "cve_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 0,
+        "expected_count": 0
+      },
+      "is_benign": false,
+      "benign_eval": {
+        "is_benign": false,
+        "is_false_alarm": null,
+        "correctly_benign": null,
+        "predicted_band": "high"
+      },
+      "severity_band_match": true,
+      "expected_severity_band": "high",
+      "observed_indicators": [
+        "198.51.100.77",
+        "admin-test"
+      ],
+      "investigation_step_count": 3,
+      "evidence_reference_count": 0,
+      "valid_evidence_reference_rate": null,
+      "retrieved": [],
+      "retrieval_first_relevant_rank": null,
+      "limitations": "No additional evidence is available to confirm the intent behind the failed login attempt."
+    },
+    {
+      "case_id": "case-01-ssh-bruteforce",
+      "category": "credential_access",
+      "mode": "standard_rag",
+      "db_alert_id": 4,
+      "error": null,
+      "wall_latency_seconds": 85.44900275500004,
+      "llm_latency_seconds": 70.07335714300007,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 1897,
+        "completion": 588
+      },
+      "analysis_id": 8,
+      "summary": "A failed authentication attempt was detected using a non-existent user 'admin-test' from IP 198.51.100.77 on the Ubuntu host linux-lab.",
+      "confidence": "MEDIUM",
+      "predicted_techniques": [
+        "T1110"
+      ],
+      "technique_prf1": {
+        "precision": 1.0,
+        "recall": 0.5,
+        "f1": 0.6666666666666666,
+        "predicted_count": 1
+      },
+      "expected_cves": [],
+      "predicted_cves": [],
+      "cve_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 0,
+        "expected_count": 0
+      },
+      "is_benign": false,
+      "benign_eval": {
+        "is_benign": false,
+        "is_false_alarm": null,
+        "correctly_benign": null,
+        "predicted_band": "high"
+      },
+      "severity_band_match": true,
+      "expected_severity_band": "high",
+      "observed_indicators": [
+        "198.51.100.77",
+        "admin-test"
+      ],
+      "investigation_step_count": 3,
+      "evidence_reference_count": 2,
+      "valid_evidence_reference_rate": 1.0,
+      "retrieved": [
+        {
+          "id": "CVE-2002-0765",
+          "title": "CVE-2002-0765 (Unknown severity)",
+          "score": 0.5008
+        },
+        {
+          "id": "CVE-2003-0190",
+          "title": "CVE-2003-0190 (Unknown severity)",
+          "score": 0.4704
+        },
+        {
+          "id": "CVE-2003-1562",
+          "title": "CVE-2003-1562 (Unknown severity)",
+          "score": 0.4395
+        },
+        {
+          "id": "CVE-2001-1380",
+          "title": "CVE-2001-1380 (Unknown severity)",
+          "score": 0.4131
+        },
+        {
+          "id": "CVE-2000-0525",
+          "title": "CVE-2000-0525 (Unknown severity)",
+          "score": 0.4069
+        }
+      ],
+      "retrieval_first_relevant_rank": null,
+      "limitations": "The exact intent of the attacker is unknown, and further analysis is required to determine if this is a genuine attack or a false positive."
+    },
+    {
+      "case_id": "case-01-ssh-bruteforce",
+      "category": "credential_access",
+      "mode": "evidence_aware",
+      "db_alert_id": 4,
+      "error": null,
+      "wall_latency_seconds": 64.88886669000021,
+      "llm_latency_seconds": 64.67529386999922,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 1949,
+        "completion": 529
+      },
+      "analysis_id": 9,
+      "summary": "A failed authentication attempt was detected using a non-existent user 'admin-test' from IP 198.51.100.77 on Ubuntu host linux-lab.",
+      "confidence": "MEDIUM",
+      "predicted_techniques": [
+        "T1110"
+      ],
+      "technique_prf1": {
+        "precision": 1.0,
+        "recall": 0.5,
+        "f1": 0.6666666666666666,
+        "predicted_count": 1
+      },
+      "expected_cves": [],
+      "predicted_cves": [],
+      "cve_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 0,
+        "expected_count": 0
+      },
+      "is_benign": false,
+      "benign_eval": {
+        "is_benign": false,
+        "is_false_alarm": null,
+        "correctly_benign": null,
+        "predicted_band": "high"
+      },
+      "severity_band_match": true,
+      "expected_severity_band": "high",
+      "observed_indicators": [
+        "198.51.100.77",
+        "admin-test"
+      ],
+      "investigation_step_count": 3,
+      "evidence_reference_count": 2,
+      "valid_evidence_reference_rate": 1.0,
+      "retrieved": [
+        {
+          "id": "T1110",
+          "title": "Brute Force",
+          "score": 0.2833
+        },
+        {
+          "id": "T1110",
+          "title": "Brute Force",
+          "score": 0.1378
+        },
+        {
+          "id": "T1065",
+          "title": "Uncommonly Used Port",
+          "score": 0.5017
+        },
+        {
+          "id": "T1590",
+          "title": "Gather Victim Network Information",
+          "score": 0.4862
+        },
+        {
+          "id": "T1008",
+          "title": "Fallback Channels",
+          "score": 0.4793
+        }
+      ],
+      "retrieval_first_relevant_rank": 1,
+      "limitations": "The alert does not provide evidence of successful login or further malicious activity, so the threat level is based on the attempt alone."
+    }
+  ]
+}

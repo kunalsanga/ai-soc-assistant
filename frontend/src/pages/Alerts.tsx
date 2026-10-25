@@ -357,7 +357,7 @@ const Alerts: React.FC = () => {
                               <ExternalLink className="w-4 h-4" />
                             </Link>
                             <Link
-                              to={`/ai-analysis?alert=${alert.id}`}
+                              to={`/investigations?alert_id=${alert.id}`}
                               className="px-2 py-1 rounded bg-cyan-950/80 hover:bg-cyan-900 text-cyan-300 border border-cyan-800/50 text-[11px] font-medium transition-colors"
                             >
                               Analyze
@@ -431,7 +431,7 @@ const Alerts: React.FC = () => {
                                   Ingested at {new Date(alert.created_at).toISOString()}
                                 </span>
                                 <Link
-                                  to={`/ai-analysis?alert=${alert.id}`}
+                                  to={`/investigations?alert_id=${alert.id}`}
                                   className="btn btn-primary text-xs flex items-center gap-2"
                                 >
                                   <Search className="w-3.5 h-3.5" />

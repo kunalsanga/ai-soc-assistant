@@ -272,12 +272,12 @@ ${(analysis.evidence || []).map((e: Evidence) => `- [${e.document_id}] ${e.title
         }
         actions={
           alerts.length > 0 ? (
-            <div className="flex items-center gap-2.5 max-w-full">
+            <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 max-w-full">
               <label className="text-xs text-zinc-400 font-mono shrink-0">Selected Alert:</label>
               <select
                 value={selectedAlertId ?? ''}
                 onChange={(e) => handleSelectAlert(Number(e.target.value))}
-                className="bg-[#0c101a] border border-zinc-700 rounded-lg px-3 py-1.5 text-xs text-cyan-300 font-mono focus:outline-none focus:border-cyan-500 max-w-xs truncate"
+                className="bg-[#0c101a] border border-zinc-700 rounded-lg px-3 py-1.5 text-xs text-cyan-300 font-mono focus:outline-none focus:border-cyan-500 w-full sm:w-auto max-w-full sm:max-w-xs truncate"
               >
                 {alerts.map((alert) => (
                   <option key={alert.id} value={alert.id}>
