@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import time
@@ -165,9 +166,9 @@ class SOCAnalysisOrchestrator:
                         nvd_queries=[],
                         security_queries=[naive_query]
                     )
-                    evidence_set = self._retriever.retrieve_query_set(naive_query_set)
+                    evidence_set = await asyncio.to_thread(self._retriever.retrieve_query_set, naive_query_set)
                 elif mode == AnalysisMode.EVIDENCE_AWARE and self._retriever:
-                    evidence_set = self._retriever.retrieve_query_set(structured_queries)
+                    evidence_set = await asyncio.to_thread(self._retriever.retrieve_query_set, structured_queries)
 
                 d5 = int((time.perf_counter() - t0) * 1000)
                 ev_items = getattr(evidence_set, "evidence", []) if evidence_set else []
@@ -189,7 +190,7 @@ class SOCAnalysisOrchestrator:
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             temperature=0.0,
-            max_tokens=2000
+            max_tokens=1000
         )
         d7 = int((time.perf_counter() - t0) * 1000)
         await emit("prompt_formulation", 7, "Prompt Formulation & Injection Defense", "app.services.orchestrator.SOCAnalysisOrchestrator._build_prompts", "stage_complete", "succeeded", duration_ms=d7, records_processed=1)
@@ -200,7 +201,7 @@ class SOCAnalysisOrchestrator:
         await emit("llm_inference", 8, "Local LLM Inference (Ollama)", "app.llm.providers.ollama.OllamaLLMProvider", "stage_start", "running", model_name=configured_model)
         try:
             llm_started = time.perf_counter()
-            response = self._llm_provider.generate(request)
+            response = await asyncio.to_thread(self._llm_provider.generate, request)
             artifacts.llm_latency_seconds = time.perf_counter() - llm_started
             artifacts.llm_model = response.model
             artifacts.llm_tokens = {

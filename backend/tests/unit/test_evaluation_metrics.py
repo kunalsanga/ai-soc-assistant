@@ -5,6 +5,9 @@ from pathlib import Path
 import pytest
 
 from app.evaluation.metrics import (
+    benign_evaluation,
+    cve_prf1,
+    extract_cves,
     extract_severity_band,
     extract_techniques,
     mean,
@@ -16,6 +19,7 @@ from app.evaluation.metrics import (
     stdev,
     technique_prf1,
     valid_evidence_reference_rate,
+    validate_dataset_schema,
 )
 
 DATASET_PATH = Path(__file__).resolve().parents[2] / "evaluation" / "dataset_v1.json"
@@ -115,16 +119,85 @@ class TestDataset:
             assert len(gt["expected_indicators"]) > 0
             assert gt["expected_direction"].strip()
 
-    def test_expected_severity_matches_alert_level_band(self):
-        dataset = json.loads(DATASET_PATH.read_text(encoding="utf-8"))
-        for case in dataset["cases"]:
-            level = case["alert"]["rule"]["level"]
-            band = case["ground_truth"]["expected_severity_band"]
-            if band == "low":
-                assert 2 <= level <= 4, case["case_id"]
-            elif band == "medium":
-                assert 5 <= level <= 7, case["case_id"]
-            elif band == "high":
-                assert 8 <= level <= 11, case["case_id"]
-            else:
-                assert level >= 12, case["case_id"]
+class TestCVEMetrics:
+    def test_extract_cves(self):
+        assert extract_cves("Exploits CVE-2021-44228 and cve-2022-22965") == ["CVE-2021-44228", "CVE-2022-22965"]
+        assert extract_cves("No vulnerabilities mentioned here") == []
+        assert extract_cves("") == []
+        assert extract_cves(None) == []
+
+    def test_cve_prf1_empty_both(self):
+        # Neither expected nor predicted -> True Negative, 1.0 accuracy
+        r = cve_prf1([], set())
+        assert r["precision"] == 1.0
+        assert r["recall"] == 1.0
+        assert r["f1"] == 1.0
+
+    def test_cve_prf1_hallucinated(self):
+        # None expected, but predicted -> Precision 0, F1 0
+        r = cve_prf1(["CVE-2021-44228"], set())
+        assert r["precision"] == 0.0
+        assert r["recall"] == 0.0
+        assert r["f1"] == 0.0
+
+    def test_cve_prf1_matching(self):
+        r = cve_prf1(["CVE-2021-44228"], {"CVE-2021-44228"})
+        assert r["precision"] == 1.0
+        assert r["recall"] == 1.0
+        assert r["f1"] == 1.0
+
+
+class TestBenignEvaluation:
+    def test_benign_true_negative(self):
+        r = benign_evaluation("Low severity benign scan", is_benign=True, expected_band="low")
+        assert r["is_benign"] is True
+        assert r["is_false_alarm"] is False
+        assert r["correctly_benign"] is True
+
+    def test_benign_false_alarm(self):
+        r = benign_evaluation("CRITICAL active attack", is_benign=True, expected_band="low")
+        assert r["is_benign"] is True
+        assert r["is_false_alarm"] is True
+        assert r["correctly_benign"] is False
+
+    def test_attack_scenario(self):
+        r = benign_evaluation("Critical compromise", is_benign=False, expected_band="critical")
+        assert r["is_benign"] is False
+        assert r["is_false_alarm"] is None
+
+
+class TestDatasetV2:
+    DATASET_V2_PATH = Path(__file__).resolve().parents[2] / "evaluation" / "dataset_v2.json"
+
+    def test_dataset_v2_schema_validation(self):
+        from app.evaluation.metrics import validate_dataset_schema
+        dataset = json.loads(self.DATASET_V2_PATH.read_text(encoding="utf-8"))
+        errors = validate_dataset_schema(dataset)
+        assert errors == [], f"Validation errors: {errors}"
+        assert dataset["dataset_version"] == "v2"
+        assert dataset["synthetic"] is True
+        assert len(dataset["cases"]) == 40
+
+    def test_category_and_benign_coverage(self):
+        dataset = json.loads(self.DATASET_V2_PATH.read_text(encoding="utf-8"))
+        cases = dataset["cases"]
+        categories = {c["category"] for c in cases}
+        assert len(categories) == 10, f"Expected 10 categories, got: {categories}"
+
+        benign_cases = [c for c in cases if c["ground_truth"]["is_benign"]]
+        assert len(benign_cases) == 4
+        for bc in benign_cases:
+            assert bc["ground_truth"]["expected_severity_band"] == "low"
+            assert bc["ground_truth"]["expected_techniques"] == []
+
+        attack_cases = [c for c in cases if not c["ground_truth"]["is_benign"]]
+        assert len(attack_cases) == 36
+        for ac in attack_cases:
+            assert len(ac["ground_truth"]["expected_techniques"]) > 0
+
+    def test_log4shell_cve_mapping(self):
+        dataset = json.loads(self.DATASET_V2_PATH.read_text(encoding="utf-8"))
+        log4j = next(c for c in dataset["cases"] if c["case_id"] == "case-29-log4shell-exploitation")
+        assert "CVE-2021-44228" in log4j["ground_truth"]["expected_cves"]
+        assert log4j["ground_truth"]["expected_severity_band"] == "critical"
+

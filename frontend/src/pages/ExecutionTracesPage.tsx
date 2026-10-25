@@ -341,6 +341,9 @@ export const ExecutionTracesPage: React.FC = () => {
   const [loadingAlerts, setLoadingAlerts] = useState(true);
   const [loadingTrace, setLoadingTrace] = useState(false);
   const [streaming, setStreaming] = useState(false);
+  const [streamingElapsed, setStreamingElapsed] = useState<number>(0);
+  const [currentStreamingStage, setCurrentStreamingStage] = useState<string>('');
+  const streamingTimerRef = useRef<number | null>(null);
   const [analysisMode, setAnalysisMode] = useState<string>('evidence_aware');
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -490,6 +493,7 @@ export const ExecutionTracesPage: React.FC = () => {
     return () => {
       if (streamCleanupRef.current) streamCleanupRef.current();
       if (replayTimerRef.current) window.clearInterval(replayTimerRef.current);
+      if (streamingTimerRef.current) window.clearInterval(streamingTimerRef.current);
     };
   }, []);
 
@@ -497,10 +501,18 @@ export const ExecutionTracesPage: React.FC = () => {
   const handleTriggerLiveAnalysis = () => {
     if (!selectedAlertId) return;
     setStreaming(true);
+    setStreamingElapsed(0);
+    setCurrentStreamingStage('Alert Ingestion & Normalization');
     setError(null);
     setSuccessMsg(null);
     setIsReplaying(false);
     setEventLogs([]);
+
+    if (streamingTimerRef.current) window.clearInterval(streamingTimerRef.current);
+    const startTs = Date.now();
+    streamingTimerRef.current = window.setInterval(() => {
+      setStreamingElapsed(Math.round((Date.now() - startTs) / 1000));
+    }, 500);
 
     // Temporary live trace state
     setTrace((prev) => ({
@@ -520,6 +532,7 @@ export const ExecutionTracesPage: React.FC = () => {
       analysisMode,
       (eventData: any) => {
         if (eventData.event_type === 'stage_start') {
+          setCurrentStreamingStage(eventData.name || '');
           // Highlight running node
           const matchedNode = ARCH_NODES.find((n) => n.stage_id === eventData.stage_id || n.step === eventData.step);
           if (matchedNode) setSelectedNodeId(matchedNode.id);
@@ -628,10 +641,18 @@ export const ExecutionTracesPage: React.FC = () => {
         }
       },
       (err: any) => {
+        if (streamingTimerRef.current) {
+          window.clearInterval(streamingTimerRef.current);
+          streamingTimerRef.current = null;
+        }
         setStreaming(false);
         setError(`Live stream error: ${err?.message || 'Connection interrupted'}`);
       },
       () => {
+        if (streamingTimerRef.current) {
+          window.clearInterval(streamingTimerRef.current);
+          streamingTimerRef.current = null;
+        }
         setStreaming(false);
       }
     );
@@ -700,11 +721,24 @@ export const ExecutionTracesPage: React.FC = () => {
     setViewport({ x: 30, y: 30, zoom: 0.8 });
   };
 
-  // Auto fit on mount and window resize
+  // Auto fit on mount, window resize, and container dimension changes
   useEffect(() => {
     handleFitToView();
     window.addEventListener('resize', handleFitToView);
-    return () => window.removeEventListener('resize', handleFitToView);
+
+    const container = canvasContainerRef.current;
+    let observer: ResizeObserver | null = null;
+    if (container && typeof ResizeObserver !== 'undefined') {
+      observer = new ResizeObserver(() => {
+        handleFitToView();
+      });
+      observer.observe(container);
+    }
+
+    return () => {
+      window.removeEventListener('resize', handleFitToView);
+      if (observer) observer.disconnect();
+    };
   }, [handleFitToView]);
 
   // Canvas Mouse Pan & Zoom
@@ -822,7 +856,7 @@ export const ExecutionTracesPage: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-80px)] overflow-hidden bg-[#06080e] text-zinc-200">
+    <div className="flex flex-col h-full w-full flex-1 min-h-0 overflow-hidden rounded-xl border border-zinc-800/90 bg-[#06080e] text-zinc-200 shadow-xl">
       {/* 1. TOP COMPACT HEADER & CONTROL STRIP */}
       <header className="px-4 py-2 border-b border-zinc-800/80 bg-[#080b12] shrink-0">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -866,7 +900,7 @@ export const ExecutionTracesPage: React.FC = () => {
           </div>
 
           {/* Controls: Alert selection, Mode, Run Button, Replay, Toolbar */}
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {/* Synthetic source label badge */}
             <span
               className={`text-[10px] font-mono px-2 py-1 rounded font-bold border ${
@@ -1030,9 +1064,17 @@ export const ExecutionTracesPage: React.FC = () => {
 
         {/* Live status indicators & Alerts banner */}
         {streaming && (
-          <div className="mt-2 p-1.5 rounded bg-cyan-950/60 border border-cyan-800/60 text-xs font-mono text-cyan-300 flex items-center gap-2">
-            <RefreshCw className="w-3.5 h-3.5 animate-spin text-cyan-400" />
-            <span>Streaming real-time execution telemetry from FastAPI backend via SSE...</span>
+          <div className="mt-2 p-2 rounded-lg bg-cyan-950/70 border border-cyan-800 text-xs font-mono text-cyan-200 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <RefreshCw className="w-4 h-4 animate-spin text-cyan-400 shrink-0" />
+              <span>
+                Streaming live telemetry: <strong className="text-amber-300">{currentStreamingStage || 'Executing pipeline...'}</strong>
+                {currentStreamingStage?.includes('LLM') && ' (Local Qwen3-8B model inference on CPU · ~15-45s)'}
+              </span>
+            </div>
+            <span className="text-cyan-400 font-bold bg-cyan-900/60 px-2 py-0.5 rounded border border-cyan-700/80">
+              {streamingElapsed}s elapsed
+            </span>
           </div>
         )}
 
@@ -1301,7 +1343,7 @@ export const ExecutionTracesPage: React.FC = () => {
 
         {/* 3. COLLAPSIBLE TECHNICAL INSPECTOR (SLIDING RIGHT DRAWER) */}
         {inspectorOpen && (
-          <aside className="w-96 rounded-l-xl border-l border-zinc-800 bg-[#0c101a] flex flex-col shrink-0 shadow-2xl z-20 transition-all duration-200">
+          <aside className="absolute md:relative inset-y-0 right-0 w-full sm:w-96 md:w-80 lg:w-96 rounded-l-xl border-l border-zinc-800 bg-[#0c101a] flex flex-col shrink-0 shadow-2xl z-30 transition-all duration-200">
             {/* Inspector Header */}
             <div className="flex items-center justify-between border-b border-zinc-800 p-3 bg-[#080b12]">
               <div className="flex items-center gap-2 min-w-0">

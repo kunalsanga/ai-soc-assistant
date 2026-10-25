@@ -90,7 +90,9 @@ export const EntityGraphPage: React.FC = () => {
   const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
 
   const [neighborhoodHops, setNeighborhoodHops] = useState<number>(0);
-  const [controlsOpen, setControlsOpen] = useState<boolean>(true);
+  const [controlsOpen, setControlsOpen] = useState<boolean>(
+    typeof window !== 'undefined' ? window.innerWidth >= 768 : true
+  );
   const [showLabels, setShowLabels] = useState<boolean>(true);
   const [sizeByDegree, setSizeByDegree] = useState<boolean>(true);
   const [clusterByScenario, setClusterByScenario] = useState<boolean>(true);
@@ -592,7 +594,7 @@ export const EntityGraphPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-3 flex flex-col h-[calc(100vh-100px)]">
+    <div className="space-y-2 flex flex-col h-full w-full flex-1 min-h-0">
       {/* Top Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800/80 pb-3 shrink-0">
         <div>
@@ -638,7 +640,7 @@ export const EntityGraphPage: React.FC = () => {
       </div>
 
       {/* Main Graph Canvas + Inspector Flex Wrapper */}
-      <div className="relative flex-1 min-h-[500px] rounded-xl border border-zinc-800/90 bg-[#07090f] overflow-hidden flex">
+      <div className="relative flex-1 min-h-0 rounded-xl border border-zinc-800/90 bg-[#07090f] overflow-hidden flex">
         {/* Graph Canvas Container (Occupies 100% full width and height) */}
         <div
           ref={containerRef}
@@ -649,7 +651,7 @@ export const EntityGraphPage: React.FC = () => {
         >
           {/* Obsidian-Style Floating Settings Panel on Top-Left */}
           <div className="absolute top-3 left-3 z-30 pointer-events-auto">
-            <div className="rounded-xl bg-[#0e111a]/95 backdrop-blur-md border border-zinc-800/90 shadow-2xl overflow-hidden font-mono text-xs w-64 transition-all">
+            <div className="rounded-xl bg-[#0e111a]/95 backdrop-blur-md border border-zinc-800/90 shadow-2xl overflow-hidden font-mono text-xs w-[calc(100vw-3rem)] sm:w-64 max-w-xs transition-all">
               <div
                 onClick={() => setControlsOpen(!controlsOpen)}
                 className="flex items-center justify-between p-2.5 px-3 bg-[#131722] hover:bg-[#181d2b] cursor-pointer border-b border-zinc-800 text-zinc-300"
@@ -665,7 +667,7 @@ export const EntityGraphPage: React.FC = () => {
               </div>
 
               {controlsOpen && (
-                <div className="p-3 space-y-3 max-h-[calc(100vh-280px)] overflow-y-auto">
+                <div className="p-3 space-y-3 max-h-[60vh] overflow-y-auto">
                   {/* Filters Section */}
                   <div>
                     <div className="text-[10px] uppercase text-zinc-400 font-bold mb-1.5 flex items-center justify-between">
@@ -1147,7 +1149,7 @@ export const EntityGraphPage: React.FC = () => {
         {selectedNode && (
           <aside
             aria-label="Entity Inspector"
-            className="w-80 lg:w-96 shrink-0 h-full border-l border-zinc-800/90 bg-[#0c101a]/95 backdrop-blur-md p-4 flex flex-col overflow-y-auto z-30 shadow-2xl animate-in slide-in-from-right-4 duration-200"
+            className="absolute md:relative inset-y-0 right-0 w-full sm:w-80 lg:w-96 shrink-0 h-full border-l border-zinc-800/90 bg-[#0c101a]/95 backdrop-blur-md p-4 flex flex-col overflow-y-auto z-30 shadow-2xl animate-in slide-in-from-right-4 duration-200"
           >
             <div className="space-y-4">
               {/* Header */}

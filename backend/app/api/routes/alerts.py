@@ -544,6 +544,7 @@ async def get_alert_execution_trace(
     try:
         all_runs_res = await db.execute(
             select(Analysis)
+            .options(selectinload(Analysis.evidence))
             .where(Analysis.alert_id == alert_id)
             .order_by(Analysis.created_at.desc())
         )
@@ -788,7 +789,8 @@ async def analyze_alert(
         
     orchestrator = get_orchestrator()
     try:
-        analysis = await orchestrator.analyze_alert(db=db, alert_id=alert_id, mode=analysis_mode)
+        result = await orchestrator.analyze_alert(db=db, alert_id=alert_id, mode=analysis_mode)
+        analysis = result[0] if isinstance(result, tuple) else result
     except AlertNotFoundError as exc:
         raise HTTPException(status_code=404, detail=exc.message)
     except LLMProviderError as exc:
@@ -824,9 +826,10 @@ async def stream_analyze_alert(
 
         async def runner():
             try:
-                analysis = await orchestrator.analyze_alert(
+                result = await orchestrator.analyze_alert(
                     db=db, alert_id=alert_id, mode=analysis_mode, on_trace_event=trace_listener
                 )
+                analysis = result[0] if isinstance(result, tuple) else result
                 await queue.put({
                     "event_type": "analysis_ready",
                     "status": "completed",

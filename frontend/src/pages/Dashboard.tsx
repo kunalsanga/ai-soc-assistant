@@ -396,7 +396,7 @@ export const Dashboard: React.FC = () => {
           {/* Table Container */}
           <div className="flex-1 overflow-x-auto min-h-[360px] max-h-[460px] overflow-y-auto pr-1">
             <table className="w-full text-left text-xs font-mono">
-              <thead className="sticky top-0 bg-[#0c101a] border-b border-zinc-800 text-zinc-400 text-[10px] uppercase tracking-wider">
+              <thead className="sticky top-0 z-10 bg-[#0c101a] border-b border-zinc-800 text-zinc-400 text-[10px] uppercase tracking-wider">
                 <tr>
                   <th className="py-2.5 px-3">Time</th>
                   <th className="py-2.5 px-3 font-sans">Alert / Detection</th>

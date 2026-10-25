@@ -35,4 +35,11 @@ describe('App Routing', () => {
     expect(screen.getByRole('link', { name: /rag evaluation/i })).toBeInTheDocument();
     expect(screen.queryByText('Bivan')).not.toBeInTheDocument();
   });
+
+  it('preserves query parameters when redirecting legacy routes like /ai-analysis', () => {
+    window.history.pushState({}, 'Test', '/ai-analysis?alert=99');
+    render(<App />);
+    expect(window.location.pathname).toBe('/investigations');
+    expect(window.location.search).toBe('?alert=99');
+  });
 });

@@ -176,8 +176,7 @@ const AlertDetails: React.FC = () => {
               <span>Back to Stream</span>
             </Link>
             <Link
-              to="/ai-analysis"
-              state={{ alertId: alert.id }}
+              to={`/investigations?alert_id=${alert.id}`}
               className="btn btn-primary text-xs flex items-center gap-1.5"
             >
               <SearchCode className="w-3.5 h-3.5" />

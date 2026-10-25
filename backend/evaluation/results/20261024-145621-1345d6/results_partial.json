@@ -1,0 +1,2609 @@
+{
+  "run_id": "20261024-145621-1345d6",
+  "records": [
+    {
+      "case_id": "case-01-ssh-bruteforce",
+      "category": "credential_access",
+      "mode": "llm_only",
+      "db_alert_id": 4,
+      "error": null,
+      "wall_latency_seconds": 41.72168852200048,
+      "llm_latency_seconds": 41.67877235600008,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 1125,
+        "completion": 304
+      },
+      "analysis_id": 10,
+      "summary": "A failed authentication attempt was detected using a non-existent user 'admin-test' from IP 198.51.100.77 on the Ubuntu host linux-lab.",
+      "confidence": "MEDIUM",
+      "predicted_techniques": [
+        "T1110"
+      ],
+      "technique_prf1": {
+        "precision": 1.0,
+        "recall": 0.5,
+        "f1": 0.6666666666666666,
+        "predicted_count": 1
+      },
+      "expected_cves": [],
+      "predicted_cves": [],
+      "cve_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 0,
+        "expected_count": 0
+      },
+      "is_benign": false,
+      "benign_eval": {
+        "is_benign": false,
+        "is_false_alarm": null,
+        "correctly_benign": null,
+        "predicted_band": "high"
+      },
+      "severity_band_match": true,
+      "expected_severity_band": "high",
+      "observed_indicators": [
+        "198.51.100.77",
+        "admin-test"
+      ],
+      "investigation_step_count": 3,
+      "evidence_reference_count": 0,
+      "valid_evidence_reference_rate": null,
+      "retrieved": [],
+      "retrieval_first_relevant_rank": null,
+      "limitations": "No additional evidence is available to confirm the intent behind the failed login attempt."
+    },
+    {
+      "case_id": "case-01-ssh-bruteforce",
+      "category": "credential_access",
+      "mode": "standard_rag",
+      "db_alert_id": 4,
+      "error": null,
+      "wall_latency_seconds": 67.76798828899973,
+      "llm_latency_seconds": 48.58787008299987,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 1904,
+        "completion": 431
+      },
+      "analysis_id": 11,
+      "summary": "A failed authentication attempt was detected using a non-existent user 'admin-test' from IP 198.51.100.77 on the Ubuntu host linux-lab.",
+      "confidence": "MEDIUM",
+      "predicted_techniques": [
+        "T1110"
+      ],
+      "technique_prf1": {
+        "precision": 1.0,
+        "recall": 0.5,
+        "f1": 0.6666666666666666,
+        "predicted_count": 1
+      },
+      "expected_cves": [],
+      "predicted_cves": [],
+      "cve_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 0,
+        "expected_count": 0
+      },
+      "is_benign": false,
+      "benign_eval": {
+        "is_benign": false,
+        "is_false_alarm": null,
+        "correctly_benign": null,
+        "predicted_band": "high"
+      },
+      "severity_band_match": true,
+      "expected_severity_band": "high",
+      "observed_indicators": [
+        "198.51.100.77",
+        "admin-test"
+      ],
+      "investigation_step_count": 3,
+      "evidence_reference_count": 1,
+      "valid_evidence_reference_rate": 1.0,
+      "retrieved": [
+        {
+          "id": "CVE-2002-0765",
+          "title": "CVE-2002-0765 (Unknown severity)",
+          "score": 0.5008
+        },
+        {
+          "id": "CVE-2003-0190",
+          "title": "CVE-2003-0190 (Unknown severity)",
+          "score": 0.4704
+        },
+        {
+          "id": "CVE-2003-1562",
+          "title": "CVE-2003-1562 (Unknown severity)",
+          "score": 0.4395
+        },
+        {
+          "id": "CVE-2001-1380",
+          "title": "CVE-2001-1380 (Unknown severity)",
+          "score": 0.4131
+        },
+        {
+          "id": "CVE-2000-0525",
+          "title": "CVE-2000-0525 (Unknown severity)",
+          "score": 0.4069
+        }
+      ],
+      "retrieval_first_relevant_rank": null,
+      "limitations": "The exact intent of the login attempt is unknown, and further analysis is required to determine if it is malicious."
+    },
+    {
+      "case_id": "case-01-ssh-bruteforce",
+      "category": "credential_access",
+      "mode": "evidence_aware",
+      "db_alert_id": 4,
+      "error": null,
+      "wall_latency_seconds": 61.84049228299955,
+      "llm_latency_seconds": 61.69939589099977,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 1941,
+        "completion": 535
+      },
+      "analysis_id": 12,
+      "summary": "A failed authentication attempt was detected using a non-existent user 'admin-test' from IP 198.51.100.77 on Ubuntu host linux-lab.",
+      "confidence": "MEDIUM",
+      "predicted_techniques": [
+        "T1110"
+      ],
+      "technique_prf1": {
+        "precision": 1.0,
+        "recall": 0.5,
+        "f1": 0.6666666666666666,
+        "predicted_count": 1
+      },
+      "expected_cves": [],
+      "predicted_cves": [],
+      "cve_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 0,
+        "expected_count": 0
+      },
+      "is_benign": false,
+      "benign_eval": {
+        "is_benign": false,
+        "is_false_alarm": null,
+        "correctly_benign": null,
+        "predicted_band": "high"
+      },
+      "severity_band_match": true,
+      "expected_severity_band": "high",
+      "observed_indicators": [
+        "198.51.100.77",
+        "admin-test"
+      ],
+      "investigation_step_count": 3,
+      "evidence_reference_count": 2,
+      "valid_evidence_reference_rate": 1.0,
+      "retrieved": [
+        {
+          "id": "T1110",
+          "title": "Brute Force",
+          "score": 0.2833
+        },
+        {
+          "id": "T1110",
+          "title": "Brute Force",
+          "score": 0.1378
+        },
+        {
+          "id": "T1065",
+          "title": "Uncommonly Used Port",
+          "score": 0.5017
+        },
+        {
+          "id": "T1590",
+          "title": "Gather Victim Network Information",
+          "score": 0.4862
+        },
+        {
+          "id": "T1008",
+          "title": "Fallback Channels",
+          "score": 0.4793
+        }
+      ],
+      "retrieval_first_relevant_rank": 1,
+      "limitations": "The alert does not provide evidence of successful login or further malicious activity, so the threat level is based on the attempt alone."
+    },
+    {
+      "case_id": "case-02-password-spray",
+      "category": "credential_access",
+      "mode": "llm_only",
+      "db_alert_id": 5,
+      "error": null,
+      "wall_latency_seconds": 32.216857018000155,
+      "llm_latency_seconds": 32.16540287099997,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 1128,
+        "completion": 298
+      },
+      "analysis_id": 13,
+      "summary": "A potential password spraying attack was detected against cloud accounts, with multiple authentication failures from a single source IP.",
+      "confidence": "MEDIUM",
+      "predicted_techniques": [
+        "T1110.003"
+      ],
+      "technique_prf1": {
+        "precision": 1.0,
+        "recall": 0.5,
+        "f1": 0.6666666666666666,
+        "predicted_count": 1
+      },
+      "expected_cves": [],
+      "predicted_cves": [],
+      "cve_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 0,
+        "expected_count": 0
+      },
+      "is_benign": false,
+      "benign_eval": {
+        "is_benign": false,
+        "is_false_alarm": null,
+        "correctly_benign": null,
+        "predicted_band": "high"
+      },
+      "severity_band_match": true,
+      "expected_severity_band": "high",
+      "observed_indicators": [
+        "203.0.113.50",
+        "multiple-users"
+      ],
+      "investigation_step_count": 3,
+      "evidence_reference_count": 0,
+      "valid_evidence_reference_rate": null,
+      "retrieved": [],
+      "retrieval_first_relevant_rank": null,
+      "limitations": "No additional evidence was provided to confirm the malicious intent of the source IP or the specific users involved."
+    },
+    {
+      "case_id": "case-02-password-spray",
+      "category": "credential_access",
+      "mode": "standard_rag",
+      "db_alert_id": 5,
+      "error": null,
+      "wall_latency_seconds": 70.15591753100034,
+      "llm_latency_seconds": 70.00027365400001,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 2323,
+        "completion": 573
+      },
+      "analysis_id": 14,
+      "summary": "A potential password spraying attack was detected against cloud accounts, with multiple authentication failures from a single source IP.",
+      "confidence": "MEDIUM",
+      "predicted_techniques": [
+        "T1110.003"
+      ],
+      "technique_prf1": {
+        "precision": 1.0,
+        "recall": 0.5,
+        "f1": 0.6666666666666666,
+        "predicted_count": 1
+      },
+      "expected_cves": [],
+      "predicted_cves": [],
+      "cve_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 0,
+        "expected_count": 0
+      },
+      "is_benign": false,
+      "benign_eval": {
+        "is_benign": false,
+        "is_false_alarm": null,
+        "correctly_benign": null,
+        "predicted_band": "high"
+      },
+      "severity_band_match": true,
+      "expected_severity_band": "high",
+      "observed_indicators": [
+        "203.0.113.50",
+        "multiple-users",
+        "idp-01"
+      ],
+      "investigation_step_count": 3,
+      "evidence_reference_count": 2,
+      "valid_evidence_reference_rate": 1.0,
+      "retrieved": [
+        {
+          "id": "T1586.003",
+          "title": "Cloud Accounts",
+          "score": 0.6699
+        },
+        {
+          "id": "T1098.001",
+          "title": "Additional Cloud Credentials",
+          "score": 0.6125
+        },
+        {
+          "id": "T1078",
+          "title": "Valid Accounts",
+          "score": 0.5725
+        },
+        {
+          "id": "T1078.004",
+          "title": "Cloud Accounts",
+          "score": 0.5521
+        },
+        {
+          "id": "T1556.009",
+          "title": "Conditional Access Policies",
+          "score": 0.5469
+        }
+      ],
+      "retrieval_first_relevant_rank": null,
+      "limitations": "The exact number of failed attempts and the specific users targeted are not detailed in the alert. Further investigation is required to confirm the attack vector and its impact."
+    },
+    {
+      "case_id": "case-02-password-spray",
+      "category": "credential_access",
+      "mode": "evidence_aware",
+      "db_alert_id": 5,
+      "error": null,
+      "wall_latency_seconds": 68.0185164960003,
+      "llm_latency_seconds": 67.81747053600066,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 2270,
+        "completion": 535
+      },
+      "analysis_id": 15,
+      "summary": "A potential password spraying attack was detected with multiple authentication failures from a single source against different users.",
+      "confidence": "MEDIUM",
+      "predicted_techniques": [
+        "T1110.003"
+      ],
+      "technique_prf1": {
+        "precision": 1.0,
+        "recall": 0.5,
+        "f1": 0.6666666666666666,
+        "predicted_count": 1
+      },
+      "expected_cves": [],
+      "predicted_cves": [],
+      "cve_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 0,
+        "expected_count": 0
+      },
+      "is_benign": false,
+      "benign_eval": {
+        "is_benign": false,
+        "is_false_alarm": null,
+        "correctly_benign": null,
+        "predicted_band": "high"
+      },
+      "severity_band_match": true,
+      "expected_severity_band": "high",
+      "observed_indicators": [
+        "203.0.113.50",
+        "multiple-users",
+        "https"
+      ],
+      "investigation_step_count": 3,
+      "evidence_reference_count": 2,
+      "valid_evidence_reference_rate": 1.0,
+      "retrieved": [
+        {
+          "id": "T1110.003",
+          "title": "Password Spraying",
+          "score": 0.5651
+        },
+        {
+          "id": "T1110.003",
+          "title": "Password Spraying",
+          "score": -0.0095
+        },
+        {
+          "id": "T1110",
+          "title": "Brute Force",
+          "score": 0.4798
+        },
+        {
+          "id": "T1065",
+          "title": "Uncommonly Used Port",
+          "score": 0.4769
+        },
+        {
+          "id": "T1110.001",
+          "title": "Password Guessing",
+          "score": 0.4739
+        }
+      ],
+      "retrieval_first_relevant_rank": 1,
+      "limitations": "The exact number of failed attempts and the specific passwords used are not provided in the alert data."
+    },
+    {
+      "case_id": "case-03-kerberoasting",
+      "category": "credential_access",
+      "mode": "llm_only",
+      "db_alert_id": 6,
+      "error": null,
+      "wall_latency_seconds": 37.650181480000356,
+      "llm_latency_seconds": 37.59015829300006,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 1211,
+        "completion": 324
+      },
+      "analysis_id": 16,
+      "summary": "A suspicious .jsp file was uploaded to a web server, followed by HTTP POST requests to the uploaded file, indicating potential malicious activity.",
+      "confidence": "MEDIUM",
+      "predicted_techniques": [
+        "T1505.003",
+        "T1190"
+      ],
+      "technique_prf1": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "predicted_count": 2
+      },
+      "expected_cves": [],
+      "predicted_cves": [],
+      "cve_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 0,
+        "expected_count": 0
+      },
+      "is_benign": false,
+      "benign_eval": {
+        "is_benign": false,
+        "is_false_alarm": null,
+        "correctly_benign": null,
+        "predicted_band": "high"
+      },
+      "severity_band_match": true,
+      "expected_severity_band": "high",
+      "observed_indicators": [
+        "198.51.100.23",
+        "/var/www/app/uploads/cmd.jsp",
+        "app-prod-02"
+      ],
+      "investigation_step_count": 3,
+      "evidence_reference_count": 0,
+      "valid_evidence_reference_rate": null,
+      "retrieved": [],
+      "retrieval_first_relevant_rank": null,
+      "limitations": "No additional evidence is available to confirm the malicious intent of the uploaded file or the POST requests."
+    },
+    {
+      "case_id": "case-03-kerberoasting",
+      "category": "credential_access",
+      "mode": "standard_rag",
+      "db_alert_id": 6,
+      "error": null,
+      "wall_latency_seconds": 126.03017766199991,
+      "llm_latency_seconds": 110.68474328899993,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 2375,
+        "completion": 758
+      },
+      "analysis_id": 17,
+      "summary": "A suspicious .jsp file was uploaded to a web server, followed by HTTP POST requests to the uploaded file, indicating potential webshell activity.",
+      "confidence": "HIGH",
+      "predicted_techniques": [
+        "T1505.003",
+        "T1190"
+      ],
+      "technique_prf1": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "predicted_count": 2
+      },
+      "expected_cves": [],
+      "predicted_cves": [],
+      "cve_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 0,
+        "expected_count": 0
+      },
+      "is_benign": false,
+      "benign_eval": {
+        "is_benign": false,
+        "is_false_alarm": null,
+        "correctly_benign": null,
+        "predicted_band": "high"
+      },
+      "severity_band_match": true,
+      "expected_severity_band": "high",
+      "observed_indicators": [
+        "198.51.100.23",
+        "/var/www/app/uploads/cmd.jsp",
+        "app-prod-02"
+      ],
+      "investigation_step_count": 4,
+      "evidence_reference_count": 2,
+      "valid_evidence_reference_rate": 1.0,
+      "retrieved": [
+        {
+          "id": "CVE-2018-9156",
+          "title": "CVE-2018-9156 (HIGH)",
+          "score": 0.4844
+        },
+        {
+          "id": "CVE-2018-9157",
+          "title": "CVE-2018-9157 (HIGH)",
+          "score": 0.4803
+        },
+        {
+          "id": "CVE-2018-1000659",
+          "title": "CVE-2018-1000659 (HIGH)",
+          "score": 0.4594
+        },
+        {
+          "id": "CVE-2019-1010062",
+          "title": "CVE-2019-1010062 (CRITICAL)",
+          "score": 0.4557
+        },
+        {
+          "id": "CVE-2008-4448",
+          "title": "CVE-2008-4448 (Unknown severity)",
+          "score": 0.4239
+        }
+      ],
+      "retrieval_first_relevant_rank": null,
+      "limitations": "The exact nature of the uploaded file and its contents are not provided, so further investigation is required to confirm malicious intent."
+    },
+    {
+      "case_id": "case-03-kerberoasting",
+      "category": "credential_access",
+      "mode": "evidence_aware",
+      "db_alert_id": 6,
+      "error": null,
+      "wall_latency_seconds": 74.72739754400027,
+      "llm_latency_seconds": 74.40168239900049,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 2304,
+        "completion": 564
+      },
+      "analysis_id": 18,
+      "summary": "A suspicious .jsp file was uploaded to a web server, followed by HTTP POST requests to the uploaded file, indicating potential web shell activity.",
+      "confidence": "MEDIUM",
+      "predicted_techniques": [
+        "T1505.003",
+        "T1190"
+      ],
+      "technique_prf1": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "predicted_count": 2
+      },
+      "expected_cves": [],
+      "predicted_cves": [],
+      "cve_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 0,
+        "expected_count": 0
+      },
+      "is_benign": false,
+      "benign_eval": {
+        "is_benign": false,
+        "is_false_alarm": null,
+        "correctly_benign": null,
+        "predicted_band": "high"
+      },
+      "severity_band_match": true,
+      "expected_severity_band": "high",
+      "observed_indicators": [
+        "198.51.100.23",
+        "/var/www/app/uploads/cmd.jsp",
+        "app-prod-02"
+      ],
+      "investigation_step_count": 3,
+      "evidence_reference_count": 2,
+      "valid_evidence_reference_rate": 1.0,
+      "retrieved": [
+        {
+          "id": "T1190",
+          "title": "Exploit Public-Facing Application",
+          "score": 0.4664
+        },
+        {
+          "id": "T1190",
+          "title": "Exploit Public-Facing Application",
+          "score": 0.2131
+        },
+        {
+          "id": "T1505.003",
+          "title": "Web Shell",
+          "score": 0.0921
+        },
+        {
+          "id": "T1190",
+          "title": "Exploit Public-Facing Application",
+          "score": 0.0331
+        },
+        {
+          "id": "T1590",
+          "title": "Gather Victim Network Information",
+          "score": 0.5014
+        }
+      ],
+      "retrieval_first_relevant_rank": null,
+      "limitations": "The exact nature of the uploaded file and its contents are not provided, so further analysis is required."
+    },
+    {
+      "case_id": "case-04-mfa-fatigue-bombing",
+      "category": "credential_access",
+      "mode": "llm_only",
+      "db_alert_id": 7,
+      "error": null,
+      "wall_latency_seconds": 29.984971088999373,
+      "llm_latency_seconds": 29.924638130000858,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 1142,
+        "completion": 256
+      },
+      "analysis_id": 19,
+      "summary": "A new scheduled task was created by the SYSTEM account from the Temp directory, which is suspicious and may indicate persistence or privilege escalation.",
+      "confidence": "LOW",
+      "predicted_techniques": [
+        "T1053.005"
+      ],
+      "technique_prf1": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "predicted_count": 1
+      },
+      "expected_cves": [],
+      "predicted_cves": [],
+      "cve_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 0,
+        "expected_count": 0
+      },
+      "is_benign": false,
+      "benign_eval": {
+        "is_benign": false,
+        "is_false_alarm": null,
+        "correctly_benign": null,
+        "predicted_band": "high"
+      },
+      "severity_band_match": true,
+      "expected_severity_band": "high",
+      "observed_indicators": [
+        "SYSTEM",
+        "C:\\\\Windows\\\\Temp\\\\update_check.exe",
+        "schtasks.exe"
+      ],
+      "investigation_step_count": 2,
+      "evidence_reference_count": 0,
+      "valid_evidence_reference_rate": null,
+      "retrieved": [],
+      "retrieval_first_relevant_rank": null,
+      "limitations": "No additional evidence is available to confirm or refute the malicious intent of the task."
+    },
+    {
+      "case_id": "case-04-mfa-fatigue-bombing",
+      "category": "credential_access",
+      "mode": "standard_rag",
+      "db_alert_id": 7,
+      "error": null,
+      "wall_latency_seconds": 67.21382588599954,
+      "llm_latency_seconds": 66.43472660400039,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 2476,
+        "completion": 476
+      },
+      "analysis_id": 20,
+      "summary": "A new scheduled task was created by the SYSTEM account from the Temp directory, which is suspicious and may indicate persistence or privilege escalation.",
+      "confidence": "MEDIUM",
+      "predicted_techniques": [
+        "T1053.005"
+      ],
+      "technique_prf1": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "predicted_count": 1
+      },
+      "expected_cves": [],
+      "predicted_cves": [],
+      "cve_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 0,
+        "expected_count": 0
+      },
+      "is_benign": false,
+      "benign_eval": {
+        "is_benign": false,
+        "is_false_alarm": null,
+        "correctly_benign": null,
+        "predicted_band": "high"
+      },
+      "severity_band_match": true,
+      "expected_severity_band": "high",
+      "observed_indicators": [
+        "SYSTEM",
+        "C:\\\\Windows\\\\Temp\\\\update_check.exe",
+        "schtasks.exe"
+      ],
+      "investigation_step_count": 3,
+      "evidence_reference_count": 2,
+      "valid_evidence_reference_rate": 1.0,
+      "retrieved": [
+        {
+          "id": "T1053.005",
+          "title": "Scheduled Task",
+          "score": 0.5308
+        },
+        {
+          "id": "T1053.005",
+          "title": "Scheduled Task",
+          "score": 0.5297
+        },
+        {
+          "id": "T1053",
+          "title": "Scheduled Task/Job",
+          "score": 0.4997
+        },
+        {
+          "id": "T1053.002",
+          "title": "At",
+          "score": 0.4707
+        },
+        {
+          "id": "T1053.005",
+          "title": "Scheduled Task",
+          "score": 0.4692
+        }
+      ],
+      "retrieval_first_relevant_rank": null,
+      "limitations": "The exact nature of the file and its purpose are unknown, and further analysis is required."
+    },
+    {
+      "case_id": "case-04-mfa-fatigue-bombing",
+      "category": "credential_access",
+      "mode": "evidence_aware",
+      "db_alert_id": 7,
+      "error": null,
+      "wall_latency_seconds": 64.01156114399964,
+      "llm_latency_seconds": 63.82998409499851,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 2102,
+        "completion": 465
+      },
+      "analysis_id": 21,
+      "summary": "A new scheduled task was created by the SYSTEM account in the Temp directory, which is suspicious and may indicate persistence or privilege escalation.",
+      "confidence": "MEDIUM",
+      "predicted_techniques": [
+        "T1053.005"
+      ],
+      "technique_prf1": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "predicted_count": 1
+      },
+      "expected_cves": [],
+      "predicted_cves": [],
+      "cve_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 0,
+        "expected_count": 0
+      },
+      "is_benign": false,
+      "benign_eval": {
+        "is_benign": false,
+        "is_false_alarm": null,
+        "correctly_benign": null,
+        "predicted_band": "high"
+      },
+      "severity_band_match": true,
+      "expected_severity_band": "high",
+      "observed_indicators": [
+        "SYSTEM",
+        "C:\\\\Windows\\\\Temp\\\\update_check.exe"
+      ],
+      "investigation_step_count": 2,
+      "evidence_reference_count": 2,
+      "valid_evidence_reference_rate": 1.0,
+      "retrieved": [
+        {
+          "id": "T1053.005",
+          "title": "Scheduled Task",
+          "score": 0.5837
+        },
+        {
+          "id": "T1053.005",
+          "title": "Scheduled Task",
+          "score": 0.4896
+        },
+        {
+          "id": "T1053.005",
+          "title": "Scheduled Task",
+          "score": 0.4761
+        },
+        {
+          "id": "T1065",
+          "title": "Uncommonly Used Port",
+          "score": 0.4733
+        },
+        {
+          "id": "T1591.001",
+          "title": "Determine Physical Locations",
+          "score": 0.4683
+        }
+      ],
+      "retrieval_first_relevant_rank": null,
+      "limitations": "The exact nature of the file and its purpose are unknown without further analysis."
+    },
+    {
+      "case_id": "case-05-encoded-powershell",
+      "category": "suspicious_script",
+      "mode": "llm_only",
+      "db_alert_id": 8,
+      "error": null,
+      "wall_latency_seconds": 33.355390635999356,
+      "llm_latency_seconds": 33.32621341599952,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 1117,
+        "completion": 291
+      },
+      "analysis_id": 22,
+      "summary": "The alert indicates that the sudoers file was modified by the user svc-backup using the visudo process, potentially adding a NOPASSWD entry for privilege escalation.",
+      "confidence": "MEDIUM",
+      "predicted_techniques": [
+        "T1548.003"
+      ],
+      "technique_prf1": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "predicted_count": 1
+      },
+      "expected_cves": [],
+      "predicted_cves": [],
+      "cve_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 0,
+        "expected_count": 0
+      },
+      "is_benign": false,
+      "benign_eval": {
+        "is_benign": false,
+        "is_false_alarm": null,
+        "correctly_benign": null,
+        "predicted_band": "high"
+      },
+      "severity_band_match": true,
+      "expected_severity_band": "high",
+      "observed_indicators": [
+        "svc-backup",
+        "visudo",
+        "/etc/sudoers"
+      ],
+      "investigation_step_count": 3,
+      "evidence_reference_count": 0,
+      "valid_evidence_reference_rate": null,
+      "retrieved": [],
+      "retrieval_first_relevant_rank": null,
+      "limitations": "No additional evidence is available to confirm the intent behind the modification or the presence of malicious activity."
+    },
+    {
+      "case_id": "case-05-encoded-powershell",
+      "category": "suspicious_script",
+      "mode": "standard_rag",
+      "db_alert_id": 8,
+      "error": null,
+      "wall_latency_seconds": 83.12065829099993,
+      "llm_latency_seconds": 82.91073565599982,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 2190,
+        "completion": 665
+      },
+      "analysis_id": 23,
+      "summary": "The alert indicates that the sudoers file was modified to add a NOPASSWD entry, potentially allowing unauthorized privilege escalation.",
+      "confidence": "MEDIUM",
+      "predicted_techniques": [
+        "T1548.003"
+      ],
+      "technique_prf1": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "predicted_count": 1
+      },
+      "expected_cves": [],
+      "predicted_cves": [],
+      "cve_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 0,
+        "expected_count": 0
+      },
+      "is_benign": false,
+      "benign_eval": {
+        "is_benign": false,
+        "is_false_alarm": null,
+        "correctly_benign": null,
+        "predicted_band": "high"
+      },
+      "severity_band_match": true,
+      "expected_severity_band": "high",
+      "observed_indicators": [
+        "svc-backup",
+        "visudo",
+        "/etc/sudoers"
+      ],
+      "investigation_step_count": 3,
+      "evidence_reference_count": 2,
+      "valid_evidence_reference_rate": 1.0,
+      "retrieved": [
+        {
+          "id": "CVE-2003-1562",
+          "title": "CVE-2003-1562 (Unknown severity)",
+          "score": 0.4734
+        },
+        {
+          "id": "T1548.003",
+          "title": "Sudo and Sudo Caching",
+          "score": 0.4451
+        },
+        {
+          "id": "CVE-2020-24848",
+          "title": "CVE-2020-24848 (HIGH)",
+          "score": 0.4374
+        },
+        {
+          "id": "T1169",
+          "title": "Sudo",
+          "score": 0.4362
+        },
+        {
+          "id": "T1548.003",
+          "title": "Sudo and Sudo Caching",
+          "score": 0.4352
+        }
+      ],
+      "retrieval_first_relevant_rank": null,
+      "limitations": "The exact nature of the modification and the intent behind it are not fully clear. Further investigation is required to determine if this is a genuine security incident or a false positive."
+    },
+    {
+      "case_id": "case-05-encoded-powershell",
+      "category": "suspicious_script",
+      "mode": "evidence_aware",
+      "db_alert_id": 8,
+      "error": null,
+      "wall_latency_seconds": 77.1213051220002,
+      "llm_latency_seconds": 76.91682319100073,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 2136,
+        "completion": 585
+      },
+      "analysis_id": 24,
+      "summary": "The alert indicates that the sudoers file was modified to add a NOPASSWD entry, potentially allowing unauthorized privilege escalation.",
+      "confidence": "MEDIUM",
+      "predicted_techniques": [
+        "T1548.003"
+      ],
+      "technique_prf1": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "predicted_count": 1
+      },
+      "expected_cves": [],
+      "predicted_cves": [],
+      "cve_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 0,
+        "expected_count": 0
+      },
+      "is_benign": false,
+      "benign_eval": {
+        "is_benign": false,
+        "is_false_alarm": null,
+        "correctly_benign": null,
+        "predicted_band": "high"
+      },
+      "severity_band_match": true,
+      "expected_severity_band": "high",
+      "observed_indicators": [
+        "svc-backup",
+        "visudo",
+        "/etc/sudoers"
+      ],
+      "investigation_step_count": 3,
+      "evidence_reference_count": 2,
+      "valid_evidence_reference_rate": 1.0,
+      "retrieved": [
+        {
+          "id": "T1548.003",
+          "title": "Sudo and Sudo Caching",
+          "score": 0.4347
+        },
+        {
+          "id": "T1548.003",
+          "title": "Sudo and Sudo Caching",
+          "score": 0.4199
+        },
+        {
+          "id": "T1548.003",
+          "title": "Sudo and Sudo Caching",
+          "score": 0.2083
+        },
+        {
+          "id": "T1548.003",
+          "title": "Sudo and Sudo Caching",
+          "score": 0.0958
+        },
+        {
+          "id": "T1548.003",
+          "title": "Sudo and Sudo Caching",
+          "score": -0.0674
+        }
+      ],
+      "retrieval_first_relevant_rank": null,
+      "limitations": "The exact nature of the modification and the intent behind it are not fully clear without further analysis."
+    },
+    {
+      "case_id": "case-06-powershell-download-cradle",
+      "category": "suspicious_script",
+      "mode": "llm_only",
+      "db_alert_id": 9,
+      "error": null,
+      "wall_latency_seconds": 27.367026005000298,
+      "llm_latency_seconds": 27.319239431000824,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 1155,
+        "completion": 230
+      },
+      "analysis_id": 25,
+      "summary": "A PowerShell process was launched with an encoded command from a Word document directory, indicating potential execution or defense evasion activity.",
+      "confidence": "MEDIUM",
+      "predicted_techniques": [
+        "T1059.001",
+        "T1027"
+      ],
+      "technique_prf1": {
+        "precision": 0.5,
+        "recall": 0.5,
+        "f1": 0.5,
+        "predicted_count": 2
+      },
+      "expected_cves": [],
+      "predicted_cves": [],
+      "cve_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 0,
+        "expected_count": 0
+      },
+      "is_benign": false,
+      "benign_eval": {
+        "is_benign": false,
+        "is_false_alarm": null,
+        "correctly_benign": null,
+        "predicted_band": "high"
+      },
+      "severity_band_match": true,
+      "expected_severity_band": "high",
+      "observed_indicators": [
+        "powershell.exe",
+        "jdoe",
+        "winword.exe"
+      ],
+      "investigation_step_count": 2,
+      "evidence_reference_count": 0,
+      "valid_evidence_reference_rate": null,
+      "retrieved": [],
+      "retrieval_first_relevant_rank": null,
+      "limitations": "No additional evidence is available to confirm the malicious intent of the encoded command."
+    },
+    {
+      "case_id": "case-06-powershell-download-cradle",
+      "category": "suspicious_script",
+      "mode": "standard_rag",
+      "db_alert_id": 9,
+      "error": null,
+      "wall_latency_seconds": 69.49594041400087,
+      "llm_latency_seconds": 69.34003201499945,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 2353,
+        "completion": 548
+      },
+      "analysis_id": 26,
+      "summary": "A PowerShell process was launched with an encoded command from a Word document directory, indicating potential execution of malicious code.",
+      "confidence": "MEDIUM",
+      "predicted_techniques": [
+        "T1059.001",
+        "T1027"
+      ],
+      "technique_prf1": {
+        "precision": 0.5,
+        "recall": 0.5,
+        "f1": 0.5,
+        "predicted_count": 2
+      },
+      "expected_cves": [],
+      "predicted_cves": [],
+      "cve_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 0,
+        "expected_count": 0
+      },
+      "is_benign": false,
+      "benign_eval": {
+        "is_benign": false,
+        "is_false_alarm": null,
+        "correctly_benign": null,
+        "predicted_band": "high"
+      },
+      "severity_band_match": true,
+      "expected_severity_band": "high",
+      "observed_indicators": [
+        "powershell.exe",
+        "jdoe",
+        "T1059.001"
+      ],
+      "investigation_step_count": 3,
+      "evidence_reference_count": 2,
+      "valid_evidence_reference_rate": 1.0,
+      "retrieved": [
+        {
+          "id": "T1034",
+          "title": "Path Interception",
+          "score": 0.4213
+        },
+        {
+          "id": "T1086",
+          "title": "PowerShell",
+          "score": 0.4069
+        },
+        {
+          "id": "T1059.001",
+          "title": "PowerShell",
+          "score": 0.404
+        },
+        {
+          "id": "T1027.010",
+          "title": "Command Obfuscation",
+          "score": 0.401
+        },
+        {
+          "id": "T1216.002",
+          "title": "SyncAppvPublishingServer",
+          "score": 0.3772
+        }
+      ],
+      "retrieval_first_relevant_rank": 3,
+      "limitations": "The actual content of the encoded command is not available for direct analysis, and further investigation is required to confirm the intent of the execution."
+    },
+    {
+      "case_id": "case-06-powershell-download-cradle",
+      "category": "suspicious_script",
+      "mode": "evidence_aware",
+      "db_alert_id": 9,
+      "error": null,
+      "wall_latency_seconds": 70.07616001899987,
+      "llm_latency_seconds": 69.86113216499871,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 2320,
+        "completion": 551
+      },
+      "analysis_id": 27,
+      "summary": "A PowerShell process was launched with an encoded command from a Word document directory, indicating potential obfuscation and execution techniques.",
+      "confidence": "MEDIUM",
+      "predicted_techniques": [
+        "T1059.001",
+        "T1027"
+      ],
+      "technique_prf1": {
+        "precision": 0.5,
+        "recall": 0.5,
+        "f1": 0.5,
+        "predicted_count": 2
+      },
+      "expected_cves": [],
+      "predicted_cves": [],
+      "cve_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 0,
+        "expected_count": 0
+      },
+      "is_benign": false,
+      "benign_eval": {
+        "is_benign": false,
+        "is_false_alarm": null,
+        "correctly_benign": null,
+        "predicted_band": null
+      },
+      "severity_band_match": null,
+      "expected_severity_band": "high",
+      "observed_indicators": [
+        "powershell.exe",
+        "jdoe",
+        "T1059.001"
+      ],
+      "investigation_step_count": 3,
+      "evidence_reference_count": 2,
+      "valid_evidence_reference_rate": 1.0,
+      "retrieved": [
+        {
+          "id": "T1059.001",
+          "title": "PowerShell",
+          "score": 0.5049
+        },
+        {
+          "id": "T1027",
+          "title": "Obfuscated Files or Information",
+          "score": 0.2083
+        },
+        {
+          "id": "T1059.001",
+          "title": "PowerShell",
+          "score": 0.0022
+        },
+        {
+          "id": "T1027",
+          "title": "Obfuscated Files or Information",
+          "score": -0.0455
+        },
+        {
+          "id": "T1065",
+          "title": "Uncommonly Used Port",
+          "score": 0.5142
+        }
+      ],
+      "retrieval_first_relevant_rank": 1,
+      "limitations": "The exact content of the encoded command is not available for analysis, and the source of the Word document is not identified."
+    },
+    {
+      "case_id": "case-07-suspicious-wscript-launch",
+      "category": "suspicious_script",
+      "mode": "llm_only",
+      "db_alert_id": 10,
+      "error": null,
+      "wall_latency_seconds": 28.841860426000494,
+      "llm_latency_seconds": 28.79656843399971,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 1137,
+        "completion": 250
+      },
+      "analysis_id": 28,
+      "summary": "A firewall alert indicates that a single host contacted 200+ distinct ports on a destination within 60 seconds, potentially indicating reconnaissance activity.",
+      "confidence": "MEDIUM",
+      "predicted_techniques": [
+        "T1046"
+      ],
+      "technique_prf1": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "predicted_count": 1
+      },
+      "expected_cves": [],
+      "predicted_cves": [],
+      "cve_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 0,
+        "expected_count": 0
+      },
+      "is_benign": false,
+      "benign_eval": {
+        "is_benign": false,
+        "is_false_alarm": null,
+        "correctly_benign": null,
+        "predicted_band": "high"
+      },
+      "severity_band_match": true,
+      "expected_severity_band": "high",
+      "observed_indicators": [
+        "192.0.2.148",
+        "10.10.5.20"
+      ],
+      "investigation_step_count": 2,
+      "evidence_reference_count": 0,
+      "valid_evidence_reference_rate": null,
+      "retrieved": [],
+      "retrieval_first_relevant_rank": null,
+      "limitations": "No additional evidence is available to confirm the intent of the activity."
+    },
+    {
+      "case_id": "case-07-suspicious-wscript-launch",
+      "category": "suspicious_script",
+      "mode": "standard_rag",
+      "db_alert_id": 10,
+      "error": null,
+      "wall_latency_seconds": 62.12962422900091,
+      "llm_latency_seconds": 61.93897391799874,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 2358,
+        "completion": 490
+      },
+      "analysis_id": 29,
+      "summary": "A firewall alert indicates that a single host contacted 200+ distinct ports on a destination within 60 seconds, potentially indicating reconnaissance or malicious activity.",
+      "confidence": "MEDIUM",
+      "predicted_techniques": [
+        "T1046"
+      ],
+      "technique_prf1": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "predicted_count": 1
+      },
+      "expected_cves": [],
+      "predicted_cves": [],
+      "cve_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 0,
+        "expected_count": 0
+      },
+      "is_benign": false,
+      "benign_eval": {
+        "is_benign": false,
+        "is_false_alarm": null,
+        "correctly_benign": null,
+        "predicted_band": "high"
+      },
+      "severity_band_match": true,
+      "expected_severity_band": "high",
+      "observed_indicators": [
+        "192.0.2.148",
+        "10.10.5.20"
+      ],
+      "investigation_step_count": 3,
+      "evidence_reference_count": 2,
+      "valid_evidence_reference_rate": 1.0,
+      "retrieved": [
+        {
+          "id": "T1205",
+          "title": "Traffic Signaling",
+          "score": 0.3867
+        },
+        {
+          "id": "T1205.001",
+          "title": "Port Knocking",
+          "score": 0.3845
+        },
+        {
+          "id": "T1205",
+          "title": "Traffic Signaling",
+          "score": 0.3717
+        },
+        {
+          "id": "T1043",
+          "title": "Commonly Used Port",
+          "score": 0.3492
+        },
+        {
+          "id": "T1562.004",
+          "title": "Disable or Modify System Firewall",
+          "score": 0.3468
+        }
+      ],
+      "retrieval_first_relevant_rank": null,
+      "limitations": "The alert does not provide specific details about the purpose of the port scanning or the nature of the destination IP."
+    },
+    {
+      "case_id": "case-07-suspicious-wscript-launch",
+      "category": "suspicious_script",
+      "mode": "evidence_aware",
+      "db_alert_id": 10,
+      "error": null,
+      "wall_latency_seconds": 53.99467243500112,
+      "llm_latency_seconds": 53.852289294,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 1928,
+        "completion": 445
+      },
+      "analysis_id": 30,
+      "summary": "A firewall alert indicates that a single host contacted 200+ distinct ports on a destination within 60 seconds, potentially indicating reconnaissance or network scanning activity.",
+      "confidence": "MEDIUM",
+      "predicted_techniques": [
+        "T1046"
+      ],
+      "technique_prf1": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "predicted_count": 1
+      },
+      "expected_cves": [],
+      "predicted_cves": [],
+      "cve_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 0,
+        "expected_count": 0
+      },
+      "is_benign": false,
+      "benign_eval": {
+        "is_benign": false,
+        "is_false_alarm": null,
+        "correctly_benign": null,
+        "predicted_band": "high"
+      },
+      "severity_band_match": true,
+      "expected_severity_band": "high",
+      "observed_indicators": [
+        "192.0.2.148",
+        "10.10.5.20"
+      ],
+      "investigation_step_count": 3,
+      "evidence_reference_count": 1,
+      "valid_evidence_reference_rate": 1.0,
+      "retrieved": [
+        {
+          "id": "T1046",
+          "title": "Network Service Discovery",
+          "score": 0.1297
+        },
+        {
+          "id": "T1065",
+          "title": "Uncommonly Used Port",
+          "score": 0.5117
+        },
+        {
+          "id": "T1041",
+          "title": "Exfiltration Over C2 Channel",
+          "score": 0.4717
+        },
+        {
+          "id": "T1591.001",
+          "title": "Determine Physical Locations",
+          "score": 0.4703
+        },
+        {
+          "id": "T1590",
+          "title": "Gather Victim Network Information",
+          "score": 0.4694
+        }
+      ],
+      "retrieval_first_relevant_rank": null,
+      "limitations": "The alert does not provide detailed information about the specific services or ports being scanned, making it difficult to determine the exact intent of the activity."
+    },
+    {
+      "case_id": "case-08-bash-reverse-shell",
+      "category": "suspicious_script",
+      "mode": "llm_only",
+      "db_alert_id": 11,
+      "error": null,
+      "wall_latency_seconds": 33.24412741099877,
+      "llm_latency_seconds": 33.1806367829995,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 1114,
+        "completion": 280
+      },
+      "analysis_id": 31,
+      "summary": "A Windows system executed the 'vssadmin delete shadows' command as user jdoe, which is associated with ransomware activity.",
+      "confidence": "MEDIUM",
+      "predicted_techniques": [
+        "T1490",
+        "T1486"
+      ],
+      "technique_prf1": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "predicted_count": 2
+      },
+      "expected_cves": [],
+      "predicted_cves": [],
+      "cve_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 0,
+        "expected_count": 0
+      },
+      "is_benign": false,
+      "benign_eval": {
+        "is_benign": false,
+        "is_false_alarm": null,
+        "correctly_benign": null,
+        "predicted_band": "high"
+      },
+      "severity_band_match": false,
+      "expected_severity_band": "critical",
+      "observed_indicators": [
+        "username"
+      ],
+      "investigation_step_count": 3,
+      "evidence_reference_count": 0,
+      "valid_evidence_reference_rate": null,
+      "retrieved": [],
+      "retrieval_first_relevant_rank": null,
+      "limitations": "No additional evidence is available to confirm the presence of ransomware or the full scope of the activity."
+    },
+    {
+      "case_id": "case-08-bash-reverse-shell",
+      "category": "suspicious_script",
+      "mode": "standard_rag",
+      "db_alert_id": 11,
+      "error": null,
+      "wall_latency_seconds": 61.261039226999856,
+      "llm_latency_seconds": 61.06672452800012,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 2580,
+        "completion": 458
+      },
+      "analysis_id": 32,
+      "summary": "A Windows system executed the command 'vssadmin delete shadows /all /quiet' as user jdoe, which is associated with disabling system recovery features, potentially indicating a ransomware attack.",
+      "confidence": "MEDIUM",
+      "predicted_techniques": [
+        "T1490",
+        "T1486"
+      ],
+      "technique_prf1": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "predicted_count": 2
+      },
+      "expected_cves": [],
+      "predicted_cves": [],
+      "cve_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 0,
+        "expected_count": 0
+      },
+      "is_benign": false,
+      "benign_eval": {
+        "is_benign": false,
+        "is_false_alarm": null,
+        "correctly_benign": null,
+        "predicted_band": "high"
+      },
+      "severity_band_match": false,
+      "expected_severity_band": "critical",
+      "observed_indicators": [
+        "vssadmin.exe",
+        "jdoe"
+      ],
+      "investigation_step_count": 3,
+      "evidence_reference_count": 1,
+      "valid_evidence_reference_rate": 1.0,
+      "retrieved": [
+        {
+          "id": "T1490",
+          "title": "Inhibit System Recovery",
+          "score": 0.4635
+        },
+        {
+          "id": "T1027.010",
+          "title": "Command Obfuscation",
+          "score": 0.3916
+        },
+        {
+          "id": "T1183",
+          "title": "Image File Execution Options Injection",
+          "score": 0.3846
+        },
+        {
+          "id": "T1546.001",
+          "title": "Change Default File Association",
+          "score": 0.3799
+        },
+        {
+          "id": "T1036.006",
+          "title": "Space after Filename",
+          "score": 0.3747
+        }
+      ],
+      "retrieval_first_relevant_rank": null,
+      "limitations": "The alert does not provide evidence of file encryption or modification, which are key indicators of a ransomware attack."
+    },
+    {
+      "case_id": "case-08-bash-reverse-shell",
+      "category": "suspicious_script",
+      "mode": "evidence_aware",
+      "db_alert_id": 11,
+      "error": null,
+      "wall_latency_seconds": 93.6426462569998,
+      "llm_latency_seconds": 93.39016966500094,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 2535,
+        "completion": 707
+      },
+      "analysis_id": 33,
+      "summary": "A Windows system executed the command 'vssadmin delete shadows /all /quiet' under the username jdoe, which is associated with inhibiting system recovery and potentially encrypting data for impact.",
+      "confidence": "MEDIUM",
+      "predicted_techniques": [
+        "T1490",
+        "T1486"
+      ],
+      "technique_prf1": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "predicted_count": 2
+      },
+      "expected_cves": [],
+      "predicted_cves": [],
+      "cve_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 0,
+        "expected_count": 0
+      },
+      "is_benign": false,
+      "benign_eval": {
+        "is_benign": false,
+        "is_false_alarm": null,
+        "correctly_benign": null,
+        "predicted_band": "high"
+      },
+      "severity_band_match": false,
+      "expected_severity_band": "critical",
+      "observed_indicators": [
+        "vssadmin.exe",
+        "jdoe"
+      ],
+      "investigation_step_count": 3,
+      "evidence_reference_count": 3,
+      "valid_evidence_reference_rate": 1.0,
+      "retrieved": [
+        {
+          "id": "T1490",
+          "title": "Inhibit System Recovery",
+          "score": 0.512
+        },
+        {
+          "id": "T1490",
+          "title": "Inhibit System Recovery",
+          "score": 0.3394
+        },
+        {
+          "id": "T1490",
+          "title": "Inhibit System Recovery",
+          "score": 0.1771
+        },
+        {
+          "id": "T1486",
+          "title": "Data Encrypted for Impact",
+          "score": 0.1357
+        },
+        {
+          "id": "T1486",
+          "title": "Data Encrypted for Impact",
+          "score": 0.0492
+        }
+      ],
+      "retrieval_first_relevant_rank": null,
+      "limitations": "The alert does not provide evidence of file encryption or modification, so the impact of the command is not confirmed."
+    },
+    {
+      "case_id": "case-09-shadow-copy-deletion",
+      "category": "malware_ransomware",
+      "mode": "llm_only",
+      "db_alert_id": 73,
+      "error": null,
+      "wall_latency_seconds": 33.396862292998776,
+      "llm_latency_seconds": 33.34029851699961,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 1114,
+        "completion": 302
+      },
+      "analysis_id": 34,
+      "summary": "A Windows system executed the 'vssadmin delete shadows' command as part of a potential ransomware activity, indicating possible data encryption or deletion.",
+      "confidence": "MEDIUM",
+      "predicted_techniques": [
+        "T1490",
+        "T1486"
+      ],
+      "technique_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 2
+      },
+      "expected_cves": [],
+      "predicted_cves": [],
+      "cve_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 0,
+        "expected_count": 0
+      },
+      "is_benign": false,
+      "benign_eval": {
+        "is_benign": false,
+        "is_false_alarm": null,
+        "correctly_benign": null,
+        "predicted_band": "high"
+      },
+      "severity_band_match": false,
+      "expected_severity_band": "critical",
+      "observed_indicators": [
+        "vssadmin.exe",
+        "jdoe"
+      ],
+      "investigation_step_count": 3,
+      "evidence_reference_count": 0,
+      "valid_evidence_reference_rate": null,
+      "retrieved": [],
+      "retrieval_first_relevant_rank": null,
+      "limitations": "No additional evidence is available to confirm the presence of ransomware or the extent of the impact."
+    },
+    {
+      "case_id": "case-09-shadow-copy-deletion",
+      "category": "malware_ransomware",
+      "mode": "standard_rag",
+      "db_alert_id": 73,
+      "error": null,
+      "wall_latency_seconds": 61.23551137499999,
+      "llm_latency_seconds": 61.09129641099935,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 2581,
+        "completion": 467
+      },
+      "analysis_id": 35,
+      "summary": "A Windows system executed the command 'vssadmin delete shadows /all /quiet' as user jdoe, which is associated with disabling system recovery features, potentially indicating a ransomware attack.",
+      "confidence": "MEDIUM",
+      "predicted_techniques": [
+        "T1490",
+        "T1486"
+      ],
+      "technique_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 2
+      },
+      "expected_cves": [],
+      "predicted_cves": [],
+      "cve_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 0,
+        "expected_count": 0
+      },
+      "is_benign": false,
+      "benign_eval": {
+        "is_benign": false,
+        "is_false_alarm": null,
+        "correctly_benign": null,
+        "predicted_band": "high"
+      },
+      "severity_band_match": false,
+      "expected_severity_band": "critical",
+      "observed_indicators": [
+        "vssadmin.exe",
+        "jdoe"
+      ],
+      "investigation_step_count": 3,
+      "evidence_reference_count": 1,
+      "valid_evidence_reference_rate": 1.0,
+      "retrieved": [
+        {
+          "id": "T1490",
+          "title": "Inhibit System Recovery",
+          "score": 0.4635
+        },
+        {
+          "id": "T1027.010",
+          "title": "Command Obfuscation",
+          "score": 0.3916
+        },
+        {
+          "id": "T1183",
+          "title": "Image File Execution Options Injection",
+          "score": 0.3846
+        },
+        {
+          "id": "T1546.001",
+          "title": "Change Default File Association",
+          "score": 0.3799
+        },
+        {
+          "id": "T1036.006",
+          "title": "Space after Filename",
+          "score": 0.3747
+        }
+      ],
+      "retrieval_first_relevant_rank": 1,
+      "limitations": "The alert does not provide direct evidence of ransomware activity, such as file encryption or ransom notes. Further investigation is required."
+    },
+    {
+      "case_id": "case-09-shadow-copy-deletion",
+      "category": "malware_ransomware",
+      "mode": "evidence_aware",
+      "db_alert_id": 73,
+      "error": null,
+      "wall_latency_seconds": 91.996731782001,
+      "llm_latency_seconds": 91.81448255700161,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 2535,
+        "completion": 690
+      },
+      "analysis_id": 36,
+      "summary": "A Windows system executed the command 'vssadmin delete shadows /all /quiet' under the username jdoe, which is associated with inhibiting system recovery and potentially encrypting data for impact.",
+      "confidence": "MEDIUM",
+      "predicted_techniques": [
+        "T1490",
+        "T1486"
+      ],
+      "technique_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 2
+      },
+      "expected_cves": [],
+      "predicted_cves": [],
+      "cve_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 0,
+        "expected_count": 0
+      },
+      "is_benign": false,
+      "benign_eval": {
+        "is_benign": false,
+        "is_false_alarm": null,
+        "correctly_benign": null,
+        "predicted_band": "high"
+      },
+      "severity_band_match": false,
+      "expected_severity_band": "critical",
+      "observed_indicators": [
+        "vssadmin.exe",
+        "jdoe"
+      ],
+      "investigation_step_count": 3,
+      "evidence_reference_count": 3,
+      "valid_evidence_reference_rate": 1.0,
+      "retrieved": [
+        {
+          "id": "T1490",
+          "title": "Inhibit System Recovery",
+          "score": 0.512
+        },
+        {
+          "id": "T1490",
+          "title": "Inhibit System Recovery",
+          "score": 0.3394
+        },
+        {
+          "id": "T1490",
+          "title": "Inhibit System Recovery",
+          "score": 0.1771
+        },
+        {
+          "id": "T1486",
+          "title": "Data Encrypted for Impact",
+          "score": 0.1357
+        },
+        {
+          "id": "T1486",
+          "title": "Data Encrypted for Impact",
+          "score": 0.0492
+        }
+      ],
+      "retrieval_first_relevant_rank": 1,
+      "limitations": "The alert does not provide evidence of file encryption or modification, so the impact of the command is not confirmed."
+    },
+    {
+      "case_id": "case-10-bcdr-disable-recovery",
+      "category": "malware_ransomware",
+      "mode": "llm_only",
+      "db_alert_id": 74,
+      "error": null,
+      "wall_latency_seconds": 31.297861573000773,
+      "llm_latency_seconds": 31.247502919999533,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 1134,
+        "completion": 257
+      },
+      "analysis_id": 37,
+      "summary": "The system detected an attempt to disable Windows Startup Recovery and Ignore Failures via BCDEdit, executed by the SYSTEM account.",
+      "confidence": "MEDIUM",
+      "predicted_techniques": [
+        "T1490"
+      ],
+      "technique_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 1
+      },
+      "expected_cves": [],
+      "predicted_cves": [],
+      "cve_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 0,
+        "expected_count": 0
+      },
+      "is_benign": false,
+      "benign_eval": {
+        "is_benign": false,
+        "is_false_alarm": null,
+        "correctly_benign": null,
+        "predicted_band": "high"
+      },
+      "severity_band_match": false,
+      "expected_severity_band": "critical",
+      "observed_indicators": [
+        "SYSTEM",
+        "bcdedit.exe"
+      ],
+      "investigation_step_count": 3,
+      "evidence_reference_count": 0,
+      "valid_evidence_reference_rate": null,
+      "retrieved": [],
+      "retrieval_first_relevant_rank": null,
+      "limitations": "No additional evidence is available to confirm the intent behind the command execution."
+    },
+    {
+      "case_id": "case-10-bcdr-disable-recovery",
+      "category": "malware_ransomware",
+      "mode": "standard_rag",
+      "db_alert_id": 74,
+      "error": null,
+      "wall_latency_seconds": 62.00348377000046,
+      "llm_latency_seconds": 61.70098369600055,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 2435,
+        "completion": 452
+      },
+      "analysis_id": 38,
+      "summary": "The system executed bcdedit.exe to disable Windows Startup Recovery and Ignore Failures, which could indicate an attempt to inhibit system recovery.",
+      "confidence": "MEDIUM",
+      "predicted_techniques": [
+        "T1490"
+      ],
+      "technique_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 1
+      },
+      "expected_cves": [],
+      "predicted_cves": [],
+      "cve_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 0,
+        "expected_count": 0
+      },
+      "is_benign": false,
+      "benign_eval": {
+        "is_benign": false,
+        "is_false_alarm": null,
+        "correctly_benign": null,
+        "predicted_band": "high"
+      },
+      "severity_band_match": false,
+      "expected_severity_band": "critical",
+      "observed_indicators": [
+        "bcdedit.exe",
+        "SYSTEM",
+        "T1490"
+      ],
+      "investigation_step_count": 3,
+      "evidence_reference_count": 2,
+      "valid_evidence_reference_rate": 1.0,
+      "retrieved": [
+        {
+          "id": "T1688",
+          "title": "Safe Mode Boot",
+          "score": 0.5298
+        },
+        {
+          "id": "T1529",
+          "title": "System Shutdown/Reboot",
+          "score": 0.4924
+        },
+        {
+          "id": "T1490",
+          "title": "Inhibit System Recovery",
+          "score": 0.4884
+        },
+        {
+          "id": "T1562.009",
+          "title": "Safe Mode Boot",
+          "score": 0.4539
+        },
+        {
+          "id": "T1688",
+          "title": "Safe Mode Boot",
+          "score": 0.3872
+        }
+      ],
+      "retrieval_first_relevant_rank": 3,
+      "limitations": "The exact intent of the command is unclear without further context or evidence of malicious activity."
+    },
+    {
+      "case_id": "case-10-bcdr-disable-recovery",
+      "category": "malware_ransomware",
+      "mode": "evidence_aware",
+      "db_alert_id": 74,
+      "error": null,
+      "wall_latency_seconds": 62.92640841700086,
+      "llm_latency_seconds": 62.73564912100119,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 2332,
+        "completion": 486
+      },
+      "analysis_id": 39,
+      "summary": "The system executed bcdedit.exe to disable Windows Startup Recovery and Ignore Failures, which is associated with the MITRE technique T1490.",
+      "confidence": "MEDIUM",
+      "predicted_techniques": [
+        "T1490"
+      ],
+      "technique_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 1
+      },
+      "expected_cves": [],
+      "predicted_cves": [],
+      "cve_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 0,
+        "expected_count": 0
+      },
+      "is_benign": false,
+      "benign_eval": {
+        "is_benign": false,
+        "is_false_alarm": null,
+        "correctly_benign": null,
+        "predicted_band": "high"
+      },
+      "severity_band_match": false,
+      "expected_severity_band": "critical",
+      "observed_indicators": [
+        "bcdedit.exe",
+        "SYSTEM",
+        "T1490"
+      ],
+      "investigation_step_count": 3,
+      "evidence_reference_count": 2,
+      "valid_evidence_reference_rate": 1.0,
+      "retrieved": [
+        {
+          "id": "T1490",
+          "title": "Inhibit System Recovery",
+          "score": 0.4632
+        },
+        {
+          "id": "T1490",
+          "title": "Inhibit System Recovery",
+          "score": 0.1771
+        },
+        {
+          "id": "T1490",
+          "title": "Inhibit System Recovery",
+          "score": 0.101
+        },
+        {
+          "id": "T1490",
+          "title": "Inhibit System Recovery",
+          "score": -0.0642
+        },
+        {
+          "id": "T1590",
+          "title": "Gather Victim Network Information",
+          "score": 0.4984
+        }
+      ],
+      "retrieval_first_relevant_rank": 1,
+      "limitations": "The exact intent of the command execution is not clear without further context or evidence of malicious activity."
+    },
+    {
+      "case_id": "case-11-ransom-note-drop",
+      "category": "malware_ransomware",
+      "mode": "llm_only",
+      "db_alert_id": 75,
+      "error": null,
+      "wall_latency_seconds": 31.46368943699963,
+      "llm_latency_seconds": 31.39135935000013,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 1112,
+        "completion": 280
+      },
+      "analysis_id": 40,
+      "summary": "A FIM alert was triggered due to the rapid creation of ransom note files across multiple directories on a Windows server.",
+      "confidence": "MEDIUM",
+      "predicted_techniques": [
+        "T1486"
+      ],
+      "technique_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 1
+      },
+      "expected_cves": [],
+      "predicted_cves": [],
+      "cve_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 0,
+        "expected_count": 0
+      },
+      "is_benign": false,
+      "benign_eval": {
+        "is_benign": false,
+        "is_false_alarm": null,
+        "correctly_benign": null,
+        "predicted_band": "high"
+      },
+      "severity_band_match": false,
+      "expected_severity_band": "critical",
+      "observed_indicators": [
+        "encryptor.exe",
+        "D:\\Shares\\Finance\\HOW_TO_DECRYPT_FILES.txt",
+        "fs-corporate"
+      ],
+      "investigation_step_count": 3,
+      "evidence_reference_count": 0,
+      "valid_evidence_reference_rate": null,
+      "retrieved": [],
+      "retrieval_first_relevant_rank": null,
+      "limitations": "No additional evidence was provided to confirm the presence of ransomware or the origin of the process."
+    },
+    {
+      "case_id": "case-11-ransom-note-drop",
+      "category": "malware_ransomware",
+      "mode": "standard_rag",
+      "db_alert_id": 75,
+      "error": null,
+      "wall_latency_seconds": 70.84188870599974,
+      "llm_latency_seconds": 70.70291401400027,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 2386,
+        "completion": 560
+      },
+      "analysis_id": 41,
+      "summary": "A FIM alert detected rapid creation of ransom note files across multiple directories by encryptor.exe on the fs-corporate Windows server.",
+      "confidence": "MEDIUM",
+      "predicted_techniques": [
+        "T1486"
+      ],
+      "technique_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 1
+      },
+      "expected_cves": [],
+      "predicted_cves": [],
+      "cve_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 0,
+        "expected_count": 0
+      },
+      "is_benign": false,
+      "benign_eval": {
+        "is_benign": false,
+        "is_false_alarm": null,
+        "correctly_benign": null,
+        "predicted_band": "high"
+      },
+      "severity_band_match": false,
+      "expected_severity_band": "critical",
+      "observed_indicators": [
+        "encryptor.exe",
+        "D:\\Shares\\Finance\\HOW_TO_DECRYPT_FILES.txt",
+        "fs-corporate"
+      ],
+      "investigation_step_count": 3,
+      "evidence_reference_count": 2,
+      "valid_evidence_reference_rate": 1.0,
+      "retrieved": [
+        {
+          "id": "T1679",
+          "title": "Selective Exclusion",
+          "score": 0.4911
+        },
+        {
+          "id": "T1486",
+          "title": "Data Encrypted for Impact",
+          "score": 0.4353
+        },
+        {
+          "id": "T1083",
+          "title": "File and Directory Discovery",
+          "score": 0.4072
+        },
+        {
+          "id": "T1490",
+          "title": "Inhibit System Recovery",
+          "score": 0.4065
+        },
+        {
+          "id": "T1486",
+          "title": "Data Encrypted for Impact",
+          "score": 0.3999
+        }
+      ],
+      "retrieval_first_relevant_rank": 2,
+      "limitations": "The exact nature of the process and its intent cannot be confirmed without further analysis. The absence of direct evidence of encryption or ransomware activity limits the certainty of the assessment."
+    },
+    {
+      "case_id": "case-11-ransom-note-drop",
+      "category": "malware_ransomware",
+      "mode": "evidence_aware",
+      "db_alert_id": 75,
+      "error": null,
+      "wall_latency_seconds": 63.50235576700106,
+      "llm_latency_seconds": 63.34493572700012,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 2244,
+        "completion": 494
+      },
+      "analysis_id": 42,
+      "summary": "A FIM alert detected rapid creation of ransom note files across multiple directories, possibly indicating ransomware activity.",
+      "confidence": "MEDIUM",
+      "predicted_techniques": [
+        "T1486"
+      ],
+      "technique_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 1
+      },
+      "expected_cves": [],
+      "predicted_cves": [],
+      "cve_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 0,
+        "expected_count": 0
+      },
+      "is_benign": false,
+      "benign_eval": {
+        "is_benign": false,
+        "is_false_alarm": null,
+        "correctly_benign": null,
+        "predicted_band": "high"
+      },
+      "severity_band_match": false,
+      "expected_severity_band": "critical",
+      "observed_indicators": [
+        "encryptor.exe",
+        "D:\\Shares\\Finance\\HOW_TO_DECRYPT_FILES.txt",
+        "fs-corporate"
+      ],
+      "investigation_step_count": 2,
+      "evidence_reference_count": 2,
+      "valid_evidence_reference_rate": 1.0,
+      "retrieved": [
+        {
+          "id": "T1486",
+          "title": "Data Encrypted for Impact",
+          "score": 0.4456
+        },
+        {
+          "id": "T1486",
+          "title": "Data Encrypted for Impact",
+          "score": 0.4201
+        },
+        {
+          "id": "T1486",
+          "title": "Data Encrypted for Impact",
+          "score": 0.0492
+        },
+        {
+          "id": "T1486",
+          "title": "Data Encrypted for Impact",
+          "score": -0.0193
+        },
+        {
+          "id": "T1065",
+          "title": "Uncommonly Used Port",
+          "score": 0.5024
+        }
+      ],
+      "retrieval_first_relevant_rank": 1,
+      "limitations": "The exact nature of the process 'encryptor.exe' and the intent behind the file creation are not fully determined without further analysis."
+    },
+    {
+      "case_id": "case-12-suspicious-svchost-spawn",
+      "category": "malware_ransomware",
+      "mode": "llm_only",
+      "db_alert_id": 76,
+      "error": null,
+      "wall_latency_seconds": 81.1956899680008,
+      "llm_latency_seconds": 81.03052456899968,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 1188,
+        "completion": 337
+      },
+      "analysis_id": 43,
+      "summary": "A Windows system detected svchost.exe executed from an atypical path (C:\\Users\\Public) by the user hr-specialist, potentially indicating defense evasion.",
+      "confidence": "MEDIUM",
+      "predicted_techniques": [
+        "T1036.005",
+        "T1055"
+      ],
+      "technique_prf1": {
+        "precision": 0.5,
+        "recall": 0.5,
+        "f1": 0.5,
+        "predicted_count": 2
+      },
+      "expected_cves": [],
+      "predicted_cves": [],
+      "cve_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 0,
+        "expected_count": 0
+      },
+      "is_benign": false,
+      "benign_eval": {
+        "is_benign": false,
+        "is_false_alarm": null,
+        "correctly_benign": null,
+        "predicted_band": "high"
+      },
+      "severity_band_match": true,
+      "expected_severity_band": "high",
+      "observed_indicators": [
+        "C:\\Users\\Public\\svchost.exe",
+        "hr-specialist",
+        "svchost.exe"
+      ],
+      "investigation_step_count": 3,
+      "evidence_reference_count": 0,
+      "valid_evidence_reference_rate": null,
+      "retrieved": [],
+      "retrieval_first_relevant_rank": null,
+      "limitations": "No additional evidence was provided to confirm the malicious intent of the process execution."
+    },
+    {
+      "case_id": "case-12-suspicious-svchost-spawn",
+      "category": "malware_ransomware",
+      "mode": "standard_rag",
+      "db_alert_id": 76,
+      "error": null,
+      "wall_latency_seconds": 184.64547533100085,
+      "llm_latency_seconds": 183.48032574900026,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 2650,
+        "completion": 595
+      },
+      "analysis_id": 44,
+      "summary": "A Windows system event indicates that svchost.exe was executed from an atypical path (C:\\Users\\Public), which may suggest defense evasion or masquerading techniques.",
+      "confidence": "MEDIUM",
+      "predicted_techniques": [
+        "T1036.005",
+        "T1055"
+      ],
+      "technique_prf1": {
+        "precision": 0.5,
+        "recall": 0.5,
+        "f1": 0.5,
+        "predicted_count": 2
+      },
+      "expected_cves": [],
+      "predicted_cves": [],
+      "cve_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 0,
+        "expected_count": 0
+      },
+      "is_benign": false,
+      "benign_eval": {
+        "is_benign": false,
+        "is_false_alarm": null,
+        "correctly_benign": null,
+        "predicted_band": "high"
+      },
+      "severity_band_match": true,
+      "expected_severity_band": "high",
+      "observed_indicators": [
+        "C:\\Users\\Public\\svchost.exe",
+        "hr-specialist",
+        "cmd.exe"
+      ],
+      "investigation_step_count": 3,
+      "evidence_reference_count": 2,
+      "valid_evidence_reference_rate": 1.0,
+      "retrieved": [
+        {
+          "id": "T1034",
+          "title": "Path Interception",
+          "score": 0.5858
+        },
+        {
+          "id": "T1574.007",
+          "title": "Path Interception by PATH Environment Variable",
+          "score": 0.5508
+        },
+        {
+          "id": "T1574.009",
+          "title": "Path Interception by Unquoted Path",
+          "score": 0.5098
+        },
+        {
+          "id": "T1183",
+          "title": "Image File Execution Options Injection",
+          "score": 0.5049
+        },
+        {
+          "id": "T1034",
+          "title": "Path Interception",
+          "score": 0.504
+        }
+      ],
+      "retrieval_first_relevant_rank": null,
+      "limitations": "The exact intent of the execution is unclear without further analysis, and the file's legitimacy cannot be confirmed without additional context."
+    },
+    {
+      "case_id": "case-12-suspicious-svchost-spawn",
+      "category": "malware_ransomware",
+      "mode": "evidence_aware",
+      "db_alert_id": 76,
+      "error": null,
+      "wall_latency_seconds": 173.72819767299916,
+      "llm_latency_seconds": 173.31429291300083,
+      "llm_model": "qwen3:8b",
+      "llm_tokens": {
+        "prompt": 2260,
+        "completion": 599
+      },
+      "analysis_id": 45,
+      "summary": "A Windows system detected svchost.exe executed from an atypical path (C:\\Users\\Public), raising suspicion of defense evasion techniques.",
+      "confidence": "MEDIUM",
+      "predicted_techniques": [
+        "T1036.005",
+        "T1055"
+      ],
+      "technique_prf1": {
+        "precision": 0.5,
+        "recall": 0.5,
+        "f1": 0.5,
+        "predicted_count": 2
+      },
+      "expected_cves": [],
+      "predicted_cves": [],
+      "cve_prf1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "predicted_count": 0,
+        "expected_count": 0
+      },
+      "is_benign": false,
+      "benign_eval": {
+        "is_benign": false,
+        "is_false_alarm": null,
+        "correctly_benign": null,
+        "predicted_band": "high"
+      },
+      "severity_band_match": true,
+      "expected_severity_band": "high",
+      "observed_indicators": [
+        "C:\\Users\\Public\\svchost.exe",
+        "hr-specialist",
+        "T1036.005",
+        "T1055"
+      ],
+      "investigation_step_count": 3,
+      "evidence_reference_count": 2,
+      "valid_evidence_reference_rate": 1.0,
+      "retrieved": [
+        {
+          "id": "T1055",
+          "title": "Process Injection",
+          "score": 0.2457
+        },
+        {
+          "id": "T1036.005",
+          "title": "Match Legitimate Resource Name or Location",
+          "score": 0.1109
+        },
+        {
+          "id": "T1183",
+          "title": "Image File Execution Options Injection",
+          "score": 0.5268
+        },
+        {
+          "id": "T1065",
+          "title": "Uncommonly Used Port",
+          "score": 0.5256
+        },
+        {
+          "id": "T1591.001",
+          "title": "Determine Physical Locations",
+          "score": 0.4809
+        }
+      ],
+      "retrieval_first_relevant_rank": 2,
+      "limitations": "The exact nature of the threat is not confirmed, and further investigation is required to determine if this is a false positive or a genuine attack."
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import {
   Shield,
   LayoutDashboard,
@@ -26,10 +26,13 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
+  const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [health, setHealth] = useState<DetailedHealth | null>(null);
+
+  const isFullBleed = ['/execution', '/execution-traces', '/graph', '/entity-graph'].includes(location.pathname);
 
   useEffect(() => {
     let mounted = true;
@@ -103,47 +106,65 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         } ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
       >
         {/* Brand Header */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-zinc-800/80 bg-[#090d16]">
-          <div className="flex items-center gap-3 overflow-hidden">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-cyan-500/20 to-blue-600/30 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0 shadow-[0_0_15px_rgba(6,182,212,0.25)]">
-              <Shield className="w-5 h-5" />
-            </div>
-            {!collapsed && (
-              <div className="flex flex-col">
-                <span className="text-sm font-bold tracking-wider text-zinc-100 uppercase">
+        {collapsed ? (
+          <div className="h-16 flex items-center justify-center px-0 border-b border-zinc-800/80 bg-[#090d16]">
+            <button
+              onClick={() => setCollapsed(false)}
+              className="relative group w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-600/30 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.25)] hover:border-cyan-400 hover:shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-all cursor-pointer"
+              title="Expand sidebar"
+              aria-label="Expand sidebar"
+            >
+              <Shield className="w-5 h-5 group-hover:scale-95 transition-transform" />
+              <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-cyan-950 border border-cyan-500/60 flex items-center justify-center text-cyan-300 opacity-90 group-hover:opacity-100 group-hover:scale-110 transition-all shadow-[0_0_8px_rgba(6,182,212,0.4)]">
+                <ChevronRight className="w-2.5 h-2.5 stroke-[3]" />
+              </span>
+            </button>
+          </div>
+        ) : (
+          <div className="h-16 flex items-center justify-between px-4 border-b border-zinc-800/80 bg-[#090d16]">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-cyan-500/20 to-blue-600/30 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0 shadow-[0_0_15px_rgba(6,182,212,0.25)]">
+                <Shield className="w-5 h-5" />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-sm font-bold tracking-wider text-zinc-100 uppercase truncate">
                   AI SOC Assistant
                 </span>
                 <span className="text-[10px] font-mono text-cyan-400/90 tracking-widest uppercase">
                   Research Prototype
                 </span>
               </div>
-            )}
+            </div>
+
+            <button
+              onClick={() => setCollapsed(true)}
+              className="hidden lg:flex p-1.5 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60 transition-colors cursor-pointer"
+              title="Collapse sidebar"
+              aria-label="Collapse sidebar"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+
+            <button
+              onClick={() => setMobileOpen(false)}
+              className="lg:hidden p-1.5 rounded-lg text-zinc-400 hover:text-zinc-100"
+              aria-label="Close sidebar"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
-
-          <button
-            onClick={() => setCollapsed(!collapsed)}
-            className="hidden lg:flex p-1.5 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60 transition-colors"
-            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          >
-            {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-          </button>
-
-          <button
-            onClick={() => setMobileOpen(false)}
-            className="lg:hidden p-1.5 rounded-lg text-zinc-400 hover:text-zinc-100"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+        )}
 
         {/* Navigation List */}
-        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6 scrollbar-thin">
+        <div className={`flex-1 overflow-y-auto py-4 space-y-6 scrollbar-thin ${collapsed ? 'px-2' : 'px-3'}`}>
           {navSections.map((section, idx) => (
             <div key={idx} className="space-y-1">
-              {!collapsed && (
+              {!collapsed ? (
                 <div className="px-3 pb-1.5 text-[10px] font-mono font-semibold tracking-wider text-zinc-400 uppercase">
                   {section.title}
                 </div>
+              ) : (
+                idx > 0 && <div className="w-8 h-px bg-zinc-800/80 mx-auto my-3" />
               )}
               {section.items.map((item) => {
                 const Icon = item.icon;
@@ -153,11 +174,19 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                     to={item.path}
                     onClick={() => setMobileOpen(false)}
                     className={({ isActive }) =>
-                      `flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-all group ${
-                        isActive
-                          ? 'bg-cyan-950/60 text-cyan-300 border border-cyan-500/30 shadow-[0_0_12px_rgba(6,182,212,0.15)]'
-                          : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
-                      } ${collapsed ? 'justify-center px-0' : ''}`
+                      `flex items-center text-xs font-medium transition-all group ${
+                        collapsed
+                          ? `w-11 h-11 mx-auto justify-center rounded-xl ${
+                              isActive
+                                ? 'bg-cyan-950/70 text-cyan-300 border border-cyan-500/40 shadow-[0_0_14px_rgba(6,182,212,0.25)]'
+                                : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60 border border-transparent'
+                            }`
+                          : `w-full gap-3 px-3 py-2.5 rounded-lg ${
+                              isActive
+                                ? 'bg-cyan-950/60 text-cyan-300 border border-cyan-500/30 shadow-[0_0_12px_rgba(6,182,212,0.15)]'
+                                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
+                            }`
+                      }`
                     }
                     title={collapsed ? item.name : undefined}
                   >
@@ -194,7 +223,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 </span>
               </div>
               <span
-                className={`text-[10px] font-mono px-1.5 py-0.5 rounded border ${
+                className={`text-[10px] font-mono px-1.5 py-0.5 rounded border font-semibold ${
                   wazuhMode === 'real'
                     ? 'text-emerald-400 bg-emerald-950/80 border-emerald-800/40'
                     : 'text-amber-400 bg-amber-950/80 border-amber-800/40'
@@ -209,16 +238,26 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </span>
             </div>
           ) : (
-            <div
-              className="flex justify-center"
-              title={backendOnline ? 'Backend connected' : 'Backend unreachable'}
+            <button
+              type="button"
+              onClick={() => setCollapsed(false)}
+              className="w-11 h-11 mx-auto rounded-xl bg-zinc-900/80 border border-zinc-800/80 flex items-center justify-center hover:border-cyan-500/40 hover:bg-zinc-800/60 transition-all cursor-pointer group"
+              title={`${backendOnline ? 'Backend Online' : 'Backend Offline'} • Wazuh: ${
+                wazuhMode === 'real' ? 'Live' : 'Simulated'
+              } (Click to expand sidebar)`}
+              aria-label="Backend status (click to expand sidebar)"
             >
-              <span
-                className={`relative flex h-2.5 w-2.5 rounded-full ${
-                  backendOnline ? 'bg-cyan-500' : 'bg-rose-500'
-                }`}
-              />
-            </div>
+              <span className="relative flex h-2.5 w-2.5">
+                {backendOnline && (
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
+                )}
+                <span
+                  className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
+                    backendOnline ? 'bg-cyan-500' : 'bg-rose-500'
+                  }`}
+                />
+              </span>
+            </button>
           )}
         </div>
       </aside>
@@ -238,10 +277,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             {/* Global Search / Command Palette Trigger */}
             <button
               onClick={() => setPaletteOpen(true)}
-              className="flex items-center gap-3 px-3.5 py-1.5 rounded-lg bg-[#07090e] border border-zinc-800 hover:border-cyan-500/40 text-xs text-zinc-400 hover:text-zinc-200 transition-all w-48 sm:w-80"
+              className="flex items-center gap-2 sm:gap-3 px-2.5 sm:px-3.5 py-1.5 rounded-lg bg-[#07090e] border border-zinc-800 hover:border-cyan-500/40 text-xs text-zinc-400 hover:text-zinc-200 transition-all max-w-[200px] sm:max-w-xs sm:w-80"
             >
-              <Search className="w-3.5 h-3.5 text-zinc-400" />
-              <span className="text-zinc-400 font-normal truncate">Command search or jump to...</span>
+              <Search className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+              <span className="text-zinc-400 font-normal truncate">Command search...</span>
               <kbd className="hidden sm:inline-flex items-center ml-auto font-mono text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700">
                 Ctrl K
               </kbd>
@@ -324,11 +363,19 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </header>
 
         {/* Page Content Viewport */}
-        <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-6 lg:p-8 bg-[#07090e]">
-          <div className="max-w-7xl mx-auto space-y-6">
-            {children}
-          </div>
-        </main>
+        {isFullBleed ? (
+          <main className="flex-1 min-h-0 overflow-hidden bg-[#07090e] p-2 sm:p-3 flex flex-col">
+            <div className="flex-1 min-h-0 flex flex-col w-full h-full">
+              {children}
+            </div>
+          </main>
+        ) : (
+          <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-6 lg:p-8 bg-[#07090e]">
+            <div className="max-w-7xl mx-auto space-y-6">
+              {children}
+            </div>
+          </main>
+        )}
       </div>
 
       {/* Global Ctrl+K Command Palette */}

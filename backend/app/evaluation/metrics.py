@@ -149,3 +149,159 @@ def valid_evidence_reference_rate(
         return 0.0
     valid = sum(1 for r in all_reference_ids if r in valid_reference_ids)
     return valid / len(all_reference_ids)
+
+
+_CVE_RE = re.compile(r"\bCVE-\d{4}-\d{4,7}\b", re.IGNORECASE)
+
+
+def extract_cves(text: Optional[str]) -> List[str]:
+    """Extract CVE identifiers mentioned in text (deduped, uppercase)."""
+    if not text:
+        return []
+    matches = [m.upper() for m in _CVE_RE.findall(text)]
+    return list(dict.fromkeys(matches))
+
+
+def cve_prf1(
+    predicted: Iterable[str], expected: Set[str]
+) -> Dict[str, Optional[float]]:
+    """Precision, recall, and F1 for predicted CVEs against expected CVEs.
+
+    Defined mathematical conventions:
+    - If expected is empty and predicted is empty: 1.0 (correctly identified no CVE).
+    - If expected is empty and predicted is non-empty: precision 0.0, recall 0.0, f1 0.0 (hallucinated uncalled-for CVE).
+    - If expected is non-empty and predicted is empty: precision 0.0, recall 0.0, f1 0.0 (missed expected CVE).
+    - If expected is non-empty and predicted is non-empty: standard set-based precision/recall/F1.
+    """
+    pred_set = {c.strip().upper() for c in predicted if c}
+    exp_set = {c.strip().upper() for c in expected if c}
+
+    if not exp_set:
+        if not pred_set:
+            return {
+                "precision": 1.0,
+                "recall": 1.0,
+                "f1": 1.0,
+                "predicted_count": 0,
+                "expected_count": 0,
+            }
+        return {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "predicted_count": len(pred_set),
+            "expected_count": 0,
+        }
+
+    tp = len(pred_set & exp_set)
+    precision = tp / len(pred_set) if pred_set else 0.0
+    recall = tp / len(exp_set)
+    f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
+
+    return {
+        "precision": precision,
+        "recall": recall,
+        "f1": f1,
+        "predicted_count": len(pred_set),
+        "expected_count": len(exp_set),
+    }
+
+
+def benign_evaluation(
+    predicted_text: Optional[str],
+    is_benign: bool,
+    expected_band: Optional[str] = "low"
+) -> Dict[str, Any]:
+    """Evaluate performance specifically for benign / negative control scenarios.
+
+    An alert marked is_benign=True should ideally NOT trigger high/critical alarms.
+    - is_false_alarm: True if a benign event is classified as high or critical.
+    - correctly_benign: True if a benign event is classified as low or medium.
+    """
+    band = extract_severity_band(predicted_text)
+    if not is_benign:
+        return {
+            "is_benign": False,
+            "is_false_alarm": None,
+            "correctly_benign": None,
+            "predicted_band": band,
+        }
+
+    is_false_alarm = band in {"high", "critical"} if band else False
+    correctly_benign = band in {"low", "medium"} if band else None
+
+    return {
+        "is_benign": True,
+        "is_false_alarm": is_false_alarm,
+        "correctly_benign": correctly_benign,
+        "predicted_band": band,
+    }
+
+
+def validate_dataset_schema(dataset: dict) -> List[str]:
+    """Validate dataset structure, schema integrity, and ground-truth conventions.
+
+    Returns a list of error strings; empty list indicates complete compliance.
+    """
+    errors: List[str] = []
+    if not isinstance(dataset, dict):
+        return ["Dataset must be a JSON object"]
+
+    version = dataset.get("dataset_version")
+    if not version or not isinstance(version, str):
+        errors.append("Missing or invalid 'dataset_version'")
+
+    cases = dataset.get("cases")
+    if not isinstance(cases, list) or len(cases) == 0:
+        return ["Dataset 'cases' must be a non-empty list"]
+
+    seen_case_ids: Set[str] = set()
+    seen_alert_ids: Set[str] = set()
+
+    for idx, c in enumerate(cases):
+        prefix = f"Case [{idx}]"
+        case_id = c.get("case_id")
+        if not case_id or not isinstance(case_id, str):
+            errors.append(f"{prefix}: Missing or invalid 'case_id'")
+        elif case_id in seen_case_ids:
+            errors.append(f"{prefix}: Duplicate case_id '{case_id}'")
+        else:
+            seen_case_ids.add(case_id)
+
+        alert = c.get("alert")
+        if not isinstance(alert, dict):
+            errors.append(f"{prefix} ({case_id}): Missing 'alert' object")
+            continue
+
+        alert_id = alert.get("id")
+        if not alert_id or not isinstance(alert_id, str):
+            errors.append(f"{prefix} ({case_id}): Missing alert 'id'")
+        elif alert_id in seen_alert_ids:
+            errors.append(f"{prefix} ({case_id}): Duplicate alert id '{alert_id}'")
+        else:
+            seen_alert_ids.add(alert_id)
+
+        rule = alert.get("rule")
+        if not isinstance(rule, dict) or "level" not in rule:
+            errors.append(f"{prefix} ({case_id}): Alert missing rule level")
+
+        gt = c.get("ground_truth")
+        if not isinstance(gt, dict):
+            errors.append(f"{prefix} ({case_id}): Missing 'ground_truth' object")
+            continue
+
+        band = gt.get("expected_severity_band")
+        if band not in {"low", "medium", "high", "critical"}:
+            errors.append(f"{prefix} ({case_id}): Invalid expected_severity_band '{band}'")
+
+        if "is_benign" not in gt:
+            errors.append(f"{prefix} ({case_id}): Ground truth missing 'is_benign'")
+
+        if "expected_techniques" not in gt or not isinstance(gt["expected_techniques"], list):
+            errors.append(f"{prefix} ({case_id}): Missing 'expected_techniques' list")
+
+        if "expected_cves" in gt and not isinstance(gt["expected_cves"], list):
+            errors.append(f"{prefix} ({case_id}): 'expected_cves' must be a list if present")
+
+    return errors
+
