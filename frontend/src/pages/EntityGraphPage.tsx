@@ -83,11 +83,11 @@ export const EntityGraphPage: React.FC = () => {
   // Synchronous viewport ref + state
   const [viewport, setViewport] = useState<Viewport>({ x: 0, y: 0, zoom: 1 });
   const viewportRef = useRef<Viewport>(viewport);
-  viewportRef.current = viewport;
 
   const isDraggingCanvasRef = useRef<boolean>(false);
   const dragStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
+  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
 
   const [neighborhoodHops, setNeighborhoodHops] = useState<number>(0);
   const [controlsOpen, setControlsOpen] = useState<boolean>(
@@ -96,7 +96,7 @@ export const EntityGraphPage: React.FC = () => {
   const [showLabels, setShowLabels] = useState<boolean>(true);
   const [sizeByDegree, setSizeByDegree] = useState<boolean>(true);
   const [clusterByScenario, setClusterByScenario] = useState<boolean>(true);
-  const [edgeOpacity, setEdgeOpacity] = useState<number>(0.35);
+  const [edgeOpacity, setEdgeOpacity] = useState<number>(0.55);
   const [nodeScale, setNodeScale] = useState<number>(1.0);
   const [zoomAdaptiveScaling, setZoomAdaptiveScaling] = useState<boolean>(true);
 
@@ -107,7 +107,33 @@ export const EntityGraphPage: React.FC = () => {
 
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+  const transformGroupRef = useRef<SVGGElement>(null);
+  const rafIdRef = useRef<number | null>(null);
+  const nodeRafRef = useRef<number | null>(null);
   const hasAutoFittedRef = useRef<boolean>(false);
+
+  // Hardware-accelerated direct DOM transform with RAF-batched React state sync
+  const applyViewport = useCallback((nv: Viewport, immediateState: boolean = false) => {
+    viewportRef.current = nv;
+    if (transformGroupRef.current) {
+      transformGroupRef.current.setAttribute(
+        'transform',
+        `translate(${nv.x}, ${nv.y}) scale(${nv.zoom})`
+      );
+    }
+    if (immediateState) {
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+      }
+      setViewport(nv);
+    } else if (rafIdRef.current === null) {
+      rafIdRef.current = requestAnimationFrame(() => {
+        setViewport(viewportRef.current);
+        rafIdRef.current = null;
+      });
+    }
+  }, []);
 
   // ResizeObserver for dynamic canvas sizing
   useEffect(() => {
@@ -121,11 +147,8 @@ export const EntityGraphPage: React.FC = () => {
           setContainerDimensions((prev) => {
             const dx = (width - prev.width) / 2;
             const dy = (height - prev.height) / 2;
-            setViewport((v) => {
-              const nv = { ...v, x: v.x + dx, y: v.y + dy };
-              viewportRef.current = nv;
-              return nv;
-            });
+            const nv = { ...viewportRef.current, x: viewportRef.current.x + dx, y: viewportRef.current.y + dy };
+            applyViewport(nv, true);
             return { width, height };
           });
         }
@@ -135,8 +158,10 @@ export const EntityGraphPage: React.FC = () => {
 
     return () => {
       resizeObserver.disconnect();
+      if (rafIdRef.current !== null) cancelAnimationFrame(rafIdRef.current);
+      if (nodeRafRef.current !== null) cancelAnimationFrame(nodeRafRef.current);
     };
-  }, []);
+  }, [applyViewport]);
 
   // Load manifest & graph
   const loadData = useCallback(async () => {
@@ -263,13 +288,19 @@ export const EntityGraphPage: React.FC = () => {
     return neighbors;
   }, [selectedNode, graphData]);
 
-  const selectedNeighborIds = useMemo(() => {
-    const s = new Set<string>();
-    if (!selectedNode) return s;
-    s.add(selectedNode.id);
-    selectedNodeNeighbors.forEach((item) => s.add(item.node.id));
+  // Active focal node is either explicitly selected node OR currently hovered node
+  const focalNodeId = selectedNode?.id || hoveredNodeId || null;
+
+  // Set of connected neighbor IDs for the active focal node
+  const focalNeighborIds = useMemo(() => {
+    if (!focalNodeId || !graphData?.edges) return null;
+    const s = new Set<string>([focalNodeId]);
+    graphData.edges.forEach((e) => {
+      if (e.source === focalNodeId) s.add(e.target);
+      if (e.target === focalNodeId) s.add(e.source);
+    });
     return s;
-  }, [selectedNode, selectedNodeNeighbors]);
+  }, [focalNodeId, graphData]);
 
   // Force-directed node positions simulation with meaningful clustering
   const [positions, setPositions] = useState<Record<string, Point>>({});
@@ -285,17 +316,17 @@ export const EntityGraphPage: React.FC = () => {
       const cw = containerDimensions.width || 1200;
       const ch = containerDimensions.height || 750;
 
-      const minX = Math.min(...xs) - 24;
-      const maxX = Math.max(...xs) + 24;
-      const minY = Math.min(...ys) - 24;
-      const maxY = Math.max(...ys) + 24;
+      const minX = Math.min(...xs) - 40;
+      const maxX = Math.max(...xs) + 40;
+      const minY = Math.min(...ys) - 40;
+      const maxY = Math.max(...ys) + 40;
 
       const graphWidth = Math.max(maxX - minX, 100);
       const graphHeight = Math.max(maxY - minY, 100);
 
-      const scaleX = (cw - 140) / graphWidth;
-      const scaleY = (ch - 140) / graphHeight;
-      const targetScale = Math.min(Math.max(Math.min(scaleX, scaleY), 0.25), 1.35);
+      const scaleX = (cw - 160) / graphWidth;
+      const scaleY = (ch - 160) / graphHeight;
+      const targetScale = Math.min(Math.max(Math.min(scaleX, scaleY), 0.2), 1.25);
 
       const centerX = (minX + maxX) / 2;
       const centerY = (minY + maxY) / 2;
@@ -305,10 +336,9 @@ export const EntityGraphPage: React.FC = () => {
         x: cw / 2 - centerX * targetScale,
         y: ch / 2 - centerY * targetScale,
       };
-      viewportRef.current = nextViewport;
-      setViewport(nextViewport);
+      applyViewport(nextViewport, true);
     },
-    [positions, containerDimensions]
+    [positions, containerDimensions, applyViewport]
   );
 
   // Stable Layout simulation: centered at (0, 0)
@@ -336,7 +366,7 @@ export const EntityGraphPage: React.FC = () => {
     const clusterKeys = Object.keys(clusterMembers);
     const numClusters = clusterKeys.length;
     const clusterCentroids: Record<string, { x: number; y: number }> = {};
-    const ringRadius = 320;
+    const ringRadius = 520;
 
     clusterKeys.forEach((key, idx) => {
       if (key === 'general-env') {
@@ -350,12 +380,12 @@ export const EntityGraphPage: React.FC = () => {
       }
     });
 
-    // 3. Seed initial positions around their cluster centroids
+    // 3. Seed initial positions around their cluster centroids with generous dispersion
     const current: Record<string, Point> = {};
     filteredNodes.forEach((node, i) => {
       const c = clusterCentroids[clusterMap[node.id]] || { x: 0, y: 0 };
       const angle = (i * 1.37) % (2 * Math.PI);
-      const rad = 25 + ((i * 19) % 75);
+      const rad = 35 + ((i * 23) % 110);
 
       current[node.id] = {
         x: c.x + Math.cos(angle) * rad,
@@ -368,7 +398,7 @@ export const EntityGraphPage: React.FC = () => {
 
     // 4. Stable Force Relaxation (120 iterations with velocity damping)
     for (let iter = 0; iter < 120; iter++) {
-      const alpha = Math.max(1 - iter / 120, 0.1);
+      const alpha = Math.max(1 - iter / 120, 0.08);
 
       // Force A: Cluster Gravity + Global Centering
       filteredNodes.forEach((node) => {
@@ -376,14 +406,14 @@ export const EntityGraphPage: React.FC = () => {
         if (!p) return;
         const c = clusterCentroids[p.cluster || 'general-env'] || { x: 0, y: 0 };
         if (clusterByScenario) {
-          p.vx += (c.x - p.x) * 0.05 * alpha;
-          p.vy += (c.y - p.y) * 0.05 * alpha;
+          p.vx += (c.x - p.x) * 0.045 * alpha;
+          p.vy += (c.y - p.y) * 0.045 * alpha;
         }
-        p.vx += (0 - p.x) * 0.015 * alpha;
-        p.vy += (0 - p.y) * 0.015 * alpha;
+        p.vx += (0 - p.x) * 0.012 * alpha;
+        p.vy += (0 - p.y) * 0.012 * alpha;
       });
 
-      // Force B: Spring Links
+      // Force B: Spring Links (increased spacing to reveal connection strings clearly)
       filteredEdges.forEach((edge) => {
         const p1 = current[edge.source];
         const p2 = current[edge.target];
@@ -394,8 +424,8 @@ export const EntityGraphPage: React.FC = () => {
         const dist = Math.hypot(dx, dy) || 1;
 
         const sameCluster = p1.cluster === p2.cluster;
-        const idealDist = sameCluster ? 45 : 120;
-        const force = (dist - idealDist) * (sameCluster ? 0.06 : 0.02) * alpha;
+        const idealDist = sameCluster ? 95 : 185;
+        const force = (dist - idealDist) * (sameCluster ? 0.045 : 0.015) * alpha;
 
         p1.vx += (dx / dist) * force;
         p1.vy += (dy / dist) * force;
@@ -403,7 +433,7 @@ export const EntityGraphPage: React.FC = () => {
         p2.vy -= (dy / dist) * force;
       });
 
-      // Force C: Repulsion + Collision Prevention
+      // Force C: Repulsion + Collision Prevention (strong anti-overlap)
       for (let i = 0; i < filteredNodes.length; i++) {
         const p1 = current[filteredNodes[i].id];
         if (!p1) continue;
@@ -416,14 +446,14 @@ export const EntityGraphPage: React.FC = () => {
           const dy = p2.y - p1.y;
           const dist = Math.hypot(dx, dy) || 0.1;
 
-          if (dist < 36) {
-            const push = (36 - dist) * 0.25;
+          if (dist < 52) {
+            const push = (52 - dist) * 0.35;
             p1.x -= (dx / dist) * push;
             p1.y -= (dy / dist) * push;
             p2.x += (dx / dist) * push;
             p2.y += (dy / dist) * push;
-          } else if (dist < 140) {
-            const rep = ((140 - dist) / 140) * 3.5 * alpha;
+          } else if (dist < 220) {
+            const rep = ((220 - dist) / 220) * 4.2 * alpha;
             p1.vx -= (dx / dist) * rep;
             p1.vy -= (dy / dist) * rep;
             p2.vx += (dx / dist) * rep;
@@ -436,8 +466,8 @@ export const EntityGraphPage: React.FC = () => {
       filteredNodes.forEach((node) => {
         const p = current[node.id];
         if (!p) return;
-        p.vx *= 0.8;
-        p.vy *= 0.8;
+        p.vx *= 0.82;
+        p.vy *= 0.82;
         p.x += p.vx;
         p.y += p.vy;
       });
@@ -449,17 +479,17 @@ export const EntityGraphPage: React.FC = () => {
     const xs = Object.values(current).map((p) => p.x);
     const ys = Object.values(current).map((p) => p.y);
     if (xs.length > 0) {
-      const minX = Math.min(...xs) - 24;
-      const maxX = Math.max(...xs) + 24;
-      const minY = Math.min(...ys) - 24;
-      const maxY = Math.max(...ys) + 24;
+      const minX = Math.min(...xs) - 40;
+      const maxX = Math.max(...xs) + 40;
+      const minY = Math.min(...ys) - 40;
+      const maxY = Math.max(...ys) + 40;
 
       const gw = Math.max(maxX - minX, 100);
       const gh = Math.max(maxY - minY, 100);
       const cw = containerDimensions.width || 1200;
       const ch = containerDimensions.height || 750;
 
-      const scale = Math.min(Math.max(Math.min((cw - 140) / gw, (ch - 140) / gh), 0.25), 1.35);
+      const scale = Math.min(Math.max(Math.min((cw - 160) / gw, (ch - 160) / gh), 0.2), 1.25);
       const cx = (minX + maxX) / 2;
       const cy = (minY + maxY) / 2;
 
@@ -468,10 +498,9 @@ export const EntityGraphPage: React.FC = () => {
         x: cw / 2 - cx * scale,
         y: ch / 2 - cy * scale,
       };
-      viewportRef.current = nv;
-      setViewport(nv);
+      applyViewport(nv, true);
     }
-  }, [filteredNodes, filteredEdges, clusterByScenario]);
+  }, [filteredNodes, filteredEdges, clusterByScenario, applyViewport, containerDimensions]);
 
   // High-performance Native Wheel Zoom Listener with { passive: false }
   useEffect(() => {
@@ -487,7 +516,7 @@ export const EntityGraphPage: React.FC = () => {
       const mouseY = e.clientY - rect.top;
 
       const current = viewportRef.current;
-      const factor = e.deltaY < 0 ? 1.12 : 0.89;
+      const factor = e.deltaY < 0 ? 1.09 : 0.91;
       const newZoom = Math.min(Math.max(current.zoom * factor, 0.15), 3.0);
 
       const graphX = (mouseX - current.x) / current.zoom;
@@ -499,15 +528,14 @@ export const EntityGraphPage: React.FC = () => {
         y: mouseY - graphY * newZoom,
       };
 
-      viewportRef.current = nextViewport;
-      setViewport(nextViewport);
+      applyViewport(nextViewport, false);
     };
 
     el.addEventListener('wheel', handleNativeWheel, { passive: false });
     return () => {
       el.removeEventListener('wheel', handleNativeWheel);
     };
-  }, []);
+  }, [applyViewport]);
 
   // Canvas pan / drag
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -526,23 +554,30 @@ export const EntityGraphPage: React.FC = () => {
         x: e.clientX - dragStartRef.current.x,
         y: e.clientY - dragStartRef.current.y,
       };
-      viewportRef.current = nextViewport;
-      setViewport(nextViewport);
+      applyViewport(nextViewport, false);
     } else if (draggingNodeId && positions[draggingNodeId]) {
       const rect = containerRef.current?.getBoundingClientRect();
       if (!rect) return;
       const { x: panX, y: panY, zoom: z } = viewportRef.current;
       const x = (e.clientX - rect.left - panX) / z;
       const y = (e.clientY - rect.top - panY) / z;
-      setPositions((prev) => ({
-        ...prev,
-        [draggingNodeId]: { ...prev[draggingNodeId], x, y },
-      }));
+      if (nodeRafRef.current === null) {
+        nodeRafRef.current = requestAnimationFrame(() => {
+          setPositions((prev) => ({
+            ...prev,
+            [draggingNodeId]: { ...prev[draggingNodeId], x, y },
+          }));
+          nodeRafRef.current = null;
+        });
+      }
     }
   };
 
   const handleMouseUp = () => {
-    isDraggingCanvasRef.current = false;
+    if (isDraggingCanvasRef.current) {
+      isDraggingCanvasRef.current = false;
+      applyViewport(viewportRef.current, true);
+    }
     setDraggingNodeId(null);
   };
 
@@ -560,8 +595,7 @@ export const EntityGraphPage: React.FC = () => {
       x: mouseX - graphX * newZoom,
       y: mouseY - graphY * newZoom,
     };
-    viewportRef.current = nextViewport;
-    setViewport(nextViewport);
+    applyViewport(nextViewport, true);
   };
 
   const resetView = () => {
@@ -990,34 +1024,48 @@ export const EntityGraphPage: React.FC = () => {
                 </pattern>
               </defs>
 
-              {/* Viewport Transform Group (Zoom and Pan applied here, keeping SVG 100% full bleed) */}
-              <g transform={`translate(${viewport.x}, ${viewport.y}) scale(${viewport.zoom})`}>
+              {/* Viewport Transform Group (Hardware-accelerated Pan and Zoom) */}
+              <g ref={transformGroupRef} transform={`translate(${viewport.x}, ${viewport.y}) scale(${viewport.zoom})`}>
                 {/* Infinite Grid Plane */}
                 <rect x="-16000" y="-16000" width="32000" height="32000" fill="url(#grid-dots)" />
 
-                {/* Edges */}
+                {/* Edges / Relationship Strings */}
                 <g className="edges">
                   {filteredEdges.map((edge) => {
                     const p1 = positions[edge.source];
                     const p2 = positions[edge.target];
                     if (!p1 || !p2) return null;
 
-                    const isConnectedToSelected =
-                      selectedNode && (edge.source === selectedNode.id || edge.target === selectedNode.id);
+                    const isConnectedToFocal =
+                      focalNodeId !== null && (edge.source === focalNodeId || edge.target === focalNodeId);
 
-                    const isDimmed = selectedNode && !isConnectedToSelected;
+                    const isDimmed = focalNodeId !== null && !isConnectedToFocal;
 
-                    const strokeColor = isConnectedToSelected
+                    const strokeColor = isConnectedToFocal
                       ? '#38bdf8'
                       : isDimmed
                       ? '#1e293b'
-                      : '#334155';
+                      : '#64748b';
 
-                    const strokeWidth = isConnectedToSelected ? 2.5 : 1;
-                    const strokeOpacity = isConnectedToSelected ? 0.95 : isDimmed ? 0.15 : edgeOpacity;
+                    const strokeWidth = isConnectedToFocal ? 2.4 : 1.4;
+                    const strokeOpacity = isConnectedToFocal ? 1.0 : isDimmed ? 0.12 : edgeOpacity;
 
                     return (
-                      <g key={edge.id}>
+                      <g key={edge.id} className="transition-opacity duration-150">
+                        {/* Soft Outer Glow for Active Strings */}
+                        {isConnectedToFocal && (
+                          <line
+                            x1={p1.x}
+                            y1={p1.y}
+                            x2={p2.x}
+                            y2={p2.y}
+                            stroke="#38bdf8"
+                            strokeWidth={5}
+                            strokeOpacity={0.25}
+                            vectorEffect="non-scaling-stroke"
+                            strokeLinecap="round"
+                          />
+                        )}
                         <line
                           x1={p1.x}
                           y1={p1.y}
@@ -1029,6 +1077,33 @@ export const EntityGraphPage: React.FC = () => {
                           vectorEffect="non-scaling-stroke"
                           strokeLinecap="round"
                         />
+                        {/* Connected String Relationship Pill */}
+                        {isConnectedToFocal && edge.relationship && (
+                          <g transform={`translate(${(p1.x + p2.x) / 2}, ${(p1.y + p2.y) / 2})`}>
+                            <rect
+                              x={-36}
+                              y={-8}
+                              width={72}
+                              height={16}
+                              rx={4}
+                              fill="#090d16"
+                              stroke="#0284c7"
+                              strokeWidth={1}
+                              opacity={0.95}
+                            />
+                            <text
+                              textAnchor="middle"
+                              y={3.5}
+                              fill="#7dd3fc"
+                              fontSize={8}
+                              fontFamily="monospace"
+                              fontWeight="600"
+                              className="pointer-events-none select-none uppercase tracking-wider"
+                            >
+                              {edge.relationship.replace(/_/g, ' ').slice(0, 14)}
+                            </text>
+                          </g>
+                        )}
                       </g>
                     );
                   })}
@@ -1042,21 +1117,19 @@ export const EntityGraphPage: React.FC = () => {
 
                     const style = NODE_COLORS[node.type] || NODE_COLORS.alert;
                     const degree = nodeDegrees[node.id] || 1;
-                    const baseRadius = (sizeByDegree ? Math.min(Math.max(12 + degree * 1.8, 13), 26) : 15) * nodeScale;
-                    // Damped zoom-adaptive radius:
-                    // In SVG, screen radius = svgRadius * viewport.zoom.
-                    // Damping by zoom^0.65 keeps screen radius between 8px and 28px across 0.2x to 3.0x zoom levels.
-                    const zoomDamp = Math.pow(viewport.zoom, 0.65);
+                    const baseRadius = (sizeByDegree ? Math.min(Math.max(9 + degree * 1.3, 10), 22) : 13) * nodeScale;
+                    const zoomDamp = Math.pow(viewport.zoom, 0.55);
                     const radius = zoomAdaptiveScaling ? Math.max(6, baseRadius / zoomDamp) : baseRadius;
 
                     const isSelected = selectedNode?.id === node.id;
-                    const isNeighbor = selectedNeighborIds.has(node.id) && !isSelected;
-                    const isDimmed = selectedNode && !isSelected && !isNeighbor;
+                    const isHovered = hoveredNodeId === node.id;
+                    const isFocal = isSelected || isHovered;
+                    const isNeighbor = focalNeighborIds?.has(node.id) && !isFocal;
+                    const isDimmed = focalNodeId !== null && !isFocal && !isNeighbor;
 
                     // Adaptive label visibility:
-                    // At low zoom (< 0.65), only render high-degree hubs or selected node to prevent visual clutter
                     const shouldShowLabel =
-                      showLabels && (viewport.zoom >= 0.65 || degree >= 4 || isSelected || isNeighbor);
+                      showLabels && (isFocal || isNeighbor || viewport.zoom >= 0.75 || degree >= 4);
 
                     const labelFontSize = zoomAdaptiveScaling
                       ? Math.max(5.5, Math.min(12, 9.5 / Math.pow(viewport.zoom, 0.6)))
@@ -1067,7 +1140,7 @@ export const EntityGraphPage: React.FC = () => {
                       <g
                         key={node.id}
                         className="graph-node cursor-pointer transition-opacity duration-150"
-                        opacity={isDimmed ? 0.3 : 1}
+                        opacity={isDimmed ? 0.2 : 1}
                         transform={`translate(${pos.x}, ${pos.y})`}
                         onClick={(e) => {
                           e.stopPropagation();
@@ -1077,14 +1150,16 @@ export const EntityGraphPage: React.FC = () => {
                           e.stopPropagation();
                           setDraggingNodeId(node.id);
                         }}
+                        onMouseEnter={() => setHoveredNodeId(node.id)}
+                        onMouseLeave={() => setHoveredNodeId(null)}
                       >
                         {/* Selection Halo Ring */}
                         {isSelected && (
                           <circle
-                            r={radius + (zoomAdaptiveScaling ? 6 / Math.pow(viewport.zoom, 0.4) : 8)}
+                            r={radius + (zoomAdaptiveScaling ? 6 / Math.pow(viewport.zoom, 0.4) : 7)}
                             fill="none"
                             stroke={style.ring}
-                            strokeWidth={isSelected ? 2.5 : 1.8}
+                            strokeWidth={2.2}
                             vectorEffect="non-scaling-stroke"
                             strokeDasharray="5 4"
                             opacity="0.9"
@@ -1094,12 +1169,24 @@ export const EntityGraphPage: React.FC = () => {
                         {/* Neighbor Accent Ring */}
                         {isNeighbor && (
                           <circle
-                            r={radius + (zoomAdaptiveScaling ? 3 / Math.pow(viewport.zoom, 0.4) : 4)}
+                            r={radius + (zoomAdaptiveScaling ? 3.5 / Math.pow(viewport.zoom, 0.4) : 4.5)}
                             fill="none"
                             stroke="#38bdf8"
-                            strokeWidth={1.5}
+                            strokeWidth={1.8}
                             vectorEffect="non-scaling-stroke"
-                            opacity="0.65"
+                            opacity="0.8"
+                          />
+                        )}
+
+                        {/* Hover Focus Ring */}
+                        {isHovered && !isSelected && (
+                          <circle
+                            r={radius + (zoomAdaptiveScaling ? 4 / Math.pow(viewport.zoom, 0.4) : 5)}
+                            fill="none"
+                            stroke="#ffffff"
+                            strokeWidth={1.6}
+                            vectorEffect="non-scaling-stroke"
+                            opacity="0.85"
                           />
                         )}
 
@@ -1107,18 +1194,17 @@ export const EntityGraphPage: React.FC = () => {
                         <circle
                           r={radius}
                           fill={style.bg}
-                          stroke={isSelected ? '#ffffff' : style.border}
-                          strokeWidth={isSelected ? 2.5 : 1.8}
+                          stroke={isFocal ? '#ffffff' : isNeighbor ? '#38bdf8' : style.border}
+                          strokeWidth={isFocal ? 2.4 : isNeighbor ? 2.0 : 1.6}
                           vectorEffect="non-scaling-stroke"
-                          filter="drop-shadow(0 2px 6px rgba(0,0,0,0.6))"
                         />
 
                         {/* Inner Degree Pulse Ring if High Degree Hub */}
                         {degree >= 3 && (
                           <circle
-                            r={radius * 0.45}
+                            r={radius * 0.42}
                             fill={style.border}
-                            opacity={isSelected ? 0.6 : 0.3}
+                            opacity={isFocal ? 0.7 : 0.35}
                           />
                         )}
 
@@ -1127,10 +1213,10 @@ export const EntityGraphPage: React.FC = () => {
                           <text
                             y={labelOffsetY}
                             textAnchor="middle"
-                            fill={isSelected ? '#38bdf8' : isNeighbor ? '#e2e8f0' : '#94a3b8'}
+                            fill={isFocal ? '#38bdf8' : isNeighbor ? '#f8fafc' : '#94a3b8'}
                             fontSize={labelFontSize}
                             fontFamily="monospace"
-                            fontWeight={isSelected ? '700' : '500'}
+                            fontWeight={isFocal ? '700' : isNeighbor ? '600' : '500'}
                             className="pointer-events-none select-none drop-shadow-sm"
                           >
                             {node.label.length > 24 ? `${node.label.slice(0, 24)}...` : node.label}
