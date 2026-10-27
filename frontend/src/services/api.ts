@@ -25,9 +25,10 @@ const apiClient = axios.create({
 /* ── Alert endpoints ── */
 
 export const alertService = {
-  /** GET /alerts — list all alerts */
-  getAlerts: async (): Promise<Alert[]> => {
-    const response = await apiClient.get('/alerts');
+  /** GET /alerts — list all alerts with optional source isolation */
+  getAlerts: async (source?: string): Promise<Alert[]> => {
+    const params = source ? `?source=${encodeURIComponent(source)}` : '';
+    const response = await apiClient.get(`/alerts${params}`);
     return response.data;
   },
 
@@ -115,10 +116,11 @@ export const alertService = {
   },
 
   /** GET /alerts/graph/global — Obsidian-style global environment entity graph */
-  getGlobalGraph: async (scenarioId?: string, limit: number = 50): Promise<InvestigationGraphData> => {
+  getGlobalGraph: async (scenarioId?: string, limit: number = 50, source?: string): Promise<InvestigationGraphData> => {
     const params = new URLSearchParams();
     if (scenarioId) params.append('scenario_id', scenarioId);
     if (limit) params.append('limit', limit.toString());
+    if (source) params.append('source', source);
     const query = params.toString() ? `?${params.toString()}` : '';
     const response = await apiClient.get(`/alerts/graph/global${query}`);
     return response.data;
@@ -339,11 +341,44 @@ export interface DashboardStats {
 }
 
 export const dashboardService = {
-  getStats: async (): Promise<DashboardStats> => {
-    const response = await apiClient.get('/dashboard/stats');
+  getStats: async (source?: string): Promise<DashboardStats> => {
+    const params = source ? `?source=${encodeURIComponent(source)}` : '';
+    const response = await apiClient.get(`/dashboard/stats${params}`);
     return response.data;
   },
 };
+
+/* ── Data Sources (multi-source architecture: demo | live_wazuh | dataset_replay) ── */
+
+export type DataSourceId = 'demo' | 'live_wazuh' | 'dataset_replay';
+
+export interface DataSourceItem {
+  id: DataSourceId;
+  label: string;
+  description: string;
+  status: 'active' | 'ready' | 'unconfigured' | 'unreachable' | 'error';
+  is_live: boolean;
+  is_default: boolean;
+  record_count: number;
+  connector_type?: string;
+  endpoint?: string;
+  details: Record<string, unknown>;
+}
+
+export interface DataSourcesSummary {
+  active_source: DataSourceId;
+  sources: DataSourceItem[];
+}
+
+export const dataSourceService = {
+  /** GET /datasources — retrieve available data sources and their status */
+  getSources: async (active?: string): Promise<DataSourcesSummary> => {
+    const params = active ? `?active=${encodeURIComponent(active)}` : '';
+    const response = await apiClient.get(`/datasources${params}`);
+    return response.data;
+  },
+};
+
 
 /* ── Security Knowledge (real indexed records) ── */
 

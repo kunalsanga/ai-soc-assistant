@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Layout from './components/layout/Layout';
+import { DataSourceProvider } from './context/DataSourceContext';
 import Dashboard from './pages/Dashboard';
 import Alerts from './pages/Alerts';
 import AlertDetails from './pages/AlertDetails';
@@ -20,8 +21,9 @@ function PreserveQueryNavigate({ to }: { to: string }) {
 function App() {
   return (
     <Router>
-      <Layout>
-        <Routes>
+      <DataSourceProvider>
+        <Layout>
+          <Routes>
           {/* Operations */}
           <Route path="/" element={<Dashboard />} />
           <Route path="/dashboard" element={<Navigate to="/" replace />} />
@@ -54,7 +56,8 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Layout>
-    </Router>
+    </DataSourceProvider>
+  </Router>
   );
 }
 

@@ -17,11 +17,13 @@ import {
 } from 'lucide-react';
 import { dashboardService, alertService } from '../services/api';
 import type { DashboardStats, Alert } from '../services/api';
+import { useDataSource } from '../context/DataSourceContext';
 import SeverityBadge from '../components/common/SeverityBadge';
 import LoadingSkeleton from '../components/common/LoadingSkeleton';
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
+  const { activeSource } = useDataSource();
 
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [allAlerts, setAllAlerts] = useState<Alert[]>([]);
@@ -40,8 +42,8 @@ export const Dashboard: React.FC = () => {
     setError(null);
     try {
       const [statsData, alertsData] = await Promise.all([
-        dashboardService.getStats(),
-        Promise.resolve().then(() => alertService.getAlerts()).catch(() => []),
+        dashboardService.getStats(activeSource),
+        Promise.resolve().then(() => alertService.getAlerts(activeSource)).catch(() => []),
       ]);
       setStats(statsData);
       setAllAlerts(Array.isArray(alertsData) ? alertsData : []);
@@ -410,9 +412,22 @@ export const Dashboard: React.FC = () => {
                 {filteredAlerts.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="py-12 text-center text-zinc-400 font-mono">
-                      <div className="flex flex-col items-center justify-center space-y-2">
+                      <div className="flex flex-col items-center justify-center space-y-2 max-w-md mx-auto">
                         <ShieldAlert className="w-8 h-8 text-zinc-600" />
-                        <span>No alerts in the database matching current filters.</span>
+                        <span className="font-semibold text-zinc-300">
+                          {activeSource === 'live_wazuh'
+                            ? 'No Live Wazuh Alerts Ingested'
+                            : activeSource === 'dataset_replay'
+                            ? 'No Historical Dataset Replays Loaded'
+                            : 'No alerts in the database matching current filters.'}
+                        </span>
+                        <p className="text-[11px] text-zinc-500">
+                          {activeSource === 'live_wazuh'
+                            ? 'To stream live events, configure your remote Wazuh Indexer or Manager credentials in .env and click "Sync Alerts". Synthetic demo data is preserved under the Demo Data tab.'
+                            : activeSource === 'dataset_replay'
+                            ? 'Historical benchmark logs (e.g. CIC-IDS2017) can be replayed through the offline experiment pipeline.'
+                            : 'Synthetic demonstration alerts are populated in the database.'}
+                        </p>
                       </div>
                     </td>
                   </tr>

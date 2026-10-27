@@ -14,6 +14,9 @@ class AlertBase(BaseModel):
     username: Optional[str] = None
     raw_data: Optional[str] = None
     status: str = "open"
+    data_source: Optional[str] = "demo"
+    ingestion_timestamp: Optional[str] = None
+    provenance: Optional[dict] = None
     data_origin: Optional[str] = None
     dataset_version: Optional[str] = None
     scenario_id: Optional[str] = None

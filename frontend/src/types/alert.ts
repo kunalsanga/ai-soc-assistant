@@ -25,6 +25,17 @@ export interface Alert {
   raw_data?: string;
   status: string;
   created_at: string;
+  data_source?: 'demo' | 'live_wazuh' | 'dataset_replay' | string;
+  ingestion_timestamp?: string;
+  provenance?: {
+    source_type: 'demo' | 'live_wazuh' | 'dataset_replay' | string;
+    original_event_id: string;
+    event_timestamp: string;
+    ingestion_timestamp?: string;
+    dataset_version?: string;
+    scenario_id?: string;
+    connector_type?: string;
+  };
   data_origin?: 'synthetic_demo' | 'wazuh_mock' | 'live_wazuh' | string;
   dataset_version?: string;
   scenario_id?: string;

@@ -31,16 +31,23 @@ def _severity_band(sev: int) -> str:
 
 
 @router.get("/stats")
-async def dashboard_stats(db: AsyncSession = Depends(get_db)) -> Dict[str, Any]:
-    # --- Alert aggregates ----------------------------------------------------
-    alert_count = (await db.execute(select(func.count(Alert.id)))).scalar_one()
+async def dashboard_stats(
+    source: str | None = None,
+    db: AsyncSession = Depends(get_db),
+) -> Dict[str, Any]:
+    from app.datasources.manager import DataSourceManager
 
-    severity_rows = (
-        await db.execute(
-            select(Alert.severity, func.count(Alert.id))
-            .group_by(Alert.severity)
-        )
-    ).all()
+    source_type = DataSourceManager.normalize_source(source)
+
+    # --- Alert aggregates scoped to source ------------------------------------
+    count_stmt = DataSourceManager.filter_query(select(func.count(Alert.id)), source_type)
+    alert_count = (await db.execute(count_stmt)).scalar_one()
+
+    sev_stmt = DataSourceManager.filter_query(
+        select(Alert.severity, func.count(Alert.id)).group_by(Alert.severity),
+        source_type,
+    )
+    severity_rows = (await db.execute(sev_stmt)).all()
     severity_distribution: Dict[str, int] = {
         "critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0,
     }
@@ -49,26 +56,40 @@ async def dashboard_stats(db: AsyncSession = Depends(get_db)) -> Dict[str, Any]:
             continue
         severity_distribution[_severity_band(int(severity))] += int(count)
 
-    # --- Analysis / Evidence aggregates --------------------------------------
-    analysis_count = (await db.execute(select(func.count(Analysis.id)))).scalar_one()
-    evidence_count = (await db.execute(select(func.count(Evidence.id)))).scalar_one()
+    # --- Analysis / Evidence aggregates scoped to alerts of this source -------
+    analysis_count_stmt = (
+        select(func.count(Analysis.id))
+        .join(Alert, Analysis.alert_id == Alert.id)
+    )
+    analysis_count_stmt = DataSourceManager.filter_query(analysis_count_stmt, source_type)
+    analysis_count = (await db.execute(analysis_count_stmt)).scalar_one()
 
-    analyses_by_type_rows = (
-        await db.execute(
-            select(Analysis.analysis_type, func.count(Analysis.id))
-            .group_by(Analysis.analysis_type)
-        )
-    ).all()
+    evidence_count_stmt = (
+        select(func.count(Evidence.id))
+        .join(Analysis, Evidence.analysis_id == Analysis.id)
+        .join(Alert, Analysis.alert_id == Alert.id)
+    )
+    evidence_count_stmt = DataSourceManager.filter_query(evidence_count_stmt, source_type)
+    evidence_count = (await db.execute(evidence_count_stmt)).scalar_one()
+
+    analyses_by_type_stmt = (
+        select(Analysis.analysis_type, func.count(Analysis.id))
+        .join(Alert, Analysis.alert_id == Alert.id)
+        .group_by(Analysis.analysis_type)
+    )
+    analyses_by_type_stmt = DataSourceManager.filter_query(analyses_by_type_stmt, source_type)
+    analyses_by_type_rows = (await db.execute(analyses_by_type_stmt)).all()
     analyses_by_type = {str(t or "unknown"): int(c) for t, c in analyses_by_type_rows}
 
     # --- Recent analyses (latest 5, with alert reference) ---------------------
-    recent_rows = (
-        await db.execute(
-            select(Analysis)
-            .order_by(Analysis.created_at.desc())
-            .limit(5)
-        )
-    ).scalars().all()
+    recent_stmt = (
+        select(Analysis)
+        .join(Alert, Analysis.alert_id == Alert.id)
+        .order_by(Analysis.created_at.desc())
+        .limit(5)
+    )
+    recent_stmt = DataSourceManager.filter_query(recent_stmt, source_type)
+    recent_rows = (await db.execute(recent_stmt)).scalars().all()
     recent: List[Dict[str, Any]] = [
         {
             "id": a.id,
@@ -87,6 +108,7 @@ async def dashboard_stats(db: AsyncSession = Depends(get_db)) -> Dict[str, Any]:
 
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
+        "data_source": source_type.value,
         "alerts": {
             "total": int(alert_count),
             "severity_distribution": severity_distribution,
@@ -99,3 +121,4 @@ async def dashboard_stats(db: AsyncSession = Depends(get_db)) -> Dict[str, Any]:
         "evidence": {"total": int(evidence_count)},
         "services": services,
     }
+

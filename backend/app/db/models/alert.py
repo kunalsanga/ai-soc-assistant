@@ -18,6 +18,8 @@ class Alert(Base):
     username = Column(String, nullable=True)
     raw_data = Column(Text, nullable=True)
     status = Column(String, default="open")
+    data_source = Column(String, default="demo", index=True, nullable=True)
+    ingestion_timestamp = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     analyses = relationship("Analysis", back_populates="alert")
@@ -61,6 +63,18 @@ class Alert(Base):
             return json.loads(self.raw_data).get("scenario_title")
         except Exception:
             return None
+
+    @property
+    def provenance(self) -> dict:
+        return {
+            "source_type": self.data_source or "demo",
+            "original_event_id": self.external_alert_id,
+            "event_timestamp": self.timestamp,
+            "ingestion_timestamp": self.ingestion_timestamp or (self.created_at.isoformat() if self.created_at else None),
+            "dataset_version": self.dataset_version,
+            "scenario_id": self.scenario_id,
+        }
+
 
 class Analysis(Base):
     __tablename__ = "analyses"

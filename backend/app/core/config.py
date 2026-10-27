@@ -15,7 +15,18 @@ class Settings(BaseSettings):
     WAZUH_PASSWORD: str = ""
     WAZUH_API_URL: str = ""
     WAZUH_VERIFY_SSL: bool = True
-    WAZUH_MODE: str = "mock"  # "mock" | "real" — mock keeps dev workin without a live Wazuh
+    WAZUH_MODE: str = "mock"  # "mock" | "real" — mock keeps dev working without a live Wazuh
+    
+    # Wazuh Indexer (OpenSearch-compatible API) configuration
+    WAZUH_CONNECTOR_TYPE: str = "indexer"  # "indexer" (port 9200) | "manager" (port 55000)
+    WAZUH_INDEXER_URL: str = ""            # e.g. "https://wazuh.internal:9200"
+    WAZUH_INDEX_PATTERN: str = "wazuh-alerts-*"
+    WAZUH_INDEXER_USERNAME: str = ""
+    WAZUH_INDEXER_PASSWORD: str = ""
+    WAZUH_CA_BUNDLE: str = ""              # path to custom CA certificate if needed
+    
+    # Data source selection: "demo" | "live_wazuh" | "dataset_replay"
+    DEFAULT_DATA_SOURCE: str = "demo"
     
     QDRANT_URL: str = ""
     QDRANT_API_KEY: str = ""

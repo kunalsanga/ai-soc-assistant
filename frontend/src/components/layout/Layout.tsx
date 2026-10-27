@@ -20,6 +20,7 @@ import {
 import CommandPalette from '../common/CommandPalette';
 import { healthService } from '../../services/api';
 import type { DetailedHealth } from '../../services/api';
+import { useDataSource } from '../../context/DataSourceContext';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -27,6 +28,7 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
+  const { activeSource, setActiveSource } = useDataSource();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -289,10 +291,46 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
           {/* Right Header Status & Controls */}
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Environment Provenance Tag */}
-            <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded bg-amber-950/60 border border-amber-800/40 text-[10px] font-mono text-amber-300">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-              <span>SYNTHETIC DEMO DATA</span>
+            {/* Data Source Selector */}
+            <div className="flex items-center gap-1.5 p-1 rounded-lg bg-zinc-900/90 border border-zinc-800 text-[11px] font-mono">
+              <span className="text-zinc-500 text-[10px] uppercase font-semibold px-1.5 hidden xl:inline">Source:</span>
+              <button
+                type="button"
+                onClick={() => setActiveSource('demo')}
+                className={`px-2 py-0.5 rounded text-[10px] font-medium transition-all ${
+                  activeSource === 'demo'
+                    ? 'bg-amber-950/80 text-amber-300 border border-amber-700/60 shadow-sm'
+                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
+                }`}
+                title="Curated synthetic demonstration dataset (52 alerts, 6 scenarios)"
+              >
+                Demo Data
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveSource('live_wazuh')}
+                className={`px-2 py-0.5 rounded text-[10px] font-medium transition-all flex items-center gap-1 ${
+                  activeSource === 'live_wazuh'
+                    ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-700/60 shadow-sm'
+                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
+                }`}
+                title="Live Wazuh alerts (queries indexed wazuh-alerts-* or manager API)"
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${activeSource === 'live_wazuh' ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-500'}`} />
+                Live Wazuh
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveSource('dataset_replay')}
+                className={`px-2 py-0.5 rounded text-[10px] font-medium transition-all ${
+                  activeSource === 'dataset_replay'
+                    ? 'bg-blue-950/80 text-blue-300 border border-blue-700/60 shadow-sm'
+                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
+                }`}
+                title="Historical benchmark replay (e.g., CIC-IDS2017, labeled historical PCAP)"
+              >
+                Dataset Replay
+              </button>
             </div>
 
             {/* System Status Indicators — real values */}

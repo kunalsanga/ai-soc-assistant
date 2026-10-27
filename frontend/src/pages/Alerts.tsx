@@ -19,8 +19,10 @@ import SeverityBadge from '../components/common/SeverityBadge';
 import StatusBadge from '../components/common/StatusBadge';
 import LoadingSkeleton from '../components/common/LoadingSkeleton';
 import EmptyState from '../components/common/EmptyState';
+import { useDataSource } from '../context/DataSourceContext';
 
 const Alerts: React.FC = () => {
+  const { activeSource } = useDataSource();
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +39,7 @@ const Alerts: React.FC = () => {
     try {
       // No silent fallback: an API failure is a visible error, and zero
       // records is a real empty state.
-      const data = await alertService.getAlerts();
+      const data = await alertService.getAlerts(activeSource);
       setAlerts(Array.isArray(data) ? data : []);
     } catch (e: unknown) {
       const message =
@@ -53,7 +55,7 @@ const Alerts: React.FC = () => {
 
   useEffect(() => {
     fetchAlerts(false);
-  }, []);
+  }, [activeSource]);
 
   const filteredAlerts = useMemo(() => {
     return alerts
@@ -231,8 +233,20 @@ const Alerts: React.FC = () => {
         alerts.length === 0 ? (
           <EmptyState
             icon={ShieldAlert}
-            title="No Alerts in the Database"
-            description="The database contains no alerts yet. Use Sync Alerts on the Dashboard, then refresh."
+            title={
+              activeSource === 'live_wazuh'
+                ? 'No Live Wazuh Alerts Ingested'
+                : activeSource === 'dataset_replay'
+                ? 'No Replayed Dataset Alerts'
+                : 'No Alerts in the Database'
+            }
+            description={
+              activeSource === 'live_wazuh'
+                ? 'No live events have been ingested from the remote Wazuh Indexer or Manager. Configure .env with your Wazuh endpoint and run sync.'
+                : activeSource === 'dataset_replay'
+                ? 'No historical benchmark records have been imported. Switch to Demo Data to view the curated scenario baseline.'
+                : 'The database contains no alerts yet. Use Sync Alerts on the Dashboard, then refresh.'
+            }
           />
         ) : (
           <EmptyState

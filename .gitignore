@@ -14,6 +14,14 @@ venv/
 backend/knowledge/*.json
 knowledge/*.json
 
-# Backups
+# Backups & LaTeX build artifacts
 *.backup.json
 *.bak
+*.aux
+*.log
+*.nav
+*.out
+*.snm
+*.toc
+*.synctex.gz
+Seminar_Presentation__1_/

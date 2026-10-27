@@ -50,11 +50,19 @@ async def get_alerts(
     severity: int | None = None,
     min_severity: int | None = None,
     status: str | None = None,
+    source: str | None = None,
     q: str | None = None,
     db: AsyncSession = Depends(get_db),
 ):
     """Retrieve persisted alerts with optional filtering, sorting newest first."""
+    from app.datasources.manager import DataSourceManager
+
     stmt = select(Alert).order_by(Alert.timestamp.desc()).limit(limit).offset(offset)
+    
+    # Apply source isolation filter
+    data_source_type = DataSourceManager.normalize_source(source)
+    stmt = DataSourceManager.filter_query(stmt, data_source_type)
+
     if severity is not None:
         stmt = stmt.where(Alert.severity == severity)
     if min_severity is not None:
@@ -92,6 +100,7 @@ async def seed_demo_endpoint():
 @router.get("/graph/global")
 async def get_global_environment_graph(
     scenario_id: str | None = None,
+    source: str | None = None,
     limit: int = 60,
     db: AsyncSession = Depends(get_db),
 ):
@@ -101,11 +110,18 @@ async def get_global_environment_graph(
     and explicit relationships with traceable provenance.
     """
     import json
+    from app.datasources.manager import DataSourceManager
     from app.db.models.alert import Alert
     from app.security.normalization import normalize_wazuh_alert
     from app.wazuh.service import AlertService
 
     stmt = select(Alert).order_by(Alert.severity.desc(), Alert.id.desc()).limit(limit)
+    if source:
+        src_type = DataSourceManager.normalize_source(source)
+        stmt = DataSourceManager.filter_query(stmt, src_type)
+    if scenario_id:
+        stmt = stmt.where(Alert.raw_data.contains(f'"scenario_id": "{scenario_id}"'))
+
     result = await db.execute(stmt)
     all_alerts = result.scalars().all()
 

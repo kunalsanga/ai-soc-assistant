@@ -309,9 +309,14 @@ class RealWazuhClient(BaseWazuhClient):
 def get_wazuh_client() -> BaseWazuhClient:
     """Factory: mock unless explicitly configured for a real Wazuh server.
 
-    Keeps the same import path the existing routes already use
-    (app.wazuh.client.get_wazuh_client), so nothing else changes.
+    When WAZUH_MODE == 'real':
+    - If WAZUH_CONNECTOR_TYPE == 'indexer' (default for alerts), use WazuhIndexerClient.
+    - Otherwise use RealWazuhClient (Manager REST API).
     """
     if settings.WAZUH_MODE.lower() == "real":
+        if settings.WAZUH_CONNECTOR_TYPE.lower() == "indexer":
+            from app.wazuh.indexer import WazuhIndexerClient
+            return WazuhIndexerClient()
         return RealWazuhClient()
     return MockWazuhClient()
+

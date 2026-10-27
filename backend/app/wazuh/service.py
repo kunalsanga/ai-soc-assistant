@@ -117,7 +117,17 @@ class AlertService:
                 import json
                 raw_data = json.dumps(raw_data, default=str)
 
-            db.add(Alert(**fields, raw_data=raw_data))
+            from datetime import datetime, timezone
+            now_iso = datetime.now(timezone.utc).isoformat()
+            # Determine data_source: if client mode is live indexer or real manager, stamp live_wazuh
+            source_tag = "live_wazuh" if client.mode in ("real", "live_wazuh_indexer") else "demo"
+
+            db.add(Alert(
+                **fields,
+                raw_data=raw_data,
+                data_source=source_tag,
+                ingestion_timestamp=now_iso,
+            ))
             created += 1
             external_ids.append(normalized.external_alert_id)
 
