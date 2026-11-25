@@ -1,0 +1,282 @@
+%==============================================================================
+% Chapter 4: System Requirements and Architecture
+%==============================================================================
+\chapter{System Requirements and Architecture}
+\label{ch:architecture}
+
+\section{Requirements Analysis}
+\label{sec:requirements_analysis}
+Designing an on-premise AI-assisted SOC platform requires balancing continuous streaming telemetry with the computational demands of local deep neural network inference. The operational specifications are partitioned into functional and non-functional requirements.
+
+\subsection{Functional Requirements}
+\begin{enumerate}[itemsep=1pt,topsep=2pt]
+  \item \textbf{Telemetry Ingestion and Normalization:} Ingest raw events from Wazuh SIEM, Syslog daemons, or replay datasets, normalizing them into canonical \texttt{NormalizedSecurityAlert} schemas.
+  \item \textbf{Deterministic Context Extraction:} Deterministically extract observables (IPs, ports, hostnames, usernames, process paths, and MITRE technique tags) without external lookups.
+  \item \textbf{Categorized Query Construction:} Synthesize structured queries spanning MITRE techniques, CVE identifiers, and general security terms.
+  \item \textbf{Hybrid Vector Retrieval:} Execute semantic similarity search in Qdrant with exact payload filtering.
+  \item \textbf{Tri-Mode Analysis Orchestration:} Support LLM-Only, Standard RAG, and Evidence-Aware RAG under identical inputs.
+  \item \textbf{Automated Citation Governance:} Inspect generated incident rationales, verify that every cited evidence identifier exists within retrieved sets, and penalize fabricated references.
+  \item \textbf{Persistent Storage and Source Isolation:} Store analyses and evidence in PostgreSQL with strict data-source provenance (\texttt{demo}, \texttt{wazuh\_live}, \texttt{replay\_v2}).
+  \item \textbf{Real-Time Trace Streaming:} Emit stage-by-stage execution timings via Server-Sent Events (SSE).
+  \item \textbf{Analyst Console:} Provide interactive queue triage, D3.js entity graphs, and technical trace waterfalls.
+\end{enumerate}
+
+\subsection{Non-Functional Requirements}
+\begin{enumerate}[itemsep=1pt,topsep=2pt]
+  \item \textbf{Sovereign Privacy:} Guarantee zero cloud data egress; all weights, embeddings, and stores run locally.
+  \item \textbf{Sub-Second Retrieval:} Return ranked evidence chunks in under 300 ms to avoid retrieval bottlenecks.
+  \item \textbf{Algorithmic Determinism:} Constrain inference to temperature 0.0 for reproducible evaluation.
+  \item \textbf{Data Integrity:} Namespace evaluation alerts to prevent benchmark collision.
+  \item \textbf{Containerized Portability:} Containerize all microservices via Docker and Docker Compose.
+\end{enumerate}
+
+\begin{table}[!htbp]
+\centering
+\caption{System requirements and operational constraints.}
+\label{tab:system_requirements}
+\small
+\begin{tabularx}{\textwidth}{@{}l p{4.0cm} X@{}}
+\toprule
+\textbf{Category} & \textbf{Requirement Name} & \textbf{Operational Implementation Specification} \\
+\midrule
+\textbf{FR-01} & Telemetry Normalization & Parse Wazuh JSON into \texttt{NormalizedSecurityAlert} schema. \\
+\textbf{FR-02} & Entity Extraction & Deterministic regex extraction of IPs, ports, users, MITRE IDs. \\
+\textbf{FR-03} & Hybrid Vector Search & Qdrant HNSW cosine similarity combined with payload filters. \\
+\textbf{FR-04} & Tri-Mode Orchestration & Switchable execution: LLM-Only, Standard RAG, Evidence-Aware. \\
+\textbf{FR-05} & Citation Governance & Automated validation verifying citation IDs exist in retrieved set. \\
+\textbf{FR-06} & Real-time Trace Streaming & SSE stream emitting JSON trace events for all pipeline stages. \\
+\midrule
+\textbf{NFR-01} & Zero Cloud Egress & Fully local execution: Ollama (\texttt{qwen3:8b}), local Qdrant, local Postgres. \\
+\textbf{NFR-02} & Search Latency & Sub-second vector search: Mean retrieval latency $< 250\text{ ms}$. \\
+\textbf{NFR-03} & Schema Versioning & Alembic migration (\texttt{c01\_datasource}) isolating alert sources. \\
+\textbf{NFR-04} & Software Reliability & Comprehensive test suite: 264 automated software tests passing. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Hardware and Host Deployment Environment}
+\label{sec:hardware_environment}
+The platform operates efficiently within standard enterprise on-premise computing envelopes:
+\begin{itemize}[itemsep=1pt,topsep=2pt]
+  \item \textbf{Processor (CPU):} Multi-core x86\_64 processor (Intel Core i7/i9 or AMD Ryzen 7/9, 8+ physical cores).
+  \item \textbf{Memory (RAM):} 16 GB minimum, 32 GB recommended, allocated across PostgreSQL (1 GB), Qdrant (2 GB), FastAPI Backend (2 GB), and Ollama Runtime (8 GB).
+  \item \textbf{Accelerator (GPU):} Single NVIDIA GPU with 8+ GB VRAM supporting CUDA compute capability 8.0+ (RTX 3070/4060 or Tesla T4), or quantized CPU inference via Ollama.
+  \item \textbf{Storage Subsystem:} High-speed NVMe SSD with 20+ GB storage for indices, weights, and WAL logs.
+  \item \textbf{Operating System:} Microsoft Windows 11 Professional (WSL2 Ubuntu 24.04 kernel) or native Linux.
+\end{itemize}
+
+\section{Four-Tier Sovereign System Architecture}
+\label{sec:tier_architecture}
+The system is structured into four functional tiers, illustrated in Figure \ref{fig:architecture_diagram_fig}:
+\begin{enumerate}[itemsep=1pt,topsep=2pt]
+  \item \textbf{Tier 1: Telemetry Ingestion \& Preprocessing:} Interfaces with log collectors, normalizes event strings into Pydantic models, cleans whitespace, extracts observables, and synthesizes queries.
+  \item \textbf{Tier 2: Knowledge Base \& Vector Retrieval:} Houses 1,762 pre-chunked security documents (1,618 MITRE ATT\&CK techniques and 144 NVD CVEs) encoded into 384-dimensional vectors in Qdrant.
+  \item \textbf{Tier 3: Reasoning, Governance \& Persistence:} The orchestration engine (\texttt{SOCAnalysisOrchestrator}) compiles prompts, executes Qwen3:8B inference, validates citations, and writes records to PostgreSQL.
+  \item \textbf{Tier 4: Analyst Web Console:} React 19 single-page console rendering triage queues, D3 entity graphs, and SSE streaming execution traces.
+\end{enumerate}
+
+\begin{figure}[!htbp]
+\centering
+\resizebox{0.98\textwidth}{!}{%
+\begin{tikzpicture}[
+  tier/.style={
+    rectangle, rounded corners=6pt, draw=#1!80!black, top color=#1!7, bottom color=white,
+    thick, text width=3.3cm, minimum height=3.2cm, align=left, font=\footnotesize\sffamily,
+    inner sep=6pt, drop shadow={opacity=0.08, shadow xshift=1pt, shadow yshift=-1pt}
+  },
+  arrow/.style={-{Stealth[length=7pt, width=4.5pt]}, very thick, draw=navyblue!85},
+  lbl/.style={font=\scriptsize\bfseries\sffamily\color{navyblue!85}, above=3pt}
+]
+
+  % Tier 1 Card
+  \node[tier=teal] (t1) at (0,0) {
+    {\centering\textbf{\color{teal!85!black}\normalsize 1. Ingestion}\par}\vspace{3pt}
+    \hrule height 0.4pt\vspace{5pt}
+    $\bullet$ Wazuh SIEM / Syslog\\
+    $\bullet$ Pydantic Normalizer\\
+    $\bullet$ Observable Extraction\\
+    $\bullet$ Namespace Isolation
+  };
+
+  % Tier 2 Card
+  \node[tier=blue] (t2) at (4.7,0) {
+    {\centering\textbf{\color{blue!85!black}\normalsize 2. Retrieval}\par}\vspace{3pt}
+    \hrule height 0.4pt\vspace{5pt}
+    $\bullet$ Qdrant HNSW Index\\
+    $\bullet$ 1,618 MITRE Chunks\\
+    $\bullet$ 144 NIST NVD CVEs\\
+    $\bullet$ Bitset Payload Filtering
+  };
+
+  % Tier 3 Card
+  \node[tier=purple] (t3) at (9.4,0) {
+    {\centering\textbf{\color{purple!85!black}\normalsize 3. Reasoning}\par}\vspace{3pt}
+    \hrule height 0.4pt\vspace{5pt}
+    $\bullet$ Ollama / Qwen3:8B\\
+    $\bullet$ Greedy Decoding ($T=0$)\\
+    $\bullet$ Citation Verification\\
+    $\bullet$ PostgreSQL Persistence
+  };
+
+  % Tier 4 Card
+  \node[tier=orange] (t4) at (14.1,0) {
+    {\centering\textbf{\color{orange!85!black}\normalsize 4. Console}\par}\vspace{3pt}
+    \hrule height 0.4pt\vspace{5pt}
+    $\bullet$ React 19 Web App\\
+    $\bullet$ Real-Time SSE Stream\\
+    $\bullet$ D3 Incident Graph\\
+    $\bullet$ Analyst Triage Queue
+  };
+
+  % Clean Flow Arrows with Short Centered Labels Cleanly Elevated
+  \draw[arrow] (t1.east) -- (t2.west);
+  \node[font=\scriptsize\bfseries\sffamily\color{navyblue!90}, above=5pt] at ($(t1.east)!0.5!(t2.west)$) {Alert};
+
+  \draw[arrow] (t2.east) -- (t3.west);
+  \node[font=\scriptsize\bfseries\sffamily\color{navyblue!90}, above=5pt] at ($(t2.east)!0.5!(t3.west)$) {Evidence};
+
+  \draw[arrow] (t3.east) -- (t4.west);
+  \node[font=\scriptsize\bfseries\sffamily\color{navyblue!90}, above=5pt] at ($(t3.east)!0.5!(t4.west)$) {Advisory};
+
+  % Clean Sovereign Perimeter Frame
+  \begin{scope}[on background layer]
+    \node[draw=navyblue!50, dashed, thick, rounded corners=8pt, fill=blue!1!white,
+          fit=(t1) (t4), inner xsep=12pt, inner ysep=18pt] (frame) {};
+  \end{scope}
+
+  % Sovereign Perimeter Header Label (cleanly positioned above frame border)
+  \node[font=\small\bfseries\sffamily\color{navyblue!90}, fill=white, draw=navyblue!50, rounded corners=3pt, inner sep=3.5pt]
+    at (frame.north) {Sovereign On-Premise Perimeter (100\% Local Execution $\cdot$ Zero Cloud Data Egress)};
+
+\end{tikzpicture}%
+}
+\caption{Overall Four-Tier Sovereign Architecture of the AI-Powered SOC Assistant, illustrating zero cloud egress across Ingestion, Knowledge, Reasoning, and Presentation layers.}
+\label{fig:architecture_diagram_fig}
+\end{figure}
+
+\section{Backend Architecture and Asynchronous Pipeline Execution}
+\label{sec:backend_arch}
+The backend service is engineered in Python 3.11 using \textbf{FastAPI} for native \texttt{asyncio} concurrency and streaming SSE delivery. The codebase is organized modularly:
+\begin{itemize}[itemsep=1pt,topsep=2pt]
+  \item \texttt{app.main}: Application lifecycle manager, initializing connection pools and CORS middleware.
+  \item \texttt{app.api.routes}: 21 REST endpoints grouped into alerts, analyses, datasources, evaluation, health, knowledge, and dashboard.
+  \item \texttt{app.security}: Normalization, observable extraction (\texttt{ContextExtractor}), and query synthesis (\texttt{RetrievalQueryBuilder}).
+  \item \texttt{app.rag}: Vector retrieval engine (\texttt{Retriever}), embedding adapters, and STIX/NVD chunking pipelines.
+  \item \texttt{app.llm}: Local LLM abstraction layer communicating with Ollama HTTP endpoints.
+  \item \texttt{app.services}: Core orchestrator (\texttt{SOCAnalysisOrchestrator}) and database CRUD layers.
+\end{itemize}
+
+\section{Relational Database Architecture and Schema Isolation}
+\label{sec:database_arch}
+Incident persistence is managed by \textbf{PostgreSQL 15} via SQLAlchemy 2.0 with the \texttt{asyncpg} driver. The schema comprises three relational tables:
+\begin{enumerate}[itemsep=1pt,topsep=2pt]
+  \item \textbf{\texttt{alerts} Table:} Ingested events, raw JSON payloads, normalized network tuples, severity, and the \texttt{data\_source} column.
+  \item \textbf{\texttt{analyses} Table:} Generated analyses linked via foreign key (\texttt{alert\_id}), storing summaries, severity, reasoning prose, investigation steps, and confidence.
+  \item \textbf{\texttt{evidence} Table:} Grounding chunks cited by an analysis linked via foreign key (\texttt{analysis\_id}), storing source metadata, relevance scores, and citations.
+\end{enumerate}
+
+\subsection{Database Migration \texttt{c01\_datasource} and Data Isolation}
+During Stage 1 auditing, benchmark evaluations were observed colliding with historical demo alerts. Alembic migration \texttt{c01\_datasource} added an indexed \texttt{data\_source} column, strictly isolating records into three namespaces:
+\begin{itemize}[itemsep=1pt,topsep=2pt]
+  \item \texttt{demo}: Interactive demonstration alerts for user interface testing.
+  \item \texttt{wazuh\_live}: Real-time alerts ingested from external Wazuh SIEM clusters.
+  \item \texttt{replay\_v2}: Audited benchmark scenarios namespaced as \texttt{v2-eval-001} through \texttt{v2-eval-040}.
+\end{itemize}
+
+\begin{figure}[!htbp]
+\centering
+\begin{tikzpicture}[
+  scale=0.88, transform shape,
+  table/.style={rectangle, draw=blue!70!black, fill=blue!5, rounded corners=4pt, font=\footnotesize, align=left, inner sep=5pt},
+  fk/.style={-{Stealth[length=6pt]}, very thick, draw=red!70!black}
+]
+  \node[table, text width=5.2cm] (alerts) {
+    \textbf{\large alerts}\\[2pt]
+    \rule{5.2cm}{0.4pt}\\[4pt]
+    \textbf{id}: Integer [PK]\\
+    external\_id: String(64) [Unique]\\
+    timestamp: DateTime\\
+    data\_source: String(32)\\
+    agent\_id: String(32)\\
+    rule\_id: String(32)\\
+    rule\_description: Text\\
+    severity: Integer\\
+    source\_ip: String(45)\\
+    raw\_payload: JSONB
+  };
+
+  \node[table, text width=5.4cm, right=1.3cm of alerts] (analyses) {
+    \textbf{\large analyses}\\[2pt]
+    \rule{5.4cm}{0.4pt}\\[4pt]
+    \textbf{id}: Integer [PK]\\
+    \textbf{alert\_id}: Integer [FK $\to$ alerts.id]\\
+    summary: Text\\
+    severity\_assessment: String(32)\\
+    explanation: Text\\
+    recommended\_investigation: Text\\
+    confidence: String(16)\\
+    model\_name: String(64)\\
+    analysis\_type: String(32)\\
+    created\_at: DateTime
+  };
+
+  \node[table, text width=5.4cm, below=0.9cm of analyses] (evidence) {
+    \textbf{\large evidence}\\[2pt]
+    \rule{5.4cm}{0.4pt}\\[4pt]
+    \textbf{id}: Integer [PK]\\
+    \textbf{analysis\_id}: Integer [FK $\to$ analyses.id]\\
+    source: String(32)\\
+    document\_id: String(64)\\
+    title: String(255)\\
+    content: Text\\
+    relevance\_score: Float\\
+    citation: String(255)
+  };
+
+  \draw[fk] (analyses.west) -- (alerts.east);
+  \draw[fk] (evidence.north) -- (analyses.south);
+\end{tikzpicture}
+\caption{Entity-Relationship Diagram of the PostgreSQL database schema illustrating foreign key relationships between alerts, analyses, and verified evidence.}
+\label{fig:erd_diagram}
+\end{figure}
+
+\section{REST and Real-Time SSE API Architecture}
+\label{sec:api_architecture}
+The backend delivers a comprehensive suite of \textbf{21 REST and SSE endpoints} partitioned into five modular service groups (summarized in Table \ref{tab:api_catalog}):
+\begin{itemize}[itemsep=1pt,topsep=2pt]
+  \item \textbf{Alert Management (7 endpoints):} Ingestion, normalization, pagination, detail inspection, deterministic context extraction, and D3.js entity graph topology generation.
+  \item \textbf{AI Analysis \& Execution Traces (5 endpoints):} Tri-mode triage execution, detail retrieval, queries by alert ID, real-time SSE token streaming, and historical trace auditing.
+  \item \textbf{Data Source Management (4 endpoints):} Active source status, workspace switching, synthetic demo scenario seeding, and benchmark namespace isolation.
+  \item \textbf{Knowledge Base Status (3 endpoints):} Qdrant collection status monitoring, chunk count verification, and ad-hoc vector retrieval testing.
+  \item \textbf{System Health \& Dashboard (2 endpoints):} Deep multi-service health probing (PostgreSQL, Qdrant, Ollama, Wazuh) and aggregate triage metrics.
+\end{itemize}
+
+\begin{table}[!htbp]
+\centering
+\caption{Modular architecture of backend REST and Server-Sent Event (SSE) API services.}
+\label{tab:api_catalog}
+\small
+\begin{tabularx}{\textwidth}{@{}l c p{4.2cm} X@{}}
+\toprule
+\textbf{API Service Group} & \textbf{Endpoints} & \textbf{Key Endpoint Routes} & \textbf{Core Functional Responsibility} \\
+\midrule
+\textbf{Alert Management}  & 7 & \texttt{/api/v1/alerts/} & Ingestion, normalization, pagination, context extraction, and D3 graph export. \\
+\textbf{Analysis \& Trace} & 5 & \texttt{/api/v1/analyses/} & Tri-mode AI analysis execution, real-time SSE token streaming, and trace logging. \\
+\textbf{Data Source Mgmt}  & 4 & \texttt{/api/v1/\allowbreak datasources/} & Workspace switching, demo scenario seeding, and benchmark namespace isolation. \\
+\textbf{Knowledge Base}    & 3 & \texttt{/api/v1/\allowbreak knowledge/} & Qdrant collection monitoring, chunk count inspection, and ad-hoc vector search. \\
+\textbf{System Telemetry}  & 2 & \texttt{/api/v1/health} & Deep component health probing (Ollama, Qdrant, PostgreSQL, Wazuh) and metrics. \\
+\midrule
+\textbf{Total API Suite}   & \textbf{21} & \multicolumn{2}{l}{\textbf{Comprehensive Asynchronous FastAPI Service Endpoints}} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Wazuh Integration Architecture and Current Boundary Limitations}
+\label{sec:wazuh_integration_arch}
+The platform interfaces with Wazuh SIEM through a decoupled client abstraction (\texttt{BaseWazuhClient}) providing two concrete transport drivers:
+\begin{itemize}[itemsep=1pt,topsep=2pt]
+  \item \textbf{\texttt{MockWazuhClient}:} Emits realistic mock Wazuh alert JSON payloads mirroring official indexer documents (including \texttt{rule}, \texttt{agent}, and \texttt{data} sub-trees) for offline testing and CI/CD validation.
+  \item \textbf{\texttt{RealWazuhClient}:} Implements secure HTTPS transport over the Wazuh REST API and OpenSearch indexer, negotiating TLS JWT tokens and fetching live alerts sorted descending by timestamp.
+\end{itemize}
+
+\textbf{Operational Scope Limitation:} While the \texttt{RealWazuhClient} transport is fully implemented and tested, production live cluster deployment requires multi-node cluster infrastructure. Because host resources were dedicated to hosting Ollama and Qwen3:8B, benchmark evaluation was performed using curated enterprise replay datasets. Validating autonomous triage on continuous live Wazuh streams represents a planned milestone for production rollout.

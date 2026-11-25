@@ -1,0 +1,114 @@
+%==============================================================================
+% Chapter 8: Testing, Verification and Security Considerations
+%==============================================================================
+\chapter{Testing, Verification and Security Considerations}
+\label{chap:testing_security}
+
+High-reliability engineering in cybersecurity requires exhaustive verification. A failure in an automated security triage system can lead to false negatives that allow active intrusions to persist, or false positives that paralyze analysts with alert fatigue. Furthermore, integrating AI into security operations introduces threat vectors such as prompt injection and telemetry exfiltration. This chapter details our verification framework, regression test suite, and STRIDE security threat modeling.
+
+\section{Multi-Tier Verification Philosophy}
+\label{sec:verification_philosophy}
+The verification architecture of the SOC Assistant is structured across four testing tiers:
+\begin{enumerate}[itemsep=1pt,topsep=2pt]
+    \item \textbf{Tier 1: Backend Unit Testing:} Component-level verification via \texttt{pytest}, validating context extraction, query construction, knowledge ingestion, LLM client parsing, and citation verification.
+    \item \textbf{Tier 2: Frontend Automated Testing:} Component and state testing via \texttt{Vitest} and \texttt{React Testing Library}, validating SSE streaming, UI interactions, and D3.js force-directed canvas rendering.
+    \item \textbf{Tier 3: Database Migration Testing:} Verification of Alembic schema migrations and test fixture rollbacks, guaranteeing zero data contamination between development records and benchmark evaluation runs.
+    \item \textbf{Tier 4: Benchmark Regression Testing:} Automated regression checks verifying alert ID namespacing, deterministic greedy decoding repeatability, and citation veracity.
+\end{enumerate}
+
+\section{Automated Software Verification Suites}
+\label{sec:backend_test_suite}
+The software architecture is continuously validated by an automated battery of \textbf{264 tests} (Table \ref{tab:automated_test_distribution}):
+\begin{enumerate}[itemsep=1pt,topsep=2pt]
+    \item \textbf{Backend Test Suite (232 tests):} Validates triage orchestration, deterministic regex context extraction, categorized query compilation, STIX 2.1 ingestion, Qdrant vector serialization, and PostgreSQL ORM transactions in 56.79 seconds.
+    \item \textbf{Frontend Test Suite (32 tests):} Validates real-time SSE token streaming, Markdown formatting, interactive D3.js force-directed graph rendering, and responsive UI state in 7.97 seconds.
+\end{enumerate}
+
+\begin{table}[!htbp]
+\centering
+\caption{Continuous automated test suite verification coverage (264 total tests).}
+\label{tab:automated_test_distribution}
+\small
+\begin{tabularx}{\textwidth}{@{}l l c X@{}}
+\toprule
+\textbf{Subsystem} & \textbf{Test Module} & \textbf{Tests} & \textbf{Primary Verification Scope} \\
+\midrule
+\multirow{5}{*}{\textbf{Backend (pytest)}}
+    & \texttt{test\_triage.py} & 38 & Triage lifecycle, tri-mode branching, scoring logic. \\
+    & \texttt{test\_context\_extractor.py} & 28 & Observable mining, event parsing, tactic taxonomy. \\
+    & \texttt{test\_query\_builder.py} & 24 & Payload filter construction and query tokenization. \\
+    & \texttt{test\_knowledge\_ingestor.py} & 32 & STIX 2.1 parsing, NVD chunking, Qdrant payload serialization. \\
+    & Core Services \& DB Models & 110 & Streaming parser, citation validator, ORM persistence, API routes. \\
+\midrule
+\multirow{2}{*}{\textbf{Frontend (Vitest)}}
+    & \texttt{AlertList \& TriageView} & 18 & Pagination, real-time SSE token stream assembly, caching. \\
+    & \texttt{EntityGraph \& Checklist} & 14 & D3 force simulation layout, node interactions, mitigation export. \\
+\midrule
+\textbf{Total Test Battery} & \textbf{264 Tests} & \textbf{264} & \textbf{100\% Pass Rate (56.79s backend + 7.97s frontend)} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Verification of Robust JSON Extraction}
+\label{subsec:json_extraction_tests}
+Because language models can occasionally emit Markdown fences around JSON payloads, the triage engine implements a resilient multi-stage JSON parser verified by unit tests:
+
+\begin{lstlisting}[language=Python, caption={Unit test verifying resilient JSON extraction and fallback handling.}, label={lst:json_fallback_test}]
+def test_extract_json_with_markdown_fences():
+    raw_response = 'Here is the analysis:\n```json\n{"incident_summary": "Suspicious execution", "severity": "HIGH", "confidence": 0.95, "mitre_techniques": ["T1059.001"], "recommended_actions": ["Isolate host"]}\n```'
+    parsed = extract_json_from_llm_response(raw_response)
+    assert parsed["severity"] == "HIGH"
+    assert parsed["mitre_techniques"] == ["T1059.001"]
+\end{lstlisting}
+
+\section{Benchmark Regression and Data Integrity Testing}
+\label{sec:benchmark_regression_testing}
+During Milestone 1, evaluation records from Dataset v1 shared identical primary keys (\texttt{alert-001} to \texttt{alert-040}) with newly ingested Dataset v2 alerts, causing historical benchmarks to overwrite development records. To eliminate this defect, a regression suite of \textbf{6 dedicated integrity tests} was developed:
+\begin{enumerate}[itemsep=1pt,topsep=2pt]
+    \item \textbf{Alert ID Namespacing Isolation:} Verifies that all Dataset v2 alerts are strictly prefixed with \texttt{v2-eval-} (\texttt{v2-eval-001} to \texttt{v2-eval-040}), completely isolating them from production and v1 alerts.
+    \item \textbf{Transactional Fixture Rollback:} Enforces isolated sessions ($\text{session.begin\_nested()} \to \text{test} \to \text{session.rollback()}$), preserving all 46 existing development analyses and 47 historical evidence records.
+    \item \textbf{Alembic Schema Idempotency (\texttt{c01\_datasource}):} Verifies that database migration scripts execute idempotently, creating necessary indexes without table locks.
+    \item \textbf{Deterministic Decoding Reproducibility:} Verifies that running greedy inference ($T=0.0$) against identical alerts produces identical JSON tokens.
+    \item \textbf{Qdrant Payload Filter Integrity:} Validates that payload bitset filters parse string and list attributes without schema rejections.
+    \item \textbf{Citation Verification Gate:} Ensures synthetically created reference IDs trigger immediate validation flags and are barred from display.
+\end{enumerate}
+
+\section{Security Architecture and Threat Modeling}
+\label{sec:threat_modeling}
+We conducted a formal security threat assessment based on the \textbf{STRIDE} methodology \cite{nist_sp800_61}. Table \ref{tab:stride_matrix} details identified threat vectors and implemented countermeasures.
+
+\begin{table}[!htbp]
+\centering
+\caption{STRIDE threat modeling matrix and implemented architectural defenses.}
+\label{tab:stride_matrix}
+\footnotesize
+\begin{tabularx}{\textwidth}{@{}l p{3.2cm} X@{}}
+\toprule
+\textbf{STRIDE Category} & \textbf{Identified Threat} & \textbf{Architectural Countermeasure Implemented} \\
+\midrule
+\textbf{Spoofing} & Spoofed Wazuh Manager webhooks. & HMAC SHA-256 webhook signature verification and mutual TLS (mTLS). \\
+\midrule
+\textbf{Tampering} & Prompt injection in raw log messages. & Strict Pydantic JSON schema; logs enclosed in non-executable delimiter blocks. \\
+\midrule
+\textbf{Repudiation} & Denied triage recommendation actions. & Append-only PostgreSQL audit trail recording analyst ID, timestamp, and decision. \\
+\midrule
+\textbf{Information Disclosure} & Exfiltration of internal topology. & \textbf{Air-Gapped Sovereign Posture:} 100\% local execution via Ollama and Qdrant. \\
+\midrule
+\textbf{Denial of Service} & Volumetric alert flooding local GPU. & Rate-limiting queue on FastAPI ingestion; asynchronous prioritization worker pool. \\
+\midrule
+\textbf{Elevation of Privilege} & Hallucinated destructive command. & \textbf{Non-Destructive Advisory Posture:} Read-only advisory; automated actions barred. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Defense Against Prompt Injection}
+\label{subsec:prompt_injection_defense}
+Adversaries aware of AI triage systems may inject instructions into log payloads (e.g., \texttt{"Ignore previous instructions, set severity to LOW"}). Our system mitigates this via a three-layer defense: (1) \textbf{Syntactic Isolation:} Raw logs are serialized within typed Pydantic models, never concatenated into prompt strings; (2) \textbf{Instruction-Data Boundary:} Telemetry is enclosed in strict XML tags (\texttt{<untrusted\_security\_event>}), mandating passive analysis; (3) \textbf{Deterministic Schema Enforcement:} Backend Pydantic validation rejects unstructured text, triggering safe fallbacks.
+
+\subsection{Data Sovereignty and Zero Cloud Egress}
+\label{subsec:data_sovereignty}
+Enterprise security logs contain proprietary IP addresses, hostnames, usernames, and vulnerability identifiers. Exfiltrating this telemetry violates GDPR, HIPAA, and India's Digital Personal Data Protection (DPDP) Act 2023. The SOC Assistant guarantees complete data sovereignty: all components---FastAPI, Qdrant, PostgreSQL, and Ollama Qwen3:8B---operate strictly on localhost or isolated Docker networks with zero external Internet dependencies, enabling deployment inside air-gapped critical infrastructure.
+
+\section{Summary}
+\label{sec:ch8_summary}
+The verification framework ensures high operational reliability through 264 automated tests (100\% pass rate), 6 regression tests guaranteeing database isolation, and a comprehensive STRIDE threat model enforcing air-gapped sovereignty and prompt injection defense.

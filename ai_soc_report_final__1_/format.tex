@@ -1,0 +1,269 @@
+% ------------------------------------------------
+% PACKAGES
+% ------------------------------------------------
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+
+% Graphics and diagrams
+\usepackage{graphicx}
+\usepackage{epsfig}
+\usepackage{tikz}
+
+\usetikzlibrary{
+    positioning,
+    arrows.meta,
+    shapes.geometric,
+    shapes.misc,
+    shapes.symbols,
+    calc,
+    fit,
+    backgrounds,
+    shadows
+}
+
+% Mathematics
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{latexsym}
+\usepackage{amsthm}
+
+% Header and formatting
+\usepackage{fancyhdr}
+\usepackage{cite}
+\usepackage{setspace}
+\usepackage{times}
+\usepackage{microtype}
+\usepackage[htt]{hyphenat}
+\usepackage{xurl}
+\emergencystretch=3em
+\usepackage{titlesec}
+
+\titleformat{\chapter}[display]
+  {\normalfont\Large\bfseries}{\chaptertitlename\ \thechapter}{4pt}{\huge}
+\titlespacing*{\chapter}{0pt}{0pt}{10pt}
+\titlespacing*{\section}{0pt}{8pt plus 2pt minus 1pt}{3pt plus 1pt minus 1pt}
+\titlespacing*{\subsection}{0pt}{6pt plus 1pt minus 1pt}{2pt plus 1pt minus 1pt}
+\titlespacing*{\subsubsection}{0pt}{4pt plus 1pt minus 1pt}{2pt plus 1pt minus 1pt}
+
+% Tables
+\usepackage[table]{xcolor}
+\definecolor{navyblue}{RGB}{15,45,95}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{multirow}
+\usepackage{booktabs}
+\usepackage{blkarray}
+\usepackage{bigstrut}
+\usepackage{vcell}
+\usepackage{adjustbox}
+
+% Other formatting packages
+\usepackage{epic}
+\usepackage{float}
+\usepackage{enumitem}
+\setlist{itemsep=2pt,topsep=3pt,parsep=0pt,partopsep=0pt}
+\usepackage{ragged2e}
+\usepackage{etoolbox}
+\usepackage{pdfpages}
+\usepackage{imakeidx}
+\usepackage{xparse}
+
+% Code listings
+\usepackage{listings}
+
+\lstdefinelanguage{json}{
+    basicstyle=\ttfamily\small,
+    numbers=none,
+    showstringspaces=false,
+    breaklines=true,
+    frame=single,
+    stringstyle=\color{purple},
+    keywordstyle=\color{blue},
+    morekeywords={true,false,null}
+}
+
+\lstset{
+    basicstyle=\ttfamily\scriptsize,
+    breaklines=true,
+    breakatwhitespace=false,
+    columns=fullflexible,
+    keepspaces=true,
+    showstringspaces=false,
+    frame=single,
+    captionpos=b,
+    numbers=none,
+    tabsize=2,
+    aboveskip=4pt,
+    belowskip=4pt
+}
+
+% Algorithms
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+% Graph plotting
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+
+% Captions
+\usepackage[tableposition=top]{caption}
+
+% Hyperlinks (load near the end)
+\usepackage{hyperref}
+
+\hypersetup{
+    hidelinks
+}
+
+% Index
+\makeindex[columns=2]
+
+% ------------------------------------------------
+% THEOREM DEFINITIONS
+% ------------------------------------------------
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{corollary}{Corollary}[theorem]
+\newtheorem{lemma}[theorem]{Lemma}
+
+\newfloat{procedure}{htbp}{loa}
+\floatname{procedure}{Procedure}
+
+\renewcommand{\qedsymbol}{}
+
+\newtheorem{remark}{Remark}[section]
+
+\algnewcommand\algorithmicinput{\textbf{Input:}}
+\algnewcommand\INPUT{\item[\algorithmicinput]}
+
+\algnewcommand\algorithmicoutput{\textbf{Output:}}
+\algnewcommand\OUTPUT{\item[\algorithmicoutput]}
+
+\algnewcommand{\algorithmicand}{\textbf{ and }}
+\algnewcommand{\algorithmicor}{\textbf{ or }}
+\algnewcommand{\OR}{\algorithmicor}
+\algnewcommand{\AND}{\algorithmicand}
+
+\newtheorem{thm}{Theorem}[section]
+\newtheorem{lem}[thm]{Lemma}
+\newtheorem{prop}[thm]{Proposition}
+\newtheorem{cor}{Corollary}
+\newtheorem{conj}{Conjecture}[section]
+
+\theoremstyle{definition}
+\newtheorem{defn}{Definition}[section]
+\newtheorem{exmp}{Example}[section]
+\newtheorem{rem}{Remark}
+
+% ------------------------------------------------
+% SECTION AND TOC DEPTH
+% ------------------------------------------------
+
+\setcounter{secnumdepth}{3}
+\setcounter{tocdepth}{1}
+
+% Float parameters to allow figures and text to share pages
+\renewcommand{\topfraction}{0.92}
+\renewcommand{\bottomfraction}{0.85}
+\setcounter{topnumber}{4}
+\setcounter{bottomnumber}{3}
+\setcounter{totalnumber}{6}
+\renewcommand{\textfraction}{0.05}
+\renewcommand{\floatpagefraction}{0.75}
+
+\setlength{\textfloatsep}{8pt plus 2pt minus 2pt}
+\setlength{\intextsep}{6pt plus 2pt minus 2pt}
+\setlength{\floatsep}{6pt plus 2pt minus 2pt}
+\captionsetup{skip=4pt}
+
+% ------------------------------------------------
+% BIBLIOGRAPHY NAME
+% ------------------------------------------------
+
+\renewcommand{\bibname}{References}
+
+% ------------------------------------------------
+% LINE SPACING & PARAGRAPH FORMATTING
+% ------------------------------------------------
+
+\renewcommand{\baselinestretch}{1.08}
+\setlength{\parskip}{2pt}
+\setlength{\parindent}{1.2em}
+
+% ------------------------------------------------
+% PAGE HEADERS AND FOOTERS
+% ------------------------------------------------
+
+\pagestyle{fancy}
+
+\renewcommand{\chaptermark}[1]{
+    \markright{\chaptername\ \thechapter.\ #1}
+}
+
+\renewcommand{\sectionmark}[1]{
+    \markright{\thesection.\ #1}
+}
+
+\lhead[\fancyplain{}{}]
+      {\fancyplain{}{\bfseries\rightmark}}
+
+\chead[\fancyplain{}{}]
+      {\fancyplain{}{}}
+
+\rhead[\fancyplain{}{}]
+      {\fancyplain{}{\bfseries\thepage}}
+
+\lfoot[\fancyplain{}{}]
+      {\fancyplain{}{}}
+
+\cfoot[\fancyplain{}{}]
+      {\fancyplain{}{}}
+
+\rfoot[\fancyplain{}{}]
+      {\fancyplain{}{\bfseries\today}}
+
+% ------------------------------------------------
+% FOOTNOTE SPACING
+% ------------------------------------------------
+
+\addtolength{\skip\footins}{5mm}
+
+% ------------------------------------------------
+% EQUATION NUMBERING
+% ------------------------------------------------
+
+\newcounter{ind}
+
+\def\eqlabon{
+    \setcounter{ind}{\value{equation}}
+    \addtocounter{ind}{1}
+    \setcounter{equation}{0}
+    \renewcommand{\theequation}{
+        \arabic{chapter}.\arabic{section}.
+        \arabic{ind}\alph{equation}
+    }
+}
+
+\def\eqlaboff{
+    \renewcommand{\theequation}{
+        \arabic{chapter}.\arabic{section}.\arabic{equation}
+    }
+    \setcounter{equation}{\value{ind}}
+}
+
+% ------------------------------------------------
+% MATHEMATICAL SHORTCUTS
+% ------------------------------------------------
+
+\def\bv#1{\mbox{\boldmath$#1$}}
+
+\def\mint{\textstyle\mints\displaystyle}
+\def\mints{\int\!\!\!\!\!\!{\rm-}\ }
+
+\def\msum{\textstyle\msums\displaystyle}
+\def\msums{\sum\!\!\!\!\!\!\!{\rm-}\ }
+
+\def\poincare{Poincar\'e }
+\def\holder{H\"older }

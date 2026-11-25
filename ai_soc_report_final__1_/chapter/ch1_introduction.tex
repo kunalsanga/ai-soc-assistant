@@ -1,0 +1,145 @@
+%==============================================================================
+% Chapter 1: Introduction
+%==============================================================================
+\chapter{Introduction}
+\label{ch:introduction}
+
+\section{Background and the Enterprise Cybersecurity Landscape}
+\label{sec:cyber_background}
+Contemporary enterprise computing has expanded from centralized data centers into distributed, heterogeneous fabrics spanning hybrid cloud workloads, containerized microservices, and mobile endpoints. While this transformation has accelerated operational agility, it has simultaneously expanded the attack surface to an unprecedented degree. Cyber threats have shifted from simple automated probes toward sophisticated Advanced Persistent Threats (APTs), living-off-the-land (LotL) evasions, credential-stuffing campaigns, and multi-stage ransomware deployment pipelines. 
+
+To defend against this evolving adversary landscape, modern organizations rely on Security Operations Centers (SOCs) powered by Security Information and Event Management (SIEM) and Extended Detection and Response (XDR) frameworks. Open-source platforms such as Wazuh collect and correlate millions of raw security logs generated across firewalls, host intrusion agents, operating system journals, and authentication controllers.
+
+\begin{figure}[!htbp]
+\centering
+\resizebox{0.96\textwidth}{!}{%
+\begin{tikzpicture}[
+  box/.style={rectangle, draw=blue!70!black, fill=blue!5, rounded corners=4pt, thick, align=center, font=\footnotesize, text width=2.8cm, minimum height=1.3cm, inner sep=5pt},
+  alert/.style={rectangle, draw=red!70!black, fill=red!10, rounded corners=4pt, thick, align=center, font=\footnotesize, text width=2.8cm, minimum height=1.3cm, inner sep=5pt},
+  soc/.style={rectangle, draw=green!60!black, fill=green!8, rounded corners=4pt, thick, align=center, font=\footnotesize, text width=2.8cm, minimum height=1.3cm, inner sep=5pt},
+  arrow/.style={-{Stealth[length=6pt, width=4pt]}, very thick, draw=black!75},
+  lbl/.style={font=\scriptsize\bfseries\sffamily, above=3pt}
+]
+  % Top Row (Left to Right)
+  \node[box] (endpoints) at (0, 0) {Endpoints \& Servers\\(10,000+ Nodes)};
+  \node[box] (siem) at (4.6, 0) {Wazuh SIEM / XDR\\Correlation Engine};
+  \node[alert] (alerts) at (9.2, 0) {Alert Inundation\\(1,000+ Daily Logs)};
+
+  % Bottom Row (Right to Left)
+  \node[soc] (tier1) at (9.2, -2.2) {Tier-1 Analysts\\Alert Fatigue (40\% Drop)};
+  \node[soc] (escalate) at (4.6, -2.2) {Tier-2 Response\\Deep Forensics};
+  \node[box] (hunt) at (0, -2.2) {Tier-3 Hunt\\Threat Emulation};
+
+  % Connectors
+  \draw[arrow] (endpoints.east) -- (siem.west);
+  \node[lbl, color=blue!80!black] at ($(endpoints.east)!0.5!(siem.west)$) {Telemetry};
+
+  \draw[arrow] (siem.east) -- (alerts.west);
+  \node[lbl, color=red!80!black] at ($(siem.east)!0.5!(alerts.west)$) {Triggers};
+
+  \draw[arrow] (alerts.south) -- (tier1.north);
+  \node[font=\scriptsize\bfseries\sffamily\color{red!80!black}, right=4pt] at ($(alerts.south)!0.5!(tier1.north)$) {Triage Load};
+
+  \draw[arrow] (tier1.west) -- (escalate.east);
+  \node[lbl, color=green!60!black] at ($(tier1.west)!0.5!(escalate.east)$) {Escalate};
+
+  \draw[arrow] (escalate.west) -- (hunt.east);
+  \node[lbl, color=blue!80!black] at ($(escalate.west)!0.5!(hunt.east)$) {Intel};
+\end{tikzpicture}%
+}
+\caption{Traditional multi-tier Security Operations Center triage workflow illustrating the Tier-1 bottleneck.}
+\label{fig:soc_workflow_crisis}
+\end{figure}
+
+\section{The Alert Inundation Crisis in Security Operations Centers}
+\label{sec:alert_crisis}
+A Security Operations Center functions as the operational hub of cyber defense, conventionally divided into three hierarchical tiers:
+\begin{enumerate}
+  \item \textbf{Tier-1 Alert Triage Analysts:} Frontline operators responsible for monitoring real-time queues, validating alarms, distinguishing malicious signals from benign noise, and escalating high-fidelity incidents.
+  \item \textbf{Tier-2 Incident Responders:} Forensics specialists who analyze escalated alerts, establish blast radiuses, and execute containment playbooks.
+  \item \textbf{Tier-3 Threat Hunters:} Strategic engineers who identify dormant threats, build custom detection rules, and conduct root-cause assessments.
+\end{enumerate}
+
+Despite this structured division of labor, modern SOCs face a crippling bottleneck at the Tier-1 level. SIEM correlation rules prioritize detection sensitivity over specificity to prevent missed compromises. Consequently, correlation engines generate massive volumes of false positives, benign routine sysadmin alarms, and non-actionable notifications. Industry benchmarks indicate that analysts process upwards of 1,000 alerts per shift. Human cognitive limits induce severe ``alert fatigue,'' requiring 15--25 minutes to manually investigate a single event. Consequently, up to 40\% of alerts are dismissed without thorough investigation, drastically expanding adversary dwell time.
+
+\section{Risks and Deficiencies of Commercial Cloud AI Copilots}
+\label{sec:cloud_ai_risks}
+The emergence of generative Large Language Models (LLMs) has prompted growing interest in AI-assisted triage. However, commercial cloud-hosted models introduce critical vulnerabilities into enterprise SOC operations:
+\begin{enumerate}
+  \item \textbf{Data Privacy and Sovereignty Breaches:} SIEM alerts contain confidential internal IP schemas, server hostnames, employee usernames, connection strings, and session tokens. Egressing this telemetry to external cloud APIs violates GDPR, SOC2 Type II, HIPAA, and sovereign data regulations.
+  \item \textbf{Generative Hallucinations:} Unconstrained generative models hallucinate plausible but non-existent CVEs or misattribute benign scripts to catastrophic attack techniques, misguiding junior analysts.
+  \item \textbf{Absence of Verifiable Grounding:} Commercial chat APIs provide conversational summaries without mathematical proof that claims originate from authoritative threat documentation (such as MITRE ATT\&CK or NIST NVD).
+\end{enumerate}
+
+\section{Problem Statement}
+\label{sec:problem_statement}
+To eliminate alert fatigue without cloud data exposure, enterprise defense requires a localized, sovereign triage assistant. However, naively coupling an open-weights LLM to a local vector store via standard dense Retrieval-Augmented Generation (RAG) fails in cybersecurity. Repetitive, generic system tokens (\texttt{failed}, \texttt{sshd}, \texttt{connection}, \texttt{port 22}) induce severe \textbf{semantic drift} in vector spaces, obscuring genuine adversary behaviors and suppressing ground-truth knowledge chunks.
+
+The core research question investigated in this work is:
+\begin{quote}
+\itshape
+How can an on-premise, zero-cloud Security Operations Center assistant achieve high-fidelity threat classification, authoritative vulnerability grounding, and verifiable citation governance over noisy enterprise security telemetry without succumbing to semantic retrieval drift or compromising institutional data privacy?
+\end{quote}
+
+\section{Project Objectives}
+\label{sec:objectives}
+To address this challenge, four primary research and engineering objectives are defined:
+\begin{enumerate}
+  \item \textbf{Sovereign On-Premise System Engineering:} Implement an end-to-end containerized platform featuring FastAPI, PostgreSQL, Qdrant, and Ollama serving Qwen3:8B, guaranteeing zero external cloud egress.
+  \item \textbf{Entity-Anchored Dual Retrieval:} Engineer a hybrid retrieval mechanism extracting alert observables (IPs, users, rule tags, technique IDs) to anchor Qdrant vector search, eliminating semantic drift.
+  \item \textbf{Verifiable Citation Governance:} Construct an automated verification engine that cross-examines LLM-generated citations against retrieved chunk IDs, trapping and penalizing hallucinations before persistence.
+  \item \textbf{Empirical Tri-Mode Evaluation:} Execute an audited 120-run benchmark across 40 enterprise scenarios under three operational paradigms alongside an isolated 40-scenario retrieval ablation over 1,762 indexed security chunks.
+\end{enumerate}
+
+\begin{table}[!htbp]
+\centering
+\caption{System objectives and their corresponding architectural implementations.}
+\label{tab:objectives_alignment}
+\small
+\begin{tabularx}{\textwidth}{@{}l p{4.2cm} X@{}}
+\toprule
+\textbf{No.} & \textbf{Core Objective} & \textbf{Architectural Implementation} \\
+\midrule
+1 & Sovereign Privacy & Fully local execution using FastAPI, PostgreSQL, Qdrant, and Ollama (\texttt{qwen3:8b}); zero external cloud calls. \\
+2 & Semantic Drift Resolution & Entity-Anchored Dual Retrieval combining exact payload filtering with dense vector search in Qdrant. \\
+3 & Advisory Triage Support & Automated generation of standardized incident summaries, severity ratings, MITRE mappings, and non-destructive containment playbooks. \\
+4 & Auditability \& Governance & Automated citation validation verifying reference-ID existence in threat documentation (97.3\% valid reference rate). \\
+5 & Rigorous Empirical Validation & Controlled 120-run benchmark across 40 Dataset v2 scenarios with complete statistical provenance and failure analysis. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Scope and Delimitations}
+\label{sec:scope}
+The operational boundaries of this research are:
+\begin{itemize}
+  \item \textbf{Advisory Decision Support:} The assistant provides human-in-the-loop triage support; it never executes destructive network blocking without analyst authorization.
+  \item \textbf{Local Computational Envelope:} The architecture executes efficiently on commodity host hardware (CPU and single-GPU), balancing inference latency against model scale.
+  \item \textbf{Standardized Security Taxonomies:} Knowledge retrieval is anchored in the MITRE ATT\&CK Enterprise Matrix v14.1 (1,618 chunks) and NIST NVD (144 CVE chunks).
+  \item \textbf{Delimitations:} Autonomous threat hunting over unparsed packet streams is excluded; input telemetry conforms to structured Wazuh SIEM schemas.
+\end{itemize}
+
+\section{Major Technical Contributions}
+\label{sec:contributions}
+The specific academic and engineering contributions of this project are:
+\begin{enumerate}
+  \item \textbf{Entity-Anchored Retrieval Leap:} Proving empirically that observable anchoring delivers a \textbf{+67.5 percentage-point increase in Recall@1} (from 22.5\% under dense RAG to 90.0\%) across 1,762 security chunks.
+  \item \textbf{Sovereign Air-Gapped Architecture:} Demonstrating a production-grade on-premise SOC copilot with sub-second retrieval latency and real-time Server-Sent Events (SSE) streaming.
+  \item \textbf{Verifiable Citation Governance Engine:} Establishing an automated validation layer enforcing a 97.3\% citation veracity rate and preventing hallucinated vulnerability references.
+  \item \textbf{Forensic Failure Attribution:} Documenting why high retrieval accuracy does not linearly inflate classification F1, analyzing context distractor effects (Case 20) and JSON syntax fallbacks (Case 24).
+\end{enumerate}
+
+\section{Organization of the Report}
+\label{sec:org}
+The remainder of this report is organized as follows:
+\begin{itemize}
+  \item \textbf{Chapter \ref{ch:literature}} surveys prior work in SIEM platforms, LLM security copilots, and the SERC base paper.
+  \item \textbf{Chapter \ref{ch:theory}} presents mathematical formulations of self-attention, HNSW indexing, and evaluation metrics.
+  \item \textbf{Chapter \ref{ch:architecture}} details the four-tier sovereign architecture, database schemas, and REST/SSE APIs.
+  \item \textbf{Chapter \ref{ch:implementation}} specifies the end-to-end methodology, entity extraction, and retrieval algorithms.
+  \item \textbf{Chapter \ref{ch:experiments}} describes Dataset v2 composition, scenario distributions, and benchmark integrity fixes.
+  \item \textbf{Chapter \ref{chap:results_evaluation}} analyzes empirical findings, retrieval ablations, latency profiles, and failure cases.
+  \item \textbf{Chapter \ref{chap:testing_security}} details the 264-test automated verification suite and STRIDE threat modeling.
+  \item \textbf{Chapter \ref{chap:limitations_future_work}} discusses operational trade-offs and future engineering directions.
+  \item \textbf{Chapter \ref{chap:conclusion}} concludes the report with a summary of scientific achievements.
+\end{itemize}

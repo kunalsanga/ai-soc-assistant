@@ -1,0 +1,20 @@
+% Table 1: MITRE ATT&CK Classification Performance Across Modes
+\begin{table*}[t]
+\centering
+\small
+\caption{End-to-End MITRE ATT\&CK Technique Triage Performance on Dataset v2 ($N = 36$ Attack Scenarios, Qwen3:8B via Ollama, Temperature = 0.0). Highest F1 is achieved by zero-shot LLM due to context distractor effects in Case 20 and JSON syntax failure in Case 24.}
+\label{tab:classification_results}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Analysis Mode} & \textbf{Macro F1} & \textbf{Micro F1} & \textbf{Macro Precision} & \textbf{Macro Recall} \\
+\midrule
+\textbf{LLM-Only (Zero-Shot)} & \textbf{0.9028} & \textbf{0.8889} & \textbf{0.9861} & \textbf{0.8611} \\
+\textbf{Standard RAG (Dense Vector)} & 0.8750 & 0.8776 & 0.9583 & 0.8333 \\
+\textbf{Evidence-Aware RAG (Proposed)} & 0.8611 & 0.8600 & 0.9398 & 0.8333 \\
+\midrule
+\multicolumn{5}{l}{\textit{Confusion Counts:}} \\
+\quad LLM-Only: 44 TP / 1 FP / 10 FN & \multicolumn{4}{l}{\quad Standard RAG: 43 TP / 1 FP / 11 FN} \\
+\quad Evidence-Aware RAG: 43 TP / 3 FP / 11 FN & \multicolumn{4}{l}{\quad (Identical predictions across 34 of 36 attack scenarios)} \\
+\bottomrule
+\end{tabular}
+\end{table*}

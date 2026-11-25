@@ -1,0 +1,134 @@
+%==============================================================================
+% Chapter 2: Literature Review
+%==============================================================================
+\chapter{Literature Review}
+\label{ch:literature}
+
+\section{Traditional Security Operations Center Workflows}
+\label{sec:lit_traditional_soc}
+The architectural foundation of enterprise Security Operations Centers stems from defense-in-depth doctrines. Traditional SOC operations rely on event aggregation, where distributed agents forward system logs to a centralized Security Information and Event Management (SIEM) appliance. As formulated by NIST SP 800-61 Revision 2 \cite{nist_sp800_61}, the incident response lifecycle comprises four discrete phases: preparation, detection and analysis, containment and recovery, and post-incident activity.
+
+In operational practice, detection and analysis represent the primary operational bottleneck. Early SIEM systems utilized static threshold rules. While simple to deploy, static correlation suffers from critical vulnerabilities:
+\begin{itemize}
+  \item \textbf{Inflexibility against Novel Attacks:} Static rules fail against zero-day exploits or polymorphic malware deviating from hardcoded thresholds.
+  \item \textbf{High False-Alarm Rates:} Routine system maintenance and benign administrative scripts regularly trigger alarms, inundating analyst queues \cite{sarker2023soc}.
+  \item \textbf{Contextual Fragmentation:} Rule triggers generate isolated alerts without linking them to broader threat intelligence, forcing manual multi-database queries.
+\end{itemize}
+
+\section{The Wazuh Open-Source SIEM and XDR Platform}
+\label{sec:lit_wazuh}
+To eliminate the high licensing costs of proprietary SIEMs, enterprise security teams have widely adopted open-source XDR platforms, predominantly \textbf{Wazuh} \cite{wazuh_siem_xdr}. Wazuh provides host and network monitoring via lightweight agents deployed across Linux, Windows, macOS, and container environments. Its architecture comprises three primary tiers:
+\begin{enumerate}
+  \item \textbf{Wazuh Agents:} Endpoint daemons performing log collection, file integrity monitoring (FIM), rootkit detection, and system configuration checks.
+  \item \textbf{Wazuh Server (Manager):} Centralized analysis cluster executing an XML-based decoding and ruleset engine, assigning severity ratings ($0 \le s \le 16$) and tagging events with MITRE ATT\&CK technique IDs (\texttt{rule.mitre.id}).
+  \item \textbf{Wazuh Indexer and Dashboard:} An OpenSearch-based distributed storage and analytics engine storing alerts as JSON documents with interactive visualization.
+\end{enumerate}
+Despite these capabilities, Wazuh remains a passive correlation system. It cannot automatically generate natural-language incident summaries or infer multi-stage adversary progression across disparate event streams.
+
+\section{Large Language Models in Cybersecurity Operations}
+\label{sec:lit_llm_cyber}
+The development of transformer-based Large Language Models (LLMs) \cite{vaswani2017attention} has transformed natural language understanding and domain reasoning. In cybersecurity, researchers have explored foundational models for log parsing, threat intelligence synthesis, and vulnerability triage \cite{ferrag2024generativeai}. Foundational models exhibit strong parametric knowledge of software internals, protocol mechanics, and common attack vectors \cite{albert2023copilot}.
+
+However, deploying unaugmented foundational models in enterprise SOCs reveals severe operational flaws:
+\begin{itemize}
+  \item \textbf{Parametric Knowledge Cutoffs:} Models possess knowledge restricted to their training corpora; newly disclosed CVEs and novel zero-day campaigns are absent.
+  \item \textbf{Generative Hallucinations:} When prompted regarding unfamiliar threats, unaugmented models invent realistic-looking CVE numbers and non-existent technique IDs \cite{ferrag2024generativeai}.
+  \item \textbf{Absence of Verifiable Grounding:} Raw LLMs cannot provide cryptographic or source-identifier proof for their recommendations, preventing analyst validation.
+\end{itemize}
+
+\section{Retrieval-Augmented Generation (RAG) in Threat Analysis}
+\label{sec:lit_rag}
+To resolve parametric cutoffs and hallucinations, Lewis et al.\ \cite{lewis2020rag} introduced \textbf{Retrieval-Augmented Generation (RAG)}. Under this paradigm, authoritative documents are pre-indexed into a dense vector space. For each incoming query, the system retrieves the top-$k$ most semantically relevant chunks and injects them into the prompt context before inference.
+
+In cybersecurity, RAG enables an LLM to reference up-to-date threat catalogs (such as the MITRE ATT\&CK framework and NIST NVD) without model retraining \cite{tarek2024cve}. By grounding model reasoning in retrieved external evidence, RAG curbs hallucinations, surfaces inspectable source citations, and allows organizations to inject internal network playbooks dynamically.
+
+\begin{figure}[!htbp]
+\centering
+\resizebox{0.96\textwidth}{!}{%
+\begin{tikzpicture}[
+  box/.style={rectangle, draw=blue!70!black, fill=blue!5, rounded corners=4pt, thick, align=center, font=\footnotesize, text width=2.8cm, minimum height=1.3cm, inner sep=5pt},
+  rag/.style={rectangle, draw=purple!70!black, fill=purple!5, rounded corners=4pt, thick, align=center, font=\footnotesize, text width=2.8cm, minimum height=1.3cm, inner sep=5pt},
+  arrow/.style={-{Stealth[length=6pt, width=4pt]}, very thick, draw=black!75},
+  lbl/.style={font=\scriptsize\bfseries\sffamily, above=3pt}
+]
+  % Top Row (Left to Right)
+  \node[box] (alert) at (0, 0) {Raw Security\\Alert (JSON)};
+  \node[box] (embed) at (4.6, 0) {Dense Vector\\Embedding ($\vec{v} \in \mathbb{R}^{384}$)};
+  \node[rag] (qdrant) at (9.2, 0) {Vector Store\\(Qdrant Cosine Top-$k$)};
+
+  % Bottom Row (Right to Left)
+  \node[rag] (chunks) at (9.2, -2.2) {Retrieved Chunks\\(Top-5 Evidence)};
+  \node[box] (prompt) at (4.6, -2.2) {Context-Injected\\LLM Prompt};
+  \node[box] (llm) at (0, -2.2) {Local LLM\\(Qwen3:8B)};
+
+  % Connectors
+  \draw[arrow] (alert.east) -- (embed.west);
+  \node[lbl, color=blue!80!black] at ($(alert.east)!0.5!(embed.west)$) {Raw Text};
+
+  \draw[arrow] (embed.east) -- (qdrant.west);
+  \node[lbl, color=blue!80!black] at ($(embed.east)!0.5!(qdrant.west)$) {Query $\vec{v}$};
+
+  \draw[arrow] (qdrant.south) -- (chunks.north);
+  \node[font=\scriptsize\bfseries\sffamily\color{purple!80!black}, right=4pt] at ($(qdrant.south)!0.5!(chunks.north)$) {Cosine Rank};
+
+  \draw[arrow] (chunks.west) -- (prompt.east);
+  \node[lbl, color=purple!80!black] at ($(chunks.west)!0.5!(prompt.east)$) {Evidence Chunks};
+
+  \draw[arrow] (prompt.west) -- (llm.east);
+  \node[lbl, color=blue!80!black] at ($(prompt.west)!0.5!(llm.east)$) {Inference};
+\end{tikzpicture}%
+}
+\caption{Conventional Unanchored Dense RAG pipeline for security telemetry, vulnerable to semantic drift.}
+\label{fig:standard_rag_drift}
+\end{figure}
+
+\section{Analysis of the Base Paper: Wazuh SERC Copilot (Sensors, 2025)}
+\label{sec:lit_base_paper}
+A primary conceptual foundation of this project is the study by Al-Mohannadi et al.\ in \emph{Sensors} (MDPI, 2025), entitled: \emph{``Enhancing Security Operations Center: Wazuh Security Event Response with Retrieval-Augmented-Generation-Driven Copilot''} \cite{sensors2025wazuhcopilot}. The authors proposed the \textbf{Security Event Response Copilot (SERC)} to bridge the operational gap between raw Wazuh telemetry and incident mitigation. SERC structures knowledge across three vector databases:
+\begin{enumerate}
+  \item \textbf{General Incident Response Knowledge Base:} Practical remediation guides and emergency containment playbooks.
+  \item \textbf{NIST CSF 2.0 Knowledge Base:} Standardized regulatory lifecycle mappings.
+  \item \textbf{MITRE ATT\&CK Knowledge Base:} Taxonomic descriptions of adversary TTPs.
+\end{enumerate}
+When Wazuh fires an alert, SERC extracts the rule description, queries these multi-framework stores, and prompts an LLM to generate mitigation playbooks.
+
+\section{Research Gaps and Limitations of Prior Work}
+\label{sec:lit_gaps}
+While SERC \cite{sensors2025wazuhcopilot} demonstrates the potential of RAG-assisted triage, our forensic analysis reveals several fundamental scientific and architectural gaps in existing literature:
+\begin{enumerate}
+  \item \textbf{Semantic Drift in Security Telemetry:} Standard RAG applies unconstrained dense similarity to raw log strings. However, security logs are saturated with non-discriminative syntax tokens (\texttt{authentication}, \texttt{failed}, \texttt{sshd}, \texttt{root}). Dense sentence encoders project these generic tokens into dominant clusters, causing the embedding to reflect protocol mechanics rather than malicious behavior. Consequently, ground-truth threat chunks frequently drop outside the top-$k$ retrieval window.
+  \item \textbf{Cloud Dependency and Sovereignty Risks:} Existing architectures frequently route telemetry to commercial cloud APIs, breaching enterprise data privacy regulations.
+  \item \textbf{Absence of Citation Governance:} Prior systems rely on unsupervised generative citations. In practice, LLMs regularly hallucinate non-existent citation IDs without automated validation.
+  \item \textbf{Conflation of Retrieval and Generation Metrics:} Prior studies report high retrieval scores and assume end-to-end classification improved proportionally, lacking isolated ablations on identical, controlled benchmarks.
+\end{enumerate}
+
+\begin{table}[!htbp]
+\centering
+\caption{Comparative analysis: Traditional SOC, Cloud Copilots, Base Paper (SERC), and Sovereign Assistant.}
+\label{tab:lit_comparison}
+\small
+\begin{tabularx}{\textwidth}{@{}l p{3.2cm} p{3.2cm} X@{}}
+\toprule
+\textbf{Dimension} & \textbf{Cloud Copilots} & \textbf{Wazuh SERC \cite{sensors2025wazuhcopilot}} & \textbf{Proposed Sovereign Assistant} \\
+\midrule
+\textbf{Execution} & Third-Party Cloud API & Cloud / Hybrid LLM & \textbf{100\% Sovereign On-Premise (Local)} \\
+\textbf{Data Egress} & High Risk (External) & Moderate Risk & \textbf{Zero Egress (Air-gapped capable)} \\
+\textbf{Retrieval} & Generic Dense RAG & Multi-Collection Dense & \textbf{Entity-Anchored Dual Retrieval} \\
+\textbf{Recall@1} & Unmeasured in logs & $\approx 20\text{--}30\%$ (Drift) & \textbf{90.0\% (Verified +67.5 pp leap)} \\
+\textbf{Governance} & None (Trust LLM) & Static Prompting & \textbf{Automated Citation Engine (97.3\%)} \\
+\textbf{CVE Grounding} & Unreliable hallucinations & Qualitative Playbooks & \textbf{Empirical Log4Shell (1.00 F1)} \\
+\textbf{Testing} & Black-box evaluation & Qualitative cases & \textbf{264 Automated Tests + Audited Runs} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Motivation for Entity-Anchored Dual Retrieval}
+\label{sec:lit_motivation_anchoring}
+To eliminate semantic drift, this research introduces \textbf{Entity-Anchored Dual Evidence Retrieval}. Rather than submitting unparsed alert strings to dense embedding models, our architecture deterministically extracts structured operational observables—specifically IP addresses, usernames, rule severity, process paths, and Wazuh technique tags (\texttt{rule.mitre.id}).
+
+By decomposing telemetry into structured entities, the retriever executes a dual-pass query in Qdrant:
+\begin{enumerate}
+  \item An \textbf{exact payload-filtered search} targeting specific MITRE ATT\&CK IDs and CVE patterns.
+  \item A \textbf{dense semantic vector search} targeting descriptive attack terms and normalized event categories.
+\end{enumerate}
+These candidate sets are merged, deduplicated, and ranked by genuine cosine similarity. As established in Chapter \ref{chap:results_evaluation}, this formulation increases Top-1 Retrieval Recall from 22.5\% under standard dense RAG to \textbf{90.0\%}, establishing an empirically validated foundation for sovereign SOC triage.

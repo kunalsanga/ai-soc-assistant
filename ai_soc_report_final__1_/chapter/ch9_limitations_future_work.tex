@@ -1,0 +1,66 @@
+%==============================================================================
+% Chapter 9: Discussion, Architectural Trade-offs and Limitations
+%==============================================================================
+\chapter{Discussion, Architectural Trade-offs and Limitations}
+\label{chap:limitations_future_work}
+
+The empirical evaluation of the AI-powered SOC Assistant provides key insights into deploying retrieval-augmented language models in cybersecurity. While results demonstrate breakthroughs in retrieval precision and vulnerability grounding, they also reveal foundational challenges concerning context distraction, local model capacity, and dataset representation.
+
+\section{Parametric Memory vs External Grounding}
+\label{sec:discussion_findings}
+A significant outcome of our evaluation is the relationship between an LLM's \textit{parametric memory} (latent knowledge in pre-trained weights) and \textit{non-parametric external retrieval} (context injected via RAG) \cite{lewis2020rag}. In standard MITRE ATT\&CK classification, unaugmented \texttt{llm\_only} achieved a higher Macro F1 ($0.9028$) than \texttt{evidence\_aware} ($0.8611$). Qwen3:8B, having been pre-trained on technical literature, already possesses high familiarity with common attack patterns.
+
+However, real-world grounding experiments demonstrate where parametric memory fails:
+\begin{enumerate}[itemsep=1pt,topsep=2pt]
+    \item \textbf{Vulnerability Identification:} On Log4Shell (\texttt{CVE-2021-44228}), \texttt{llm\_only} failed completely ($0.0$ F1), whereas RAG retrieved the NVD record to achieve \textbf{1.00 F1}.
+    \item \textbf{False-Positive Moderation:} On Nessus scans, Evidence-Aware RAG retrieved vendor signatures to downgrade severity from Critical to Informational, preventing false escalations.
+    \item \textbf{Verifiable Auditability:} Evidence-Aware RAG delivers 97.3\% validated citations, providing verifiable provenance for regulatory compliance.
+\end{enumerate}
+Thus, RAG's primary role in security triage is not basic vocabulary instruction, but \textbf{authoritative anchoring, CVE attribution, and verifiable auditability}.
+
+\section{The Context Distractor Phenomenon in Local LLMs}
+\label{sec:context_distractors}
+Our failure analysis identified the \textbf{Context Distractor Effect} in Case 20 (\texttt{new-system-service}). When dual retrieval surfaced a STIX chunk for \texttt{T1543.003} that cross-referenced \texttt{T1036} and \texttt{T1050}, Qwen3:8B succumbed to distraction and predicted all three, inducing two false positives. In 8B parameter models, cross-attention between alert tokens and reference tokens can dilute focus, assigning probability mass to peripheral concepts \cite{vaswani2017attention}.
+
+\section{Architectural Trade-offs}
+\label{sec:architectural_tradeoffs}
+Table \ref{tab:architectural_tradeoffs} synthesizes the architectural trade-offs evaluated in this work.
+
+\begin{table}[!htbp]
+\centering
+\caption{Architectural trade-offs evaluated in the design of the SOC Assistant.}
+\label{tab:architectural_tradeoffs}
+\scriptsize
+\begin{tabularx}{\textwidth}{@{}l p{3.2cm} p{3.2cm} X@{}}
+\toprule
+\textbf{Dimension} & \textbf{Selected Design} & \textbf{Alternative} & \textbf{Engineering Justification} \\
+\midrule
+\textbf{Retrieval} & \textbf{Entity-Anchored Dual Retrieval} & Standard Dense RAG & Minor latency (240 ms vs 51 ms) yields a massive +67.5 pp leap in Recall@1 (90\% vs 22.5\%). \\
+\midrule
+\textbf{Decoding} & \textbf{Greedy Decoding} ($T=0.0$) & Stochastic Sampling & Guarantees deterministic reproducibility and strict schema compliance. \\
+\midrule
+\textbf{Deployment} & \textbf{Local Sovereign Host} (Ollama + Qdrant) & Cloud API (GPT-4 / Claude) & 50s local runtime eliminates data exfiltration and ongoing API costs. \\
+\midrule
+\textbf{Remediation} & \textbf{Non-Destructive Advisory} & Autonomous Remediation & Advisory posture prevents automated denial-of-service from false positives. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Mitigation Strategies for Context Distraction}
+\label{sec:distractor_mitigations}
+To suppress context distractors without sacrificing RAG benefits, we propose:
+\begin{enumerate}[itemsep=1pt,topsep=2pt]
+    \item \textbf{Rule-Based Metadata Pre-Tagging:} Extract atomic technique definitions and prune cross-references and deprecated IDs prior to indexing.
+    \item \textbf{Cross-Encoder Re-Ranking:} Insert a lightweight cross-encoder (e.g., \texttt{bge-reranker-base}) between Qdrant retrieval and prompt assembly to score query-chunk pairs with high discriminative sensitivity.
+    \item \textbf{Dynamic Chunk Budgeting:} Enforce a similarity cutoff ($\text{score} \ge 0.75$), falling back to parametric inference if no candidate exceeds threshold.
+\end{enumerate}
+
+\section{Study Limitations and Future Research Directions}
+\label{sec:study_limitations}
+\textbf{Limitations:} (1) Dataset v2 comprises 40 curated scenarios; real enterprise logs exhibit long-tail alert distributions requiring wider testing; (2) Telemetry followed standardized Wazuh schemas rather than noisy live packet streams; (3) Inference was constrained to a single mobile GPU (RTX 3060, 6 GB VRAM) serving 8B models; (4) Citation validation confirms syntactic referential presence, not full natural language inference (NLI) sentence entailment.
+
+\textbf{Future Directions:} (1) \textbf{Temporal Correlation via TGNNs:} Integrate Temporal Graph Neural Networks to correlate disparate alerts into multi-stage attack campaigns; (2) \textbf{Domain Fine-Tuning (PEFT):} Fine-tune Qwen3:8B via QLoRA on incident triage data to natively output strict JSON; (3) \textbf{Live OpenSearch Streaming:} Connect Kafka pipelines for continuous multi-gigabit triage; (4) \textbf{Active Learning Feedback:} Convert analyst triage adjustments into preference pairs to fine-tune retrieval vector spaces dynamically.
+
+\section{Summary}
+\label{sec:ch9_summary}
+This chapter critically examined the balance between parametric and non-parametric knowledge, contextual distractors, system trade-offs, and defined clear engineering roadmaps for production enterprise deployment.

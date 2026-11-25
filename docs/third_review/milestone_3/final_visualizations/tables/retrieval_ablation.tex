@@ -1,0 +1,18 @@
+% Table 2: Security Knowledge Retrieval Ablation Study
+\begin{table}[t]
+\centering
+\small
+\caption{Isolated 40-Scenario Knowledge Base Retrieval Ablation Over 1,762 Indexed Chunks (No LLM in the loop). Entity anchoring delivers an absolute $+67.5$ percentage-point improvement in Recall@1 over standard dense RAG.}
+\label{tab:retrieval_ablation}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Retrieval Strategy} & \textbf{Recall@1} & \textbf{Recall@5} & \textbf{MRR} & \textbf{Latency (ms)} \\
+\midrule
+Standard RAG (Dense Unanchored) & 0.2250 (9/40) & 0.4000 (16/40) & 0.2742 & 51.5 \\
+\textbf{Evidence-Aware RAG (Entity-Anchored)} & \textbf{0.9000 (36/40)} & \textbf{0.9250 (37/40)} & \textbf{0.9125} & 240.2 \\
+\midrule
+\textit{Token Hashing Baseline (Offline Lexical)*} & 0.9250 (37/40) & 0.9250 (37/40) & 0.9250 & 38.9 \\
+\bottomrule
+\multicolumn{5}{l}{\footnotesize *Token Hashing is an offline lexical retrieval baseline, not an end-to-end LLM triage mode.} \\
+\end{tabular}
+\end{table}

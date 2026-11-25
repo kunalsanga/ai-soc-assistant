@@ -1,15 +1,20 @@
 """Integration tests for the Wazuh sync vertical slice.
 
-These require a reachable PostgreSQL matching DATABASE_URL. They are skipped
-automatically when the database is unavailable, so `pytest` still passes
+These tests use a safe, isolated transactional fixture with savepoint rollback
+so that NO records in the development or production database are ever deleted or
+persisted permanently.
+
+They require a reachable PostgreSQL matching DATABASE_URL (or TEST_DATABASE_URL).
+They are skipped automatically when the database is unavailable, so `pytest` still passes
 offline (unit tests never require external services).
 """
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.database import AsyncSessionLocal, engine
+from app.db.database import AsyncSessionLocal, engine, get_db
 from app.main import app
 
 
@@ -20,6 +25,8 @@ async def _database_available() -> bool:
         return True
     except Exception:  # noqa: BLE001
         return False
+    finally:
+        await engine.dispose()
 
 
 pytestmark = [
@@ -29,28 +36,55 @@ pytestmark = [
 
 
 @pytest_asyncio.fixture
-async def db_session():
+async def safe_db_session():
+    """Transactional fixture that rolls back all database modifications at test teardown.
+
+    Never deletes or alters development database state permanently.
+    Overrides FastAPI's get_db dependency so endpoint operations share the savepoint.
+    """
     available = await _database_available()
     if not available:
         pytest.skip("Database not available for integration tests")
-    async with AsyncSessionLocal() as session:
-        yield session
+
+    async with engine.connect() as connection:
+        transaction = await connection.begin()
+        session = AsyncSession(
+            bind=connection,
+            join_transaction_mode="create_savepoint",
+            expire_on_commit=False,
+        )
+
+        # Clean slate for mock alerts ONLY within this isolated transaction
+        await session.execute(
+            text(
+                "DELETE FROM evidence WHERE analysis_id IN (SELECT id FROM analyses WHERE alert_id IN (SELECT id FROM alerts WHERE external_alert_id LIKE 'mock-%'))"
+            )
+        )
+        await session.execute(
+            text(
+                "DELETE FROM analyses WHERE alert_id IN (SELECT id FROM alerts WHERE external_alert_id LIKE 'mock-%')"
+            )
+        )
+        await session.execute(
+            text("DELETE FROM alerts WHERE external_alert_id LIKE 'mock-%'")
+        )
+        await session.commit()
+
+        async def _override_get_db():
+            yield session
+
+        app.dependency_overrides[get_db] = _override_get_db
+
+        try:
+            yield session
+        finally:
+            app.dependency_overrides.pop(get_db, None)
+            await session.close()
+            await transaction.rollback()
+            await engine.dispose()
 
 
-async def test_sync_mock_alerts_endpoint(db_session):
-    # Ensure a clean slate for the external ids used by the mock client,
-    # removing any dependent analyses/evidence first.
-    await db_session.execute(
-        text("DELETE FROM evidence WHERE analysis_id IN (SELECT id FROM analyses WHERE alert_id IN (SELECT id FROM alerts WHERE external_alert_id LIKE 'mock-%'))")
-    )
-    await db_session.execute(
-        text("DELETE FROM analyses WHERE alert_id IN (SELECT id FROM alerts WHERE external_alert_id LIKE 'mock-%')")
-    )
-    await db_session.execute(
-        text("DELETE FROM alerts WHERE external_alert_id LIKE 'mock-%'")
-    )
-    await db_session.commit()
-
+async def test_sync_mock_alerts_endpoint(safe_db_session):
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"
     ) as ac:
@@ -71,16 +105,17 @@ async def test_sync_mock_alerts_endpoint(db_session):
     assert response.json()["duplicates_skipped"] >= 2
 
 
-async def test_alerts_list_after_sync(db_session):
+async def test_alerts_list_after_sync(safe_db_session):
+    # Ensure sync occurred in this transaction
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"
     ) as ac:
+        await ac.post("/api/v1/alerts/sync-mock")
         response = await ac.get("/api/v1/alerts/")
     assert response.status_code == 200
     alerts = response.json()
     assert isinstance(alerts, list)
     if alerts:
-        # Frontend contract intact: fields Bivan's UI expects are present.
         expected_keys = {
             "id",
             "external_alert_id",

@@ -1,0 +1,123 @@
+% ==============================================================================
+% PPD-II Third Review: Publication-Quality LaTeX Tables
+% Project: AI-Powered SOC Assistant Using Large Language Models
+% Source Benchmark: Run 20261109-185423-0f4cfd (Dataset v2, 40 Scenarios)
+% Requirements: \usepackage{booktabs}, \usepackage{multirow}, \usepackage{makecell}
+% ==============================================================================
+
+% ------------------------------------------------------------------------------
+% Table 1: End-to-End Analysis Pipeline Performance Comparison
+% ------------------------------------------------------------------------------
+\begin{table*}[t]
+\centering
+\small
+\caption{End-to-End SOC Analysis Performance Across Modes ($N = 40$ Scenarios, 120 Total Evaluations, Qwen3:8B via Ollama, Temperature = 0.0). Technique classification is evaluated on the 36 attack scenarios; negative control accuracy is evaluated on the 4 benign scenarios.}
+\label{tab:pipeline_performance}
+\begin{tabular}{llccc}
+\toprule
+\textbf{Evaluation Dimension} & \textbf{Metric} & \textbf{LLM-Only (Zero-Shot)} & \textbf{Standard RAG} & \textbf{Evidence-Aware RAG} \\
+\midrule
+\multirow{4}{*}{\makecell[l]{\textbf{MITRE ATT\&CK}\\\textbf{Technique Triage}\\\textit{(36 Attack Scenarios)}}} 
+    & Macro F1-Score & \textbf{0.9028} & 0.8750 & 0.8611 \\
+    & Micro F1-Score & \textbf{0.8889} & 0.8776 & 0.8600 \\
+    & Macro Precision & \textbf{0.9861} & 0.9583 & 0.9398 \\
+    & Macro Recall & \textbf{0.8611} & 0.8333 & 0.8333 \\
+    & Confusion Matrix & 44 TP / \textbf{1 FP} / 10 FN & 43 TP / \textbf{1 FP} / 11 FN & 43 TP / 3 FP / 11 FN \\
+\midrule
+\multirow{2}{*}{\makecell[l]{\textbf{Knowledge Retrieval}\\\textit{(Top-5 Over 1,762 Chunks)}}}
+    & Retrieval Recall@1 & N/A & 0.3250 (13/40) & \textbf{0.9000 (36/40)} \\
+    & Retrieval Recall@5 & N/A & 0.6250 (25/40) & \textbf{0.9250 (37/40)} \\
+    & Retrieval MRR & N/A & 0.4342 & \textbf{0.9125} \\
+\midrule
+\multirow{2}{*}{\makecell[l]{\textbf{Citation \& Provenance}\\\textit{(Audit Trail Integrity)}}}
+    & Grounding Coverage & 0 / 40 (0.0\%) & 38 / 40 (95.0\%) & 37 / 40 (92.5\%) \\
+    & Valid Reference Rate & N/A & \textbf{1.0000 (100.0\%)} & 0.9730 (97.3\%)* \\
+\midrule
+\multirow{2}{*}{\makecell[l]{\textbf{Negative Controls}\\\textit{(4 Benign Scenarios)}}}
+    & Benign Accuracy & 0.7500 (3/4) & 0.7500 (3/4) & 0.7500 (3/4) \\
+    & False Alarm Rate (High/Crit) & 0.2500 (1/4) & 0.2500 (1/4) & 0.2500 (1/4) \\
+\midrule
+\multirow{3}{*}{\makecell[l]{\textbf{Triage Latency Profile}\\\textit{(Local CPU Host)}}}
+    & Mean Wall Latency & \textbf{24.02 s} $\pm$ 2.35 s & 51.63 s $\pm$ 7.85 s & 50.51 s $\pm$ 13.10 s \\
+    & Median Wall Latency & \textbf{23.91 s} & 50.66 s & 48.26 s \\
+    & Mean LLM Inference Time & \textbf{24.00 s} $\pm$ 2.35 s & 50.58 s $\pm$ 7.96 s & 49.23 s $\pm$ 10.68 s \\
+\bottomrule
+\multicolumn{5}{l}{\footnotesize *Citation validity measures referential existence (cited chunk UUID $\in$ retrieved set); Case 22 cited 1 ungrounded reference ID, correctly caught and penalized by the verification engine.}
+\end{tabular}
+\end{table*}
+
+% ------------------------------------------------------------------------------
+% Table 2: 40-Scenario Retrieval-Only Ablation Study
+% ------------------------------------------------------------------------------
+\begin{table*}[t]
+\centering
+\small
+\caption{Knowledge Retrieval Ablation Study ($N = 40$ Scenarios, Headless Search Over 1,762 Security Chunks in Qdrant, No LLM in the Loop). Demonstrates the impact of entity anchoring against dense vector collapse on specialized security identifiers.}
+\label{tab:retrieval_ablation}
+\begin{tabular}{lccccp{6.5cm}}
+\toprule
+\textbf{Retrieval Configuration} & \textbf{Recall@1} & \textbf{Recall@5} & \textbf{MRR} & \textbf{Search Latency} & \textbf{Primary Failure Mechanism / Operational Trade-off} \\
+\midrule
+\textbf{Standard RAG} & 0.2250 & 0.4000 & 0.2742 & \textbf{51.5 ms} & Dense embeddings (\texttt{all-MiniLM-L6-v2}) capture generic English semantics (\textit{user, port, connection}) rather than out-of-distribution technique codes (\texttt{T1110}, \texttt{T1558.003}). \\
+\addlinespace
+\textbf{Evidence-Aware RAG} & \textbf{0.9000} & \textbf{0.9250} & \textbf{0.9125} & 240.2 ms & \textbf{+67.5\% Recall@1 gain.} Hybrid search executes exact payload filtering on extracted technique IDs, ranking genuine technique definitions to Rank 1. \\
+\addlinespace
+\textbf{Token Hashing (Baseline)} & 0.9250 & 0.9250 & 0.9250 & \textbf{38.9 ms} & Exact token-hash join; 6x faster than neural embeddings. Achieves high accuracy on rule-tagged telemetry but provides \textit{zero semantic generalization} when explicit tags are absent. \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+% ------------------------------------------------------------------------------
+% Table 3: Vulnerability & CVE Grounding Breakdown
+% ------------------------------------------------------------------------------
+\begin{table}[h]
+\centering
+\small
+\caption{Vulnerability Identification and CVE Grounding ($N = 40$ Scenarios). Parametric memory fails completely on targeted vulnerability identifiers, whereas RAG retrieval achieves 100\% grounding.}
+\label{tab:cve_grounding}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Evaluation Slice} & \textbf{LLM-Only (Zero-Shot)} & \textbf{Standard RAG} & \textbf{Evidence-Aware RAG} \\
+\midrule
+\textbf{Active CVE Scenario (Log4Shell)} & & & \\
+\quad Ground-Truth CVE (\texttt{CVE-2021-44228}) & Missed (\texttt{None}) & \textbf{Retrieved \& Predicted} & \textbf{Retrieved \& Predicted} \\
+\quad CVE Precision & 0.000 & \textbf{1.000} & \textbf{1.000} \\
+\quad CVE Recall & 0.000 & \textbf{1.000} & \textbf{1.000} \\
+\quad CVE F1-Score & 0.000 & \textbf{1.000} & \textbf{1.000} \\
+\midrule
+\textbf{Negative CVE Scenarios (39 Cases)} & & & \\
+\quad Non-CVE Ground Truth Cases & 39 / 39 & 39 / 39 & 39 / 39 \\
+\quad True-Negative Abstention Rate & \textbf{100.0\% (39/39)} & \textbf{100.0\% (39/39)} & \textbf{100.0\% (39/39)} \\
+\quad Hallucinated CVEs Emitted & \textbf{0} & \textbf{0} & \textbf{0} \\
+\midrule
+\textbf{Reported Aggregate CVE F1} & 0.9750 & 1.0000 & 1.0000 \\
+\bottomrule
+\multicolumn{4}{l}{\footnotesize Aggregate CVE F1 of 0.975 vs 1.000 is heavily influenced by true-negative credit; the Log4Shell slice isolates real recall.}
+\end{tabular}
+\end{table}
+
+% ------------------------------------------------------------------------------
+% Table 4: Failure & Discrepancy Case Root-Cause Analysis
+% ------------------------------------------------------------------------------
+\begin{table*}[t]
+\centering
+\small
+\caption{Detailed Diagnostic Analysis of Discrepancies, False Alarms, and Failure Cases Identified During Independent Audit.}
+\label{tab:failure_cases}
+\begin{tabular}{p{3.2cm}ccp{9.0cm}}
+\toprule
+\textbf{Scenario Identifier} & \textbf{Mode} & \textbf{Observed Metric} & \textbf{Technical Root Cause \& Research Implication} \\
+\midrule
+\texttt{case-20-new-system-service} & Evidence-Aware & Technique F1 = 0.500 (vs 1.000 in LLM-Only) & \textbf{Context Distractor Effect:} Evidence-Aware retrieved \texttt{T1543.003} at Rank 1, but retrieved chunks also discussed legacy service creation (\texttt{T1050}) and masquerading (\texttt{T1036}). The LLM cited all three, generating 2 False Positives under strict ground truth. \\
+\addlinespace
+\texttt{case-24-unusual-outbound-rdp} & Evidence-Aware & Technique F1 = 0.000 (vs 1.000 in LLM-Only) & \textbf{Local LLM JSON Syntax Anomaly:} Retrieval successfully placed \texttt{T1021.001} at Rank 1. However, Qwen3:8B produced malformed JSON syntax on this single call; the orchestrator's safe error boundary defaulted to an empty prediction. \\
+\addlinespace
+\texttt{case-22-c2-beaconing-fixed-jitter} & Evidence-Aware & Valid Citation Rate = 0.000 (vs 1.000 mean) & \textbf{Hallucination Detection:} The LLM generated an invented reference ID not in the retrieved evidence set. The automated verification engine flagged and penalized the ungrounded claim. \\
+\addlinespace
+\texttt{case-37-authorized-nessus-scan} & LLM-Only & False Alarm (High Severity) & Heavy probe volume in rule description misled parametric memory. Both RAG modes retrieved scanner context and moderated severity to Medium (avoiding false alarm). \\
+\addlinespace
+\texttt{case-40-windows-update-powershell} & RAG Modes & False Alarm (High Severity) & PowerShell execution evidence caused RAG modes to over-weight execution risk on benign system maintenance. \\
+\bottomrule
+\end{tabular}
+\end{table*}
+

@@ -2,6 +2,9 @@ node_modules/
 dist/
 build/
 .env
+.env.*
+!.env.example
+!.env.wazuh.example
 __pycache__/
 *.pyc
 venv/
@@ -23,5 +26,11 @@ knowledge/*.json
 *.out
 *.snm
 *.toc
+*.bbl
+*.blg
+*.idx
+*.lof
+*.lot
 *.synctex.gz
+rendered_checks/
 Seminar_Presentation__1_/

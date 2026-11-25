@@ -103,11 +103,64 @@ def build_orchestrator() -> SOCAnalysisOrchestrator:
     )
 
 
-async def seed_alert(case: dict) -> int:
-    """Persist the case alert idempotently; return its DB id."""
+def get_namespaced_alert_id(raw_id: str, dataset_version: str | None = None) -> str:
+    """Return a dataset-namespaced external_alert_id to prevent cross-dataset contamination.
+
+    Historical v1 records are preserved without prefix ('eval-001' ... 'eval-008')
+    for backwards compatibility with earlier benchmark artifacts.
+    All other versions (v2, v3, etc.) are strictly prefixed with '<version>-'
+    (e.g., 'v2-eval-001') unless the raw_id already carries the prefix.
+    """
+    if not raw_id:
+        return ""
+    raw_id = str(raw_id).strip()
+    if not dataset_version or dataset_version in ("unknown", "none"):
+        return raw_id
+
+    v = str(dataset_version).strip().lower()
+    # Historical compatibility: v1 used unprefixed 'eval-001' ... 'eval-008'
+    if v == "v1":
+        return raw_id
+
+    prefix = f"{v}-"
+    if raw_id.startswith(prefix):
+        return raw_id
+    return f"{prefix}{raw_id}"
+
+
+async def seed_alert(case: dict, dataset_version: str | None = None) -> int:
+    """Persist the case alert idempotently; return its DB id.
+
+    Enforces dataset isolation so Dataset v2 scenarios never collide with or reuse
+    stale Dataset v1 alert rows.
+    """
     from sqlalchemy import select
 
-    external_id = case["alert"]["id"]
+    raw_alert = dict(case["alert"])
+    raw_id = str(raw_alert["id"])
+
+    # Resolve dataset version from argument or case/alert metadata
+    version = (
+        dataset_version
+        or case.get("dataset_version")
+        or raw_alert.get("dataset_version")
+    )
+    external_id = get_namespaced_alert_id(raw_id, version)
+
+    # Enrich alert dict with provenance metadata so Alert properties read them correctly
+    enriched_alert = dict(raw_alert)
+    enriched_alert["id"] = external_id
+    if version:
+        enriched_alert["dataset_version"] = version
+    if "case_id" in case:
+        enriched_alert["scenario_id"] = case["case_id"]
+    if "notes" in case:
+        enriched_alert["scenario_title"] = case["notes"]
+    if "category" in case:
+        enriched_alert["attack_category"] = case["category"]
+
+    normalized = normalize_wazuh_alert(enriched_alert)
+
     async with AsyncSessionLocal() as db:
         existing = (
             await db.execute(
@@ -115,11 +168,43 @@ async def seed_alert(case: dict) -> int:
             )
         ).scalar_one_or_none()
         if existing is not None:
+            # Verify that existing row matches the current scenario's content.
+            # If rule description, rule id, or payload has changed, synchronize it.
+            needs_update = False
+            if existing.rule_description != normalized.rule_description:
+                existing.rule_description = normalized.rule_description
+                needs_update = True
+            if existing.rule_id != normalized.rule_id:
+                existing.rule_id = normalized.rule_id
+                needs_update = True
+            if existing.severity != normalized.severity:
+                existing.severity = normalized.severity
+                needs_update = True
+            if existing.agent_name != normalized.agent_name:
+                existing.agent_name = normalized.agent_name
+                needs_update = True
+            if existing.source_ip != normalized.source_ip:
+                existing.source_ip = normalized.source_ip
+                needs_update = True
+            if existing.destination_ip != normalized.destination_ip:
+                existing.destination_ip = normalized.destination_ip
+                needs_update = True
+            if existing.username != normalized.username:
+                existing.username = normalized.username
+                needs_update = True
+
+            new_raw = json.dumps(enriched_alert, default=str)
+            if existing.raw_data != new_raw:
+                existing.raw_data = new_raw
+                needs_update = True
+
+            if needs_update:
+                await db.commit()
+                await db.refresh(existing)
             return existing.id
 
-        normalized = normalize_wazuh_alert(case["alert"])
         row = Alert(
-            external_alert_id=normalized.external_alert_id,
+            external_alert_id=external_id,
             timestamp=normalized.timestamp,
             severity=normalized.severity,
             rule_id=normalized.rule_id,
@@ -128,8 +213,10 @@ async def seed_alert(case: dict) -> int:
             source_ip=normalized.source_ip,
             destination_ip=normalized.destination_ip,
             username=normalized.username,
-            raw_data=json.dumps(case["alert"], default=str),
+            raw_data=json.dumps(enriched_alert, default=str),
             status="open",
+            data_source="demo",
+            ingestion_timestamp=datetime.now(timezone.utc).isoformat(),
         )
         db.add(row)
         await db.commit()
@@ -151,9 +238,10 @@ async def run_one(case: dict, db_alert_id: int, mode: str, orchestrator) -> dict
         "error": None,
     }
     try:
-        analysis, artifacts = await orchestrator.analyze_alert_with_artifacts(
-            AsyncSessionLocal(), db_alert_id, AnalysisMode(mode)
-        )
+        async with AsyncSessionLocal() as db:
+            analysis, artifacts = await orchestrator.analyze_alert_with_artifacts(
+                db, db_alert_id, AnalysisMode(mode)
+            )
     except Exception as exc:  # noqa: BLE001 — failures are data, not crashes
         record["error"] = f"{type(exc).__name__}: {exc}"
         record["wall_latency_seconds"] = time.perf_counter() - started
@@ -652,10 +740,11 @@ async def main() -> int:
     print(f"Results dir: {out_dir}")
 
     # Seed alerts first (real DB records, idempotent).
+    dataset_version = dataset.get("dataset_version", "unknown")
     alert_ids = {}
     for case in cases:
-        alert_ids[case["case_id"]] = await seed_alert(case)
-    print(f"Seeded/verified alert ids for {len(alert_ids)} cases.")
+        alert_ids[case["case_id"]] = await seed_alert(case, dataset_version=dataset_version)
+    print(f"Seeded/verified alert ids for {len(alert_ids)} cases (version={dataset_version}).")
 
     orchestrator = build_orchestrator()
     completed_pairs = {(r["case_id"], r["mode"]) for r in records}

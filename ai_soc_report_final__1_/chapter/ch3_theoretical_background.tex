@@ -1,0 +1,104 @@
+%==============================================================================
+% Chapter 3: Theoretical Background and Mathematical Foundations
+%==============================================================================
+\chapter{Theoretical Background and Mathematical Foundations}
+\label{ch:theory}
+
+\section{Security Telemetry and SIEM Event Normalization}
+\label{sec:theory_telemetry}
+Security Information and Event Management systems collect telemetry across heterogeneous operating systems, network appliances, and authentication daemons. Raw system logs are semi-structured text strings that vary across platforms (e.g., Linux Syslog vs.\ Windows Event ID 4625). Machine reasoning requires standardizing raw text into a canonical schema. The normalized security event $\mathcal{E}$ is formally defined as:
+\begin{equation}
+\label{eq:alert_tuple}
+\mathcal{E} = \left( t_{\text{event}}, \text{src}_{\text{ip}}, \text{dst}_{\text{ip}}, \text{src}_{\text{port}}, \text{dst}_{\text{port}}, u, h_{\text{agent}}, s_{\text{severity}}, \mathcal{M}_{\text{tags}}, \mathcal{D}_{\text{desc}} \right)
+\end{equation}
+Where $t_{\text{event}}$ is the UTC timestamp; $\text{src}_{\text{ip}}, \text{dst}_{\text{ip}} \in \mathcal{IP}$; $\text{src}_{\text{port}}, \text{dst}_{\text{port}} \in [1, 65535]$; $u$ is the principal username; $h_{\text{agent}}$ denotes the hostname and OS; $s_{\text{severity}} \in [0, 16]$ is the standardized Wazuh severity level; $\mathcal{M}_{\text{tags}} \subset \{\text{T1000}, \dots, \text{T1999}\}$ represents pre-tagged MITRE ATT\&CK technique IDs; and $\mathcal{D}_{\text{desc}}$ is the rule description.
+
+\section{Large Language Models and Transformer Decoders}
+\label{sec:theory_llm}
+The language models utilized in this research are autoregressive causal decoders rooted in the multi-head self-attention transformer architecture \cite{vaswani2017attention}. For input tokens $\mathbf{x} = (x_1, \dots, x_n)$, contextual projections yield Query ($\mathbf{Q}$), Key ($\mathbf{K}$), and Value ($\mathbf{V}$) matrices via parameter weights $W_Q, W_K, W_V \in \mathbb{R}^{d_{\text{model}} \times d_k}$.
+
+Scaled dot-product attention is defined as:
+\begin{equation}
+\label{eq:scaled_attention}
+\text{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \text{softmax}\left( \frac{\mathbf{Q} \mathbf{K}^T}{\sqrt{d_k}} + \mathbf{M} \right) \mathbf{V}
+\end{equation}
+Where $d_k$ is the scaling factor, and $\mathbf{M} \in \mathbb{R}^{n \times n}$ is an upper-triangular causal attention mask ($M_{ij} = -\infty$ for $j > i$ and $0$ otherwise). Multi-Head Attention (MHA) concatenates $h$ parallel projections:
+\begin{equation}
+\label{eq:mha}
+\text{MHA}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \text{Concat}(\text{head}_1, \dots, \text{head}_h) W_O
+\end{equation}
+Our local inference engine serves \textbf{Qwen3:8B} via Ollama \cite{qwen2024technical}, employing RoPE embeddings, SwiGLU activations, and Grouped-Query Attention (GQA). To guarantee deterministic evaluation, decoding temperature is constrained to $T = 0.0$ (greedy decoding):
+\begin{equation}
+\label{eq:greedy_decoding}
+x_{n+1} = \arg\max_{w \in \mathcal{V}} P(w \mid x_1, \dots, x_n)
+\end{equation}
+
+\section{Dense Vector Embeddings and Semantic Metric Spaces}
+\label{sec:theory_embeddings}
+To perform semantic search across threat intelligence, text is projected into a continuous low-dimensional vector space via the \textbf{all-MiniLM-L6-v2} sentence transformer \cite{reimers2019sentencebert}. Given text $S$, token embeddings $\mathbf{h}_1, \dots, \mathbf{h}_L \in \mathbb{R}^{384}$ are mean-pooled into sentence vector $\mathbf{e}$:
+\begin{equation}
+\label{eq:mean_pooling}
+\mathbf{e} = \frac{1}{L} \sum_{i=1}^L \mathbf{h}_i, \quad \mathbf{v} = \frac{\mathbf{e}}{\|\mathbf{e}\|_2} = \frac{\mathbf{e}}{\sqrt{\sum_{j=1}^{384} e_j^2}}
+\end{equation}
+Semantic similarity between query vector $\mathbf{v}_q$ and document vector $\mathbf{v}_d$ is computed via Cosine Similarity:
+\begin{equation}
+\label{eq:cosine_sim}
+\text{Sim}(\mathbf{v}_q, \mathbf{v}_d) = \cos(\theta) = \frac{\mathbf{v}_q \cdot \mathbf{v}_d}{\|\mathbf{v}_q\|_2 \|\mathbf{v}_d\|_2} = \sum_{j=1}^{384} v_{q,j} \cdot v_{d,j} \in [-1, 1]
+\end{equation}
+In Qdrant, Cosine Distance is defined as $D_{\text{cosine}}(\mathbf{v}_q, \mathbf{v}_d) = 1 - \text{Sim}(\mathbf{v}_q, \mathbf{v}_d) \in [0, 2]$.
+
+\section{Vector Indexing and Hierarchical Navigable Small World Graphs}
+\label{sec:theory_hnsw}
+Exact nearest neighbor search across thousands of high-dimensional vectors has linear complexity $\mathcal{O}(N \cdot d)$. To achieve sub-second search, \textbf{Qdrant} utilizes \textbf{Hierarchical Navigable Small World (HNSW)} graph indexing \cite{malkov2018hnsw}. HNSW organizes vectors into hierarchical layers $\mathcal{L}_0, \dots, \mathcal{L}_{k_{\text{max}}}$, where upper layers support rapid long-range greedy routing toward the query vector $\mathbf{v}_q$, descending sequentially until layer $\mathcal{L}_0$. Bitset filtering is evaluated directly during graph traversal, pruning non-matching nodes without corrupting connectivity and achieving $\mathcal{O}(\log N)$ logarithmic search complexity.
+
+\section{Lexical Retrieval and Deterministic Token Hashing}
+\label{sec:theory_hashing}
+As an offline, non-neural baseline, we implement a deterministic \textbf{Hashing Embedding Provider} mapping text into fixed-dimension vectors $\mathbf{u} \in \mathbb{R}^{256}$ via character bigram feature hashing:
+\begin{equation}
+\label{eq:ngrams}
+\mathcal{G}(S) = \{c_i c_{i+1} \mid c_i \in \text{tokens}(S)\}
+\end{equation}
+For each bigram $g$, an MD5 digest $H(g) = (b_0, \dots, b_{15})$ assigns feature indices:
+\begin{equation}
+\label{eq:hash_indices}
+i_A = \text{int}(b_0 \dots b_3) \pmod d, \quad i_B = \text{int}(b_4 \dots b_7) \pmod d
+\end{equation}
+\begin{equation}
+\label{eq:hash_accum}
+u_{i_A} \leftarrow u_{i_A} + s, \qquad u_{i_B} \leftarrow u_{i_B} - s
+\end{equation}
+Where pseudo-random sign $s = (-1)^{b_8 \pmod 2}$ disperses feature variance across the vector. Normalized vector $\mathbf{u}$ serves as an ultra-fast lexical baseline ($38.9\text{ ms}$) matching exact technique strings.
+
+\section{Mathematical Formulation of Performance Metrics}
+\label{sec:theory_metrics}
+Rigorous empirical evaluation requires formal definitions of all reported metrics.
+
+\subsection{Classification Metrics (MITRE ATT\&CK Technique Triage)}
+Let $\mathcal{C}$ be the MITRE ATT\&CK techniques. For scenario $i$, let $\mathcal{G}_i \subset \mathcal{C}$ be ground-truth techniques, and $\mathcal{P}_i \subset \mathcal{C}$ be predicted techniques across $N$ scenarios:
+\begin{equation}
+TP = \sum_{i=1}^N |\mathcal{P}_i \cap \mathcal{G}_i|, \quad FP = \sum_{i=1}^N |\mathcal{P}_i \setminus \mathcal{G}_i|, \quad FN = \sum_{i=1}^N |\mathcal{G}_i \setminus \mathcal{P}_i|
+\end{equation}
+Scenario Precision ($P_i$), Recall ($R_i$), and F1 ($F_{1,i}$) are defined:
+\begin{equation}
+\label{eq:prec_rec_f1}
+P_i = \frac{|\mathcal{P}_i \cap \mathcal{G}_i|}{|\mathcal{P}_i| + \epsilon}, \quad R_i = \frac{|\mathcal{P}_i \cap \mathcal{G}_i|}{|\mathcal{G}_i| + \epsilon}, \quad F_{1,i} = \frac{2 P_i R_i}{P_i + R_i + \epsilon}
+\end{equation}
+Where $\epsilon = 10^{-9}$ handles negative control scenarios ($\mathcal{P}_i = \emptyset, \mathcal{G}_i = \emptyset$). Macro metrics average individual scenario scores ($\text{Macro } F_1 = \frac{1}{N} \sum F_{1,i}$), while Micro metrics aggregate global counts ($\text{Micro } F_1 = \frac{2 TP}{2 TP + FP + FN}$).
+
+\subsection{Information Retrieval Ranking Metrics}
+In retrieval ablation, candidate rankings $\mathcal{R} = (r_1, \dots, r_K)$ from knowledge base $\mathcal{K}$ ($|\mathcal{K}| = 1,762$) are evaluated against ground-truth chunks $\mathcal{G}$:
+\begin{equation}
+\label{eq:recall_at_k}
+\text{Recall}@k = \frac{1}{|Q|} \sum_{q=1}^{|Q|} \mathbb{I}\left( \exists r_j \in \mathcal{G}_q \text{ s.t. } j \le k \right)
+\end{equation}
+\begin{equation}
+\label{eq:mrr}
+\text{RR}_q = \frac{1}{\min \{j \mid r_j \in \mathcal{G}_q\}}, \quad \text{MRR} = \frac{1}{|Q|} \sum_{q=1}^{|Q|} \text{RR}_q
+\end{equation}
+
+\subsection{Latency Profiling and Statistical Separation}
+Timing is measured across two distinct regimes: sub-second \textbf{Retrieval Latency} ($t_{\text{search}}$ in milliseconds) and multi-second \textbf{End-to-End Triage Latency} ($t_{\text{triage}}$ in seconds), evaluated via sample mean ($\mu$) and standard deviation ($\sigma$):
+\begin{equation}
+\label{eq:latency_stats}
+\mu = \frac{1}{N} \sum_{i=1}^N t_i, \quad \sigma = \sqrt{\frac{1}{N-1} \sum_{i=1}^N (t_i - \mu)^2}
+\end{equation}

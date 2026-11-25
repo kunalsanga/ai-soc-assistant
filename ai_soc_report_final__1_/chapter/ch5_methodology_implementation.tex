@@ -1,0 +1,225 @@
+%==============================================================================
+% Chapter 5: Proposed Methodology and Implementation
+%==============================================================================
+\chapter{Proposed Methodology and Implementation}
+\label{ch:implementation}
+
+\section{End-to-End Pipeline Overview}
+\label{sec:impl_pipeline}
+
+The core methodology transforms raw security telemetry into a validated, actionable incident advisory through eleven sequential stages executed by the \texttt{SOCAnalysisOrchestrator}. Figure \ref{fig:methodology_flow} illustrates the end-to-end dataflow pipeline spanning Telemetry Ingestion, Entity-Anchored Dual Retrieval, and Sovereign Citation Governance.
+
+\begin{figure}[!htbp]
+\centering
+\resizebox{0.96\textwidth}{!}{%
+\begin{tikzpicture}[
+    stage/.style={
+        rectangle, rounded corners=5pt, draw=teal!70!black, top color=teal!10, bottom color=teal!5,
+        very thick, text width=2.6cm, minimum height=1.25cm, align=center, font=\footnotesize\sffamily,
+        drop shadow={opacity=0.10, shadow xshift=1pt, shadow yshift=-1pt},
+        execute at begin node={\hyphenpenalty=10000\exhyphenpenalty=10000}
+    },
+    retrieval/.style={
+        rectangle, rounded corners=5pt, draw=blue!70!black, top color=blue!10, bottom color=blue!5,
+        very thick, text width=2.6cm, minimum height=1.25cm, align=center, font=\footnotesize\sffamily,
+        drop shadow={opacity=0.10, shadow xshift=1pt, shadow yshift=-1pt},
+        execute at begin node={\hyphenpenalty=10000\exhyphenpenalty=10000}
+    },
+    reasoning/.style={
+        rectangle, rounded corners=5pt, draw=purple!70!black, top color=purple!10, bottom color=purple!5,
+        very thick, text width=2.6cm, minimum height=1.25cm, align=center, font=\footnotesize\sffamily,
+        drop shadow={opacity=0.10, shadow xshift=1pt, shadow yshift=-1pt},
+        execute at begin node={\hyphenpenalty=10000\exhyphenpenalty=10000}
+    },
+    arrow/.style={-{Stealth[length=6.5pt, width=4.5pt]}, very thick, draw=black!75},
+    lbl/.style={font=\scriptsize\bfseries\sffamily, above=3pt}
+]
+
+    % Row 1: Telemetry Ingestion (Left to Right)
+    \node[stage] (s1) at (0, 0) {\textbf{1. Ingestion \& Schema}\\[2pt]\scriptsize Log Normalization};
+    \node[stage] (s2) at (5.2, 0) {\textbf{2. Observable Mining}\\[2pt]\scriptsize Context Extractor};
+    \node[stage] (s3) at (10.4, 0) {\textbf{3. Query Formulation}\\[2pt]\scriptsize Search Payload};
+
+    % Row 2: Dual Knowledge Retrieval (Right to Left)
+    \node[retrieval] (s4) at (10.4, -3.0) {\textbf{4. Dual-Pass Retrieval}\\[2pt]\scriptsize Bitset + HNSW};
+    \node[retrieval] (s5) at (5.2, -3.0) {\textbf{5. Evidence Grounding}\\[2pt]\scriptsize Score Ranking};
+    \node[retrieval] (s6) at (0, -3.0) {\textbf{6. Prompt Formulation}\\[2pt]\scriptsize Anti-Injection};
+
+    % Row 3: Sovereign Inference & Governance (Left to Right)
+    \node[reasoning] (s7) at (0, -6.0) {\textbf{7. Sovereign LLM}\\[2pt]\scriptsize Qwen3:8B ($T=0$)};
+    \node[reasoning] (s8) at (5.2, -6.0) {\textbf{8. Citation Validation}\\[2pt]\scriptsize Reference Audit};
+    \node[reasoning] (s9) at (10.4, -6.0) {\textbf{9. Persistence \& Trace}\\[2pt]\scriptsize PostgreSQL \& SSE};
+
+    % Horizontal Connectors with generous margins (>5mm clearance on both sides)
+    \draw[arrow] (s1.east) -- (s2.west);
+    \node[lbl, color=teal!85!black] at ($(s1.east)!0.5!(s2.west)$) {Alert JSON};
+
+    \draw[arrow] (s2.east) -- (s3.west);
+    \node[lbl, color=teal!85!black] at ($(s2.east)!0.5!(s3.west)$) {IoC Set};
+
+    \draw[arrow] (s4.west) -- (s5.east);
+    \node[lbl, color=blue!85!black] at ($(s4.west)!0.5!(s5.east)$) {Candidates};
+
+    \draw[arrow] (s5.west) -- (s6.east);
+    \node[lbl, color=blue!85!black] at ($(s5.west)!0.5!(s6.east)$) {Top Chunks};
+
+    \draw[arrow] (s7.east) -- (s8.west);
+    \node[lbl, color=purple!85!black] at ($(s7.east)!0.5!(s8.west)$) {Advisory};
+
+    \draw[arrow] (s8.east) -- (s9.west);
+    \node[lbl, color=purple!85!black] at ($(s8.east)!0.5!(s9.west)$) {Audit Trace};
+
+    % Vertical Connectors with pill badges centered in open gap
+    \draw[arrow] (s3.south) -- (s4.north);
+    \node[font=\scriptsize\bfseries\sffamily\color{blue!90!black}, fill=white, draw=blue!40, rounded corners=2pt, inner sep=2pt] at ($(s3.south)!0.5!(s4.north)$) {Search Payload};
+
+    \draw[arrow] (s6.south) -- (s7.north);
+    \node[font=\scriptsize\bfseries\sffamily\color{purple!90!black}, fill=white, draw=purple!40, rounded corners=2pt, inner sep=2pt] at ($(s6.south)!0.5!(s7.north)$) {Prompt Context};
+
+    % Layer Background Bounding Boxes (inner ysep=6pt leaves 1.6cm open gap between rows)
+    \begin{scope}[on background layer]
+        \node[fill=teal!4, draw=teal!35, rounded corners=6pt, fit=(s1) (s3), inner xsep=8pt, inner ysep=8pt] (layer1) {};
+        \node[fill=blue!4, draw=blue!35, rounded corners=6pt, fit=(s6) (s4), inner xsep=8pt, inner ysep=8pt] (layer2) {};
+        \node[fill=purple!4, draw=purple!35, rounded corners=6pt, fit=(s7) (s9), inner xsep=8pt, inner ysep=8pt] (layer3) {};
+    \end{scope}
+
+    % Clean Layer Header Badges
+    \node[font=\tiny\bfseries\sffamily\color{teal!80!black}, fill=white, draw=teal!35, rounded corners=3pt, inner sep=2.5pt] at (layer1.north) {LAYER 1: TELEMETRY INGESTION \& PREPROCESSING};
+    \node[font=\tiny\bfseries\sffamily\color{blue!80!black}, fill=white, draw=blue!35, rounded corners=3pt, inner sep=2.5pt] at (layer2.north) {LAYER 2: ENTITY-ANCHORED DUAL KNOWLEDGE RETRIEVAL};
+    \node[font=\tiny\bfseries\sffamily\color{purple!80!black}, fill=white, draw=purple!35, rounded corners=3pt, inner sep=2.5pt] at (layer3.north) {LAYER 3: SOVEREIGN REASONING, CITATION GOVERNANCE \& PERSISTENCE};
+
+\end{tikzpicture}%
+}
+\caption{Algorithmic pipeline workflow of the AI-Powered SOC Assistant, illustrating the 9 sequential stages across Ingestion, Entity-Anchored Retrieval, and Citation-Governed Sovereign Reasoning.}
+\label{fig:methodology_flow}
+\end{figure}
+
+\section{Alert Ingestion and Security Normalization}
+\label{sec:impl_normalization}
+When an alert is received, \texttt{AlertService} maps the incoming JSON or Syslog string into the canonical \texttt{NormalizedSecurityAlert} model:
+\begin{itemize}
+    \item Resolves timestamps into standardized UTC ISO-8601 strings.
+    \item Cleans IPv4/IPv6 strings, stripping port numbers and whitespace.
+    \item Maps numerical severities ($0 \le s \le 16$) to ratings (\texttt{LOW}, \texttt{MEDIUM}, \texttt{HIGH}, \texttt{CRITICAL}).
+    \item Parses MITRE technique identifiers from Wazuh XML metadata (\texttt{rule.mitre.id}).
+\end{itemize}
+
+\section{Deterministic Security Context Extraction}
+\label{sec:impl_context}
+The second stage executes observable mining via \texttt{ContextExtractor}. Operating deterministically without probabilistic LLM calls, it structures:
+\begin{enumerate}[itemsep=1pt,topsep=2pt]
+    \item \textbf{Network Indicators:} Source and destination IP addresses and ports.
+    \item \textbf{Host Attributes:} Usernames, agent hostnames, operating systems, and process binary paths.
+    \item \textbf{Keyword Tokenization:} Tokenizes rule descriptions via regex, filtering against stop-words.
+    \item \textbf{Attack Term Mining:} Matches tokens against a taxonomy of 38 attack signals (e.g., \texttt{brute}, \texttt{injection}, \texttt{ransomware}, \texttt{escalation}, \texttt{exfiltration}).
+\end{enumerate}
+
+\begin{lstlisting}[language=Python, caption={Deterministic keyword filtering in \texttt{ContextExtractor}.}]
+def _keywords_from_text(text: Optional[str]) -> List[str]:
+    if not text:
+        return []
+    tokens = [t.lower().strip(".:,;()[]") for t in _TOKEN_RE.findall(text)]
+    return [t for t in tokens if t not in _STOP_WORDS
+            and t not in _NOISE_TOKENS and len(t) >= 3]
+\end{lstlisting}
+
+\section{Categorized Retrieval Query Construction}
+\label{sec:impl_query_builder}
+Query compilation in \texttt{RetrievalQueryBuilder} synthesizes up to three distinct query categories:
+\begin{enumerate}[itemsep=1pt,topsep=2pt]
+    \item \textbf{MITRE Technique Queries:} Created if explicit technique IDs exist (e.g., $Q_{\text{mitre}} = \text{``MITRE ATT\&CK technique } T\text{''}$).
+    \item \textbf{NVD / CVE Queries:} Synthesized on CVE regex matches ($Q_{\text{nvd}} = \text{``CVE details''}$).
+    \item \textbf{General Security Queries:} Built from normalized event types and top descriptive keywords.
+\end{enumerate}
+
+\section{Offline Knowledge Ingestion and Chunking Pipeline}
+\label{sec:impl_chunking}
+Knowledge ingestion runs offline via \texttt{app/rag/ingest\_knowledge.py}:
+\begin{itemize}[itemsep=1pt,topsep=2pt]
+    \item \textbf{MITRE ATT\&CK Enterprise Matrix v14.1:} Parsed from STIX 2.1 JSON into 1,618 technique chunks.
+    \item \textbf{NIST National Vulnerability Database (NVD):} Indexed into 144 structured CVE chunks.
+\end{itemize}
+Total indexed corpus size: \textbf{1,762 vector chunks}, embedded into 384-dimensional dense vectors using \texttt{all-MiniLM-\allowbreak L6-v2} alongside metadata payloads (\texttt{source\_id}, \texttt{tactics}, \texttt{title}).
+
+\section{Dual-Pass Entity-Anchored Retrieval Formulation}
+\label{sec:impl_retriever}
+To eliminate semantic drift, \texttt{Retriever} executes a \textbf{dual-pass search}:
+\begin{enumerate}[itemsep=1pt,topsep=2pt]
+    \item \textbf{Pass 1 (Payload-Filtered):} For queries carrying MITRE or CVE IDs, Qdrant executes exact payload filtering matching the target identifier.
+    \item \textbf{Pass 2 (Dense Semantic Search):} The query vector $\mathbf{v}_q$ is searched across the corpus using unconstrained cosine similarity.
+    \item \textbf{Merging and Deduplication:} Results from both passes are merged, retaining the highest genuine cosine score per chunk.
+\end{enumerate}
+
+\begin{lstlisting}[language=Python, caption={Dual-pass hybrid search implementation in \texttt{app/rag/retriever.py}.}]
+for payload_filter in search_passes:
+    pass_results = self._index.search(
+        query_vector=vector, top_k=top_k, payload_filter=payload_filter
+    )
+    for res in pass_results:
+        cid = res.chunk_id
+        if cid not in accumulated:
+            accumulated[cid] = {"chunk": res, "best_score": res.similarity_score}
+        elif res.similarity_score > accumulated[cid]["best_score"]:
+            accumulated[cid]["best_score"] = res.similarity_score
+\end{lstlisting}
+
+\section{Tri-Mode Analysis Execution Paradigms}
+\label{sec:impl_tri_mode}
+To scientifically evaluate retrieval impact, the orchestrator implements three operational modes:
+\begin{enumerate}
+    \item \textbf{Mode 1: LLM-Only (\texttt{llm\_only}):} Retrieval is bypassed. The raw alert JSON is evaluated directly by Qwen3:8B, measuring pure parametric pre-training memorization.
+    \item \textbf{Mode 2: Standard RAG (\texttt{standard\_rag}):} Unanchored dense cosine similarity over the alert description; top-5 nearest chunks are injected into context.
+    \item \textbf{Mode 3: Evidence-Aware RAG (\texttt{evidence\_aware}):} Our contribution: observables are extracted, dual-pass retrieval executes, and citation validation is enforced.
+\end{enumerate}
+
+\section{Prompt Formulation and Anti-Injection Constraints}
+\label{sec:impl_prompts}
+The orchestrator compiles a system prompt enforcing defensive constraints and structured JSON:
+\begin{lstlisting}[caption={Standardized JSON output schema required from the LLM.}]
+{
+  "summary": "1-2 sentence executive summary",
+  "severity_assessment": "Technical rationale for assigned severity",
+  "observed_indicators": ["192.168.1.105", "admin", "T1110"],
+  "suspected_techniques": ["T1110.001"],
+  "reasoning": "Detailed forensic explanation",
+  "investigation_steps": ["Check auth logs", "Review firewall"],
+  "confidence": "HIGH", "limitations": "Missing packet capture",
+  "evidence_references": [{"evidence_id": "Exact matching ID", "claim": "...", "supporting_text": "..."}]
+}
+\end{lstlisting}
+Rules mandate: (1) NEVER invent evidence IDs; (2) State missing evidence in limitations; (3) All investigation steps must be non-destructive; (4) Distinguish facts from hypotheses.
+
+\section{Automated Citation Reference Validation Engine}
+\label{sec:impl_citation_validator}
+To eliminate generative hallucinations, \texttt{\_validate\_evidence()} parses the generated JSON and cross-examines citations against the actually retrieved evidence dictionary:
+\begin{itemize}
+    \item \textbf{Reference Existence Check:} Valid citation IDs are stored in PostgreSQL with relevance scores.
+    \item \textbf{Hallucination Trapping:} Invented IDs are stripped from official evidence, and an explicit warning is appended to limitations: \texttt{Note: LLM hallucinated unknown evidence reference 'X'}.
+\end{itemize}
+
+\begin{lstlisting}[language=Python, caption={Citation validation and hallucination trapping in \texttt{orchestrator.py}.}]
+def _validate_evidence(self, analysis: SOCAnalysis, evidence_set: Optional[EvidenceSet]):
+    valid_dict = {ev.evidence_id: ev for ev in evidence_set.evidence} if evidence_set else {}
+    validated_refs, evidence_creates = [], []
+    for ref in analysis.evidence_references:
+        if ref.evidence_id in valid_dict:
+            validated_refs.append(ref)
+            ev = valid_dict[ref.evidence_id]
+            evidence_creates.append(EvidenceCreate(
+                source=ev.source, title=ev.title, relevance_score=ev.similarity_score,
+                citation=f"{ev.source_identifier} - {ev.title}"
+            ))
+        else:
+            analysis.limitations += f"\nNote: LLM hallucinated unknown reference '{ref.evidence_id}'."
+    return validated_analysis, evidence_creates
+\end{lstlisting}
+
+\section{Analyst User Interface and Interactive Entity Graph}
+\label{sec:impl_frontend}
+The presentation layer is a React 19 single-page console built with TypeScript and Tailwind CSS:
+\begin{itemize}
+    \item \textbf{Live Triage Queue:} Ingestion queue with severity badges, technique tags, and source filters.
+    \item \textbf{D3.js Entity Graph:} Force-directed canvas displaying relationships between alerts, IPs, users, and MITRE techniques.
+    \item \textbf{Real-Time Trace Waterfall:} Visualizes pipeline execution streaming over SSE with stage timings.
+    \item \textbf{Technical Inspector Drawer:} Displays raw JSON payloads, cosine scores, and citation provenance.
+\end{itemize}

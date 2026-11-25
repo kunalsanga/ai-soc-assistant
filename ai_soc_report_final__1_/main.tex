@@ -1,0 +1,422 @@
+\documentclass[12pt,a4paper,oneside]{report}
+
+% ------------------------------------------------
+% LOAD PACKAGES AND FORMATTING
+% ------------------------------------------------
+
+\input{format}
+
+% ------------------------------------------------
+% PAGE SETTINGS FOR THE MAIN DOCUMENT
+% ------------------------------------------------
+
+\usepackage{geometry}
+
+
+\geometry{
+    a4paper,
+    left=1in,
+    right=1in,
+    top=1in,
+    bottom=1in
+}
+
+% ------------------------------------------------
+% DOCUMENT STARTS
+% ------------------------------------------------
+
+\begin{document}
+
+% ------------------------------------------------
+% FRONT / TITLE PAGE
+% ------------------------------------------------
+
+\pagenumbering{roman}
+\setcounter{page}{1}
+
+% Use equal margins on the title page for proper centering
+\newgeometry{
+    a4paper,
+    left=1in,
+    right=1in,
+    top=1in,
+    bottom=1in
+}
+
+\begin{titlepage}
+\thispagestyle{empty}
+
+\begin{center}
+
+\vspace*{0.2cm}
+
+\setstretch{2}
+{\huge \textbf{AI-Powered Security Operations Center (SOC) Assistant Using Large Language Models}}
+
+\vspace{0.5cm}
+
+\setstretch{1.5}
+
+\textit{
+This Research report submitted to the Biju Patnaik University of Technology\\
+for the partial fulfillment for the award of the degree of
+}
+
+\textbf{Bachelor of Technology}
+
+\textit{in}
+
+\textbf{Computer Science and Engineering}
+
+\vspace{0.5cm}
+
+\textit{by}
+
+\begin{center}
+\begin{minipage}{0.30\textwidth}
+    \centering
+    \textbf{Kunal Sanga}\\
+    {\small (\textit{Registration No.}: 2301341031)}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}{0.30\textwidth}
+    \centering
+    \textbf{Soumili Ghosh}\\
+    {\small (\textit{Registration No.}: 231341057)}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}{0.30\textwidth}
+    \centering
+    \textbf{Bivan Jena}\\
+    {\small (\textit{Registration No.}: 2301341021)}
+\end{minipage}
+
+\end{center}
+
+\vspace{0.5cm}
+
+\textit{under the supervision of}
+
+\textbf{Ms Alka Dash}
+
+Assistant Professor, Department of Computer Science and Engineering\\
+Silicon Institute of Technology, Sambalpur, Odisha
+
+\vspace{1cm}
+
+% ------------------------------------------------
+% UNIVERSITY AND INSTITUTE LOGOS
+% ------------------------------------------------
+
+\begin{minipage}{0.30\textwidth}
+    \centering
+    \includegraphics[scale=0.3]{figures/bput_logo.png}
+\end{minipage}
+\begin{minipage}{0.30\textwidth}
+    \centering
+    \includegraphics[scale=0.15]{figures/sitsbp_logo.png}
+\end{minipage}
+
+\vspace{1cm}
+
+\textbf{
+DEPARTMENT OF COMPUTER SCIENCE AND ENGINEERING\\
+SILICON INSTITUTE OF TECHNOLOGY\\
+SAMBALPUR-768200, ODISHA, INDIA\\
+DECEMBER 2026
+}
+
+\end{center}
+
+\end{titlepage}
+
+% Restore the original report margins for all subsequent pages
+\restoregeometry
+\setstretch{1.08}
+
+% ------------------------------------------------
+% CERTIFICATE
+% ------------------------------------------------
+
+\thispagestyle{empty}
+
+\addcontentsline{toc}{chapter}{Certificate}
+
+\noindent
+\begin{minipage}{0.3\textwidth}
+    \includegraphics[scale=0.1]{figures/sitsbp_logo.png}
+\end{minipage}
+\begin{minipage}{0.7\textwidth}
+    \textsf{Department of Computer Science and Engineering}\\
+    \textbf{Silicon Institute of Technology}\\
+    \textsf{Sambalpur-768200, Odisha, India}
+\end{minipage}
+
+\vspace{0.5cm}
+
+\begin{flushright}
+05/12/2026
+\end{flushright}
+
+\vspace{0.8cm}
+
+\begin{center}
+    \textbf{\large CERTIFICATE}
+\end{center}
+
+\vspace{0.5cm}
+
+\justifying
+
+This is to certify that the work contained in the Report entitled
+\textbf{``AI-Powered Security Operations Center (SOC) Assistant Using Large Language Models''}, submitted by
+\textbf{Kunal Sanga} (Regd. No.: 2301341031), \textbf{Soumili Ghosh} (Regd. No.: 231341057), and \textbf{Bivan Jena} (Regd. No.: 2301341021) for the award of the degree
+of \textbf{Bachelor of Technology} to the
+\textbf{Biju Patnaik University of Technology, Rourkela, Odisha}
+is a record of bonafide research work carried out by them under my direct
+supervision and guidance.
+
+I consider that the Report has reached the standards and fulfills the statutory requirements relating to the nature of the degree. The contents embodied in the report have not been submitted for the award of any other degree or diploma in this or any other university.
+
+\vspace{0.8cm}
+
+\noindent
+\textbf{Date:} 05/12/2026\\
+\textbf{Place:} SIT, Sambalpur
+
+\vspace{0.8cm}
+
+\noindent
+\begin{minipage}[t]{0.48\textwidth}
+    \textbf{Ms Alka Dash}\\
+    Supervisor\\
+    Assistant Professor\\
+    Department of CSE, SIT Sambalpur
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.48\textwidth}
+    \begin{flushright}
+    \textbf{Mr. Umashankar Ghugar}\\
+    Head of the Department\\
+    Department of CSE, SIT Sambalpur
+    \end{flushright}
+\end{minipage}
+
+% ------------------------------------------------
+% DECLARATION
+% ------------------------------------------------
+
+\clearpage
+
+\chapter*{Declaration}
+\addcontentsline{toc}{chapter}{Declaration}
+
+\justifying
+
+I certify that:
+
+\begin{enumerate}[label=(\alph*)]
+
+    \item The work contained in the Report is original and has been done by myself under the supervision of my supervisors.
+
+    \item The report has not been submitted to any other Institute for any degree or diploma.
+
+    \item I have conformed to the norms and guidelines given in the Ethical Code of Conduct of the University.
+
+    \item Whenever I have used materials (data, theoretical analysis, and text) from other sources, I have given due credit to them by citing them in the text of the Report and giving their details in the references.
+    
+    \item Whenever I have quoted written materials from other sources, due credit is given to the sources by citing them.
+
+\end{enumerate}
+
+\vspace{0.8cm}
+
+\noindent
+\textbf{Date:} 05/12/2026\\
+\textbf{Place:} SIT, Sambalpur
+
+\vspace{0.8cm}
+
+\begin{flushright}
+\textbf{
+Kunal Sanga (2301341031)\\
+Soumili Ghosh (231341057)\\
+Bivan Jena (2301341021)
+}
+\end{flushright}
+
+% ------------------------------------------------
+% ACKNOWLEDGEMENTS
+% ------------------------------------------------
+
+\clearpage
+
+\chapter*{Acknowledgements}
+\addcontentsline{toc}{chapter}{Acknowledgements}
+
+\justifying
+
+I would like to express my profound gratitude to the ones who have significantly contributed to the completion of this Report.
+
+Foremost, I would like to express my sincere gratitude to my Supervisor,
+Ms Alka Dash, Assistant Professor, Department of Computer Science and
+Engineering, SIT, Sambalpur for providing me with intellectual guidance,
+sensible and timely advice, continuous support and motivation throughout
+my B.Tech. project work.
+
+Her invaluable comments, suggestions and motivation encouraged me from
+the beginning until the completion of my B.Tech. project work. We are
+fortunate enough to receive valuable inputs whenever we needed them,
+for which we are truly thankful to our esteemed supervisor.
+
+We also convey our sincere thanks to the Head of the Department and all faculty members of the Department of Computer Science and Engineering, Silicon Institute of Technology, Sambalpur for their continuous academic support, as well as to our parents and peers.
+
+\vspace{0.8cm}
+
+\noindent
+\textbf{Date:} 05/12/2026\\
+\textbf{Place:} SIT, Sambalpur
+
+\vspace{0.8cm}
+
+\begin{flushright}
+\textbf{
+Kunal Sanga (2301341031)\\
+Soumili Ghosh (231341057)\\
+Bivan Jena (2301341021)
+}
+\end{flushright}
+
+% ------------------------------------------------
+% ABSTRACT
+% ------------------------------------------------
+
+\clearpage
+
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+\justifying
+
+Modern enterprise Security Operations Centers (SOCs) face an acute operational crisis driven by alert inundation. Tier-1 cybersecurity analysts routinely process upwards of 1,000 heterogeneous security alerts daily from distributed SIEM platforms such as Wazuh. Low-fidelity notifications and living-off-the-land techniques induce cognitive fatigue, causing up to 40\% of alerts to be dismissed without thorough investigation. While cloud-hosted foundation models offer potential summarization, enterprise adoption is restricted by strict data-privacy regulations (GDPR, DPDP Act 2023), telemetry exfiltration risks, and hallucinated vulnerabilities.
+
+This project presents the design, implementation, and empirical evaluation of a \textbf{Sovereign, Evidence-Grounded AI-Powered SOC Assistant}. Operating on a fully local, air-gapped architecture, the system combines a high-performance asynchronous \textbf{FastAPI} backend, a \textbf{PostgreSQL} relational database with transactional schema versioning, an on-premise \textbf{Qdrant} vector store, a local \textbf{Ollama} runtime serving \textbf{Qwen3:8B}, and an interactive \textbf{React 19} console with Server-Sent Events (SSE) streaming and D3.js entity graph visualization. The central contribution is \textbf{Entity-Anchored Dual Evidence Retrieval}, which resolves semantic drift in repetitive security logs by pairing exact bitset payload filters with dense vector search over 1,762 indexed security chunks (MITRE ATT\&CK v14.1 and NIST NVD).
+
+An independently audited 120-run benchmark across 40 enterprise scenarios (36 attacks and 4 benign controls) validated the architecture. In an isolated 40-scenario retrieval ablation, Entity-Anchored Retrieval delivered a breakthrough \textbf{+67.5 percentage-point leap in Recall@1} (catapulting from 22.5\% under standard dense RAG to \textbf{90.0\%}, with MRR rising from $0.2742$ to \textbf{$0.9125$}). While zero-shot LLM achieved high parametric ATT\&CK classification F1 ($0.9028$ vs.\ $0.8611$), RAG proved indispensable for vulnerability attribution: on Log4Shell (\texttt{CVE-2021-44228}), parametric LLMs failed completely ($0.0$ F1), whereas RAG achieved \textbf{1.00 F1} with 100\% True-Negative abstention across 39 non-CVE cases. Furthermore, an automated validation engine confirmed a \textbf{97.3\%} citation veracity rate. Backed by 264 passing automated tests, this work establishes a production-grade sovereign SOC copilot that delivers reliable, human-in-the-loop decision support without cloud data egress.
+
+\vspace{0.4cm}
+
+\noindent
+\textit{\textbf{Keywords:}}
+Security Operations Center (SOC), Large Language Models (LLMs), Retrieval-Augmented Generation (RAG), Entity-Anchored Retrieval, MITRE ATT\&CK, Common Vulnerabilities and Exposures (CVE), Wazuh SIEM, Sovereign AI, Citation Veracity, Cybersecurity Triage.
+
+% ------------------------------------------------
+% ------------------------------------------------
+% LIST OF FIGURES
+% ------------------------------------------------
+
+\clearpage
+\phantomsection
+\addcontentsline{toc}{chapter}{List of Figures}
+{\setstretch{1.0}\setlength{\parskip}{0pt}\listoffigures}
+
+% ------------------------------------------------
+% LIST OF TABLES
+% ------------------------------------------------
+
+\clearpage
+\phantomsection
+\addcontentsline{toc}{chapter}{List of Tables}
+{\setstretch{1.0}\setlength{\parskip}{0pt}\listoftables}
+
+% ------------------------------------------------
+% TABLE OF CONTENTS
+% ------------------------------------------------
+
+\clearpage
+\phantomsection
+\addcontentsline{toc}{chapter}{Contents}
+{\setstretch{0.88}\setlength{\parskip}{0pt}\addtocontents{toc}{\protect\setstretch{0.88}}\tableofcontents}
+
+% ------------------------------------------------
+% END OF FRONT MATTER
+% ------------------------------------------------
+
+\clearpage
+
+% ------------------------------------------------
+% MAIN DOCUMENT PAGE STYLE
+% ------------------------------------------------
+
+\pagenumbering{arabic}
+\setcounter{page}{1}
+\setstretch{1.08}
+\setlength{\parskip}{2pt}
+\setlength{\parindent}{1.2em}
+
+\pagestyle{fancy}
+\fancyhf{}
+
+% Extend header and footer lines beyond text margins
+\fancyhfoffset[L,R]{0.5in}
+
+% Page number at bottom centre
+\fancyfoot[C]{\thepage}
+
+% Horizontal lines
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+% Same formatting for chapter-opening pages
+\fancypagestyle{plain}{
+    \fancyhf{}
+    \fancyfoot[C]{\thepage}
+    \renewcommand{\headrulewidth}{0.4pt}
+    \renewcommand{\footrulewidth}{0.4pt}
+}
+
+% ------------------------------------------------
+
+% ------------------------------------------------
+% ==========================================
+% ==========================================
+% MAIN CHAPTERS
+% ==========================================
+
+\clearpage
+
+\input{chapter/ch1_introduction}
+\input{chapter/ch2_literature_review}
+\input{chapter/ch3_theoretical_background}
+\input{chapter/ch4_system_architecture}
+\input{chapter/ch5_methodology_implementation}
+\input{chapter/ch6_dataset_evaluation}
+\input{chapter/ch7_results_evaluation}
+\input{chapter/ch8_testing_setup}
+\input{chapter/ch9_limitations_future_work}
+\input{chapter/ch10_conclusion}
+
+
+% ==========================================
+% REFERENCES
+% ==========================================
+
+% ------------------------------------------------
+% REFERENCES
+% ------------------------------------------------
+
+\clearpage
+\phantomsection
+\addcontentsline{toc}{chapter}{References}
+
+\renewcommand{\baselinestretch}{1}
+\normalsize
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+% ------------------------------------------------
+% END DOCUMENT
+% ------------------------------------------------
+
+\end{document}
+

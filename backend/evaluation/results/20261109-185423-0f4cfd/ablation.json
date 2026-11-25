@@ -1,0 +1,1226 @@
+{
+  "semantic_anchored": {
+    "recall@5": 0.925,
+    "recall@1": 0.9,
+    "mrr": 0.9125,
+    "avg_latency_ms": 240.16723248932976,
+    "per_case": {
+      "case-01-ssh-bruteforce": {
+        "rank": 1,
+        "top5": [
+          "T1110",
+          "T1110",
+          "T1065",
+          "T1590",
+          "T1008"
+        ]
+      },
+      "case-02-password-spray": {
+        "rank": 1,
+        "top5": [
+          "T1110.003",
+          "T1110.003",
+          "T1110",
+          "T1065",
+          "T1110.001"
+        ]
+      },
+      "case-03-kerberoasting": {
+        "rank": 1,
+        "top5": [
+          "T1558.003",
+          "T1558.003",
+          "T1558.003",
+          "T1591.001",
+          "T1590"
+        ]
+      },
+      "case-04-mfa-fatigue-bombing": {
+        "rank": 1,
+        "top5": [
+          "T1621",
+          "T1621",
+          "T1065",
+          "T1590",
+          "T1591.001"
+        ]
+      },
+      "case-05-encoded-powershell": {
+        "rank": 1,
+        "top5": [
+          "T1059.001",
+          "T1027",
+          "T1059.001",
+          "T1027",
+          "T1065"
+        ]
+      },
+      "case-06-powershell-download-cradle": {
+        "rank": 1,
+        "top5": [
+          "T1059.001",
+          "T1059.001",
+          "T1105",
+          "T1105",
+          "T1105"
+        ]
+      },
+      "case-07-suspicious-wscript-launch": {
+        "rank": 1,
+        "top5": [
+          "T1059.005",
+          "T1059.005",
+          "T1059.005",
+          "T1065",
+          "T1591.001"
+        ]
+      },
+      "case-08-bash-reverse-shell": {
+        "rank": 1,
+        "top5": [
+          "T1059.004",
+          "T1059.004",
+          "T1071",
+          "T1065",
+          "T1591.001"
+        ]
+      },
+      "case-09-shadow-copy-deletion": {
+        "rank": 1,
+        "top5": [
+          "T1490",
+          "T1490",
+          "T1490",
+          "T1486",
+          "T1486"
+        ]
+      },
+      "case-10-bcdr-disable-recovery": {
+        "rank": 1,
+        "top5": [
+          "T1490",
+          "T1490",
+          "T1490",
+          "T1490",
+          "T1590"
+        ]
+      },
+      "case-11-ransom-note-drop": {
+        "rank": 1,
+        "top5": [
+          "T1486",
+          "T1486",
+          "T1486",
+          "T1486",
+          "T1065"
+        ]
+      },
+      "case-12-suspicious-svchost-spawn": {
+        "rank": 2,
+        "top5": [
+          "T1055",
+          "T1036.005",
+          "T1183",
+          "T1065",
+          "T1591.001"
+        ]
+      },
+      "case-13-sudoers-modification": {
+        "rank": 1,
+        "top5": [
+          "T1548.003",
+          "T1548.003",
+          "T1548.003",
+          "T1548.003",
+          "T1548.003"
+        ]
+      },
+      "case-14-suid-binary-creation": {
+        "rank": 1,
+        "top5": [
+          "T1548.001",
+          "T1548.001",
+          "T1548.001",
+          "T1561.001",
+          "T1590"
+        ]
+      },
+      "case-15-uac-bypass-fodhelper": {
+        "rank": 1,
+        "top5": [
+          "T1548.002",
+          "T1548.002",
+          "T1548.002",
+          "T1088",
+          "T1088"
+        ]
+      },
+      "case-16-token-privilege-abuse": {
+        "rank": 1,
+        "top5": [
+          "T1003.001",
+          "T1003.001",
+          "T1134.001",
+          "T1134.001",
+          "T1003.001"
+        ]
+      },
+      "case-17-scheduled-task-persistence": {
+        "rank": 1,
+        "top5": [
+          "T1053.005",
+          "T1053.005",
+          "T1053.005",
+          "T1065",
+          "T1591.001"
+        ]
+      },
+      "case-18-registry-run-key": {
+        "rank": 1,
+        "top5": [
+          "T1547.001",
+          "T1547.001",
+          "T1547.001",
+          "T1547.001",
+          "T1547.001"
+        ]
+      },
+      "case-19-linux-cron-backdoor": {
+        "rank": 1,
+        "top5": [
+          "T1053.003",
+          "T1070.002",
+          "T1065",
+          "T1591.001",
+          "T1020"
+        ]
+      },
+      "case-20-new-system-service": {
+        "rank": 1,
+        "top5": [
+          "T1543.003",
+          "T1543.003",
+          "T1543.003",
+          "T1050",
+          "T1031"
+        ]
+      },
+      "case-21-dns-data-tunneling": {
+        "rank": 1,
+        "top5": [
+          "T1048",
+          "T1071.004",
+          "T1071.004",
+          "T1048",
+          "T1065"
+        ]
+      },
+      "case-22-c2-beaconing-fixed-jitter": {
+        "rank": 1,
+        "top5": [
+          "T1071.001",
+          "T1065",
+          "T1591.001",
+          "T1590",
+          "T1020"
+        ]
+      },
+      "case-23-external-recon-portscan": {
+        "rank": 1,
+        "top5": [
+          "T1046",
+          "T1065",
+          "T1041",
+          "T1591.001",
+          "T1590"
+        ]
+      },
+      "case-24-unusual-outbound-rdp": {
+        "rank": 1,
+        "top5": [
+          "T1021.001",
+          "T1563.002",
+          "T1065",
+          "T1686",
+          "T1076"
+        ]
+      },
+      "case-25-staging-archive-7zip": {
+        "rank": 1,
+        "top5": [
+          "T1560.001",
+          "T1560.001",
+          "T1561.001",
+          "T1590",
+          "T1591.001"
+        ]
+      },
+      "case-26-cloud-mega-upload": {
+        "rank": 1,
+        "top5": [
+          "T1567.002",
+          "T1591.001",
+          "T1065",
+          "T1590",
+          "T1595.001"
+        ]
+      },
+      "case-27-unauthorized-scp-egress": {
+        "rank": 1,
+        "top5": [
+          "T1048.002",
+          "T1065",
+          "T1591.001",
+          "T1590",
+          "T1020"
+        ]
+      },
+      "case-28-clipboard-harvesting": {
+        "rank": 1,
+        "top5": [
+          "T1115",
+          "T1064",
+          "T1197",
+          "T1055.012",
+          "T1590"
+        ]
+      },
+      "case-29-log4shell-exploitation": {
+        "rank": 1,
+        "top5": [
+          "CVE-2021-44228",
+          "T1190",
+          "T1190",
+          "T1190",
+          "CVE-2021-41021"
+        ]
+      },
+      "case-30-webshell-jsp-drop": {
+        "rank": 1,
+        "top5": [
+          "T1190",
+          "T1190",
+          "T1505.003",
+          "T1190",
+          "T1590"
+        ]
+      },
+      "case-31-sqli-union-select": {
+        "rank": 1,
+        "top5": [
+          "T1190",
+          "T1190",
+          "T1190",
+          "T1590",
+          "T1065"
+        ]
+      },
+      "case-32-path-traversal-passwd": {
+        "rank": 1,
+        "top5": [
+          "T1190",
+          "T1190",
+          "T1190",
+          "T1590",
+          "T1065"
+        ]
+      },
+      "case-33-double-extension-exe": {
+        "rank": 1,
+        "top5": [
+          "T1036.007",
+          "T1036.007",
+          "T1036.007",
+          "T1085",
+          "T1218.007"
+        ]
+      },
+      "case-34-hidden-alternate-data-stream": {
+        "rank": 1,
+        "top5": [
+          "T1564.004",
+          "T1085",
+          "T1117",
+          "T1218.007",
+          "T1143"
+        ]
+      },
+      "case-35-unsigned-driver-load": {
+        "rank": 1,
+        "top5": [
+          "T1068",
+          "T1068",
+          "T1068",
+          "CVE-2017-0277",
+          "CVE-2017-0279"
+        ]
+      },
+      "case-36-sensitive-file-staging": {
+        "rank": 1,
+        "top5": [
+          "T1074.001",
+          "T1552.001",
+          "T1552.001",
+          "T1065",
+          "T1590"
+        ]
+      },
+      "case-37-authorized-nessus-scan": {
+        "rank": 1,
+        "top5": [
+          "T1046",
+          "T1065",
+          "T1041",
+          "T1591.001",
+          "T1590"
+        ]
+      },
+      "case-38-routine-backup-service": {
+        "rank": null,
+        "top5": [
+          "T1685.006",
+          "T1070.002",
+          "T1562.006",
+          "T1685.004",
+          "T1488"
+        ]
+      },
+      "case-39-developer-git-ssh-clone": {
+        "rank": null,
+        "top5": [
+          "T1015",
+          "T1546.008",
+          "T1056.002",
+          "T1546.008",
+          "T1015"
+        ]
+      },
+      "case-40-windows-update-powershell": {
+        "rank": null,
+        "top5": [
+          "T1216.002",
+          "T1059.001",
+          "T1086",
+          "T1504",
+          "T1086"
+        ]
+      }
+    }
+  },
+  "semantic_no_anchoring": {
+    "recall@5": 0.4,
+    "recall@1": 0.225,
+    "mrr": 0.27416666666666667,
+    "avg_latency_ms": 51.46750000130851,
+    "per_case": {
+      "case-01-ssh-bruteforce": {
+        "rank": null,
+        "top5": [
+          "T1065",
+          "T1590",
+          "T1008",
+          "T1030",
+          "T1190"
+        ]
+      },
+      "case-02-password-spray": {
+        "rank": 1,
+        "top5": [
+          "T1110.003",
+          "T1110",
+          "T1065",
+          "T1110.001",
+          "T1201"
+        ]
+      },
+      "case-03-kerberoasting": {
+        "rank": null,
+        "top5": [
+          "T1591.001",
+          "T1590",
+          "T1065",
+          "T1595.001",
+          "T1020"
+        ]
+      },
+      "case-04-mfa-fatigue-bombing": {
+        "rank": 1,
+        "top5": [
+          "T1621",
+          "T1621",
+          "T1065",
+          "T1590",
+          "T1591.001"
+        ]
+      },
+      "case-05-encoded-powershell": {
+        "rank": 2,
+        "top5": [
+          "T1065",
+          "T1059.001",
+          "T1030",
+          "T1591.001",
+          "T1590"
+        ]
+      },
+      "case-06-powershell-download-cradle": {
+        "rank": 1,
+        "top5": [
+          "T1059.001",
+          "T1590",
+          "T1065",
+          "T1008",
+          "T1070.003"
+        ]
+      },
+      "case-07-suspicious-wscript-launch": {
+        "rank": 1,
+        "top5": [
+          "T1059.005",
+          "T1059.005",
+          "T1065",
+          "T1591.001",
+          "T1020"
+        ]
+      },
+      "case-08-bash-reverse-shell": {
+        "rank": null,
+        "top5": [
+          "T1065",
+          "T1591.001",
+          "T1590",
+          "T1041",
+          "T1008"
+        ]
+      },
+      "case-09-shadow-copy-deletion": {
+        "rank": 1,
+        "top5": [
+          "T1490",
+          "T1065",
+          "T1590",
+          "T1595.001",
+          "T1488"
+        ]
+      },
+      "case-10-bcdr-disable-recovery": {
+        "rank": 5,
+        "top5": [
+          "T1590",
+          "T1688",
+          "T1591.001",
+          "T1065",
+          "T1490"
+        ]
+      },
+      "case-11-ransom-note-drop": {
+        "rank": null,
+        "top5": [
+          "T1065",
+          "T1590",
+          "T1595.001",
+          "T1488",
+          "T1591.001"
+        ]
+      },
+      "case-12-suspicious-svchost-spawn": {
+        "rank": null,
+        "top5": [
+          "T1183",
+          "T1065",
+          "T1591.001",
+          "T1041",
+          "T1590"
+        ]
+      },
+      "case-13-sudoers-modification": {
+        "rank": null,
+        "top5": [
+          "T1591.001",
+          "T1590",
+          "T1065",
+          "T1595.001",
+          "CVE-2023-22809"
+        ]
+      },
+      "case-14-suid-binary-creation": {
+        "rank": null,
+        "top5": [
+          "T1561.001",
+          "T1590",
+          "T1595.001",
+          "T1591.001",
+          "T1065"
+        ]
+      },
+      "case-15-uac-bypass-fodhelper": {
+        "rank": 1,
+        "top5": [
+          "T1548.002",
+          "T1088",
+          "T1548.002",
+          "T1088",
+          "T1088"
+        ]
+      },
+      "case-16-token-privilege-abuse": {
+        "rank": 3,
+        "top5": [
+          "T1177",
+          "T1547.008",
+          "T1003.001",
+          "T1003.001",
+          "T1590"
+        ]
+      },
+      "case-17-scheduled-task-persistence": {
+        "rank": 1,
+        "top5": [
+          "T1053.005",
+          "T1053.005",
+          "T1053.005",
+          "T1065",
+          "T1591.001"
+        ]
+      },
+      "case-18-registry-run-key": {
+        "rank": 1,
+        "top5": [
+          "T1547.001",
+          "T1547.001",
+          "T1060",
+          "T1112",
+          "T1574.011"
+        ]
+      },
+      "case-19-linux-cron-backdoor": {
+        "rank": null,
+        "top5": [
+          "T1070.002",
+          "T1065",
+          "T1591.001",
+          "T1020",
+          "T1590"
+        ]
+      },
+      "case-20-new-system-service": {
+        "rank": 1,
+        "top5": [
+          "T1543.003",
+          "T1050",
+          "T1031",
+          "T1590",
+          "T1505.005"
+        ]
+      },
+      "case-21-dns-data-tunneling": {
+        "rank": null,
+        "top5": [
+          "T1065",
+          "T1591.001",
+          "T1041",
+          "T1590",
+          "T1020"
+        ]
+      },
+      "case-22-c2-beaconing-fixed-jitter": {
+        "rank": null,
+        "top5": [
+          "T1065",
+          "T1591.001",
+          "T1590",
+          "T1020",
+          "T1041"
+        ]
+      },
+      "case-23-external-recon-portscan": {
+        "rank": null,
+        "top5": [
+          "T1065",
+          "T1041",
+          "T1591.001",
+          "T1590",
+          "T1079"
+        ]
+      },
+      "case-24-unusual-outbound-rdp": {
+        "rank": 3,
+        "top5": [
+          "T1563.002",
+          "T1065",
+          "T1021.001",
+          "T1686",
+          "T1076"
+        ]
+      },
+      "case-25-staging-archive-7zip": {
+        "rank": null,
+        "top5": [
+          "T1561.001",
+          "T1590",
+          "T1591.001",
+          "T1595.001",
+          "T1065"
+        ]
+      },
+      "case-26-cloud-mega-upload": {
+        "rank": null,
+        "top5": [
+          "T1591.001",
+          "T1065",
+          "T1590",
+          "T1595.001",
+          "T1020"
+        ]
+      },
+      "case-27-unauthorized-scp-egress": {
+        "rank": null,
+        "top5": [
+          "T1065",
+          "T1591.001",
+          "T1590",
+          "T1020",
+          "T1041"
+        ]
+      },
+      "case-28-clipboard-harvesting": {
+        "rank": null,
+        "top5": [
+          "T1064",
+          "T1197",
+          "T1055.012",
+          "T1590",
+          "T1036.009"
+        ]
+      },
+      "case-29-log4shell-exploitation": {
+        "rank": null,
+        "top5": [
+          "CVE-2021-41021",
+          "CVE-2018-16364",
+          "CVE-2026-34479",
+          "CVE-2021-35064",
+          "CVE-2026-34480"
+        ]
+      },
+      "case-30-webshell-jsp-drop": {
+        "rank": 5,
+        "top5": [
+          "T1590",
+          "T1065",
+          "T1591.001",
+          "T1008",
+          "T1190"
+        ]
+      },
+      "case-31-sqli-union-select": {
+        "rank": 5,
+        "top5": [
+          "T1590",
+          "T1065",
+          "T1591.001",
+          "T1008",
+          "T1190"
+        ]
+      },
+      "case-32-path-traversal-passwd": {
+        "rank": 5,
+        "top5": [
+          "T1590",
+          "T1065",
+          "T1591.001",
+          "T1008",
+          "T1190"
+        ]
+      },
+      "case-33-double-extension-exe": {
+        "rank": null,
+        "top5": [
+          "T1085",
+          "T1218.007",
+          "T1183",
+          "T1574.007",
+          "T1034"
+        ]
+      },
+      "case-34-hidden-alternate-data-stream": {
+        "rank": null,
+        "top5": [
+          "T1085",
+          "T1117",
+          "T1218.007",
+          "T1143",
+          "T1218"
+        ]
+      },
+      "case-35-unsigned-driver-load": {
+        "rank": null,
+        "top5": [
+          "CVE-2017-0277",
+          "CVE-2017-0279",
+          "CVE-2017-0278",
+          "CVE-2017-0272",
+          "CVE-2017-0143"
+        ]
+      },
+      "case-36-sensitive-file-staging": {
+        "rank": null,
+        "top5": [
+          "T1065",
+          "T1590",
+          "T1595.001",
+          "T1591.001",
+          "T1561.001"
+        ]
+      },
+      "case-37-authorized-nessus-scan": {
+        "rank": null,
+        "top5": [
+          "T1065",
+          "T1041",
+          "T1591.001",
+          "T1590",
+          "T1079"
+        ]
+      },
+      "case-38-routine-backup-service": {
+        "rank": null,
+        "top5": [
+          "T1685.006",
+          "T1070.002",
+          "T1562.006",
+          "T1685.004",
+          "T1488"
+        ]
+      },
+      "case-39-developer-git-ssh-clone": {
+        "rank": null,
+        "top5": [
+          "T1015",
+          "T1546.008",
+          "T1056.002",
+          "T1546.008",
+          "T1015"
+        ]
+      },
+      "case-40-windows-update-powershell": {
+        "rank": null,
+        "top5": [
+          "T1216.002",
+          "T1059.001",
+          "T1086",
+          "T1504",
+          "T1086"
+        ]
+      }
+    }
+  },
+  "hashing": {
+    "recall@5": 0.925,
+    "recall@1": 0.925,
+    "mrr": 0.925,
+    "avg_latency_ms": 38.853465000283904,
+    "per_case": {
+      "case-01-ssh-bruteforce": {
+        "rank": 1,
+        "top5": [
+          "T1110",
+          "T1110",
+          "T1528",
+          "T1556.001",
+          "T1583.001"
+        ]
+      },
+      "case-02-password-spray": {
+        "rank": 1,
+        "top5": [
+          "T1110.003",
+          "T1110.003",
+          "T1140",
+          "T1110.001",
+          "T1075"
+        ]
+      },
+      "case-03-kerberoasting": {
+        "rank": 1,
+        "top5": [
+          "T1558.003",
+          "T1558.003",
+          "T1558.003",
+          "T1592.004",
+          "T1592"
+        ]
+      },
+      "case-04-mfa-fatigue-bombing": {
+        "rank": 1,
+        "top5": [
+          "T1621",
+          "T1621",
+          "T1650",
+          "T1592.004",
+          "T1592"
+        ]
+      },
+      "case-05-encoded-powershell": {
+        "rank": 1,
+        "top5": [
+          "T1027",
+          "T1059.001",
+          "T1027",
+          "T1059.001",
+          "T1650"
+        ]
+      },
+      "case-06-powershell-download-cradle": {
+        "rank": 1,
+        "top5": [
+          "T1105",
+          "T1105",
+          "T1105",
+          "T1105",
+          "T1059.001"
+        ]
+      },
+      "case-07-suspicious-wscript-launch": {
+        "rank": 1,
+        "top5": [
+          "T1059.005",
+          "T1059.005",
+          "T1059.005",
+          "T1650",
+          "T1592.004"
+        ]
+      },
+      "case-08-bash-reverse-shell": {
+        "rank": 1,
+        "top5": [
+          "T1059.004",
+          "T1071",
+          "T1059.004",
+          "T1650",
+          "T1592.004"
+        ]
+      },
+      "case-09-shadow-copy-deletion": {
+        "rank": 1,
+        "top5": [
+          "T1490",
+          "T1490",
+          "T1490",
+          "T1486",
+          "T1486"
+        ]
+      },
+      "case-10-bcdr-disable-recovery": {
+        "rank": 1,
+        "top5": [
+          "T1490",
+          "T1490",
+          "T1490",
+          "T1490",
+          "T1592.004"
+        ]
+      },
+      "case-11-ransom-note-drop": {
+        "rank": 1,
+        "top5": [
+          "T1486",
+          "T1486",
+          "T1486",
+          "T1486",
+          "T1650"
+        ]
+      },
+      "case-12-suspicious-svchost-spawn": {
+        "rank": 1,
+        "top5": [
+          "T1036.005",
+          "T1055",
+          "T1650",
+          "T1592.004",
+          "T1592"
+        ]
+      },
+      "case-13-sudoers-modification": {
+        "rank": 1,
+        "top5": [
+          "T1548.003",
+          "T1548.003",
+          "T1548.003",
+          "T1548.003",
+          "T1548.003"
+        ]
+      },
+      "case-14-suid-binary-creation": {
+        "rank": 1,
+        "top5": [
+          "T1548.001",
+          "T1548.001",
+          "T1548.001",
+          "T1650",
+          "T1592.004"
+        ]
+      },
+      "case-15-uac-bypass-fodhelper": {
+        "rank": 1,
+        "top5": [
+          "T1548.002",
+          "T1548.002",
+          "T1548.002",
+          "T1650",
+          "T1592.004"
+        ]
+      },
+      "case-16-token-privilege-abuse": {
+        "rank": 1,
+        "top5": [
+          "T1134.001",
+          "T1003.001",
+          "T1003.001",
+          "T1134.001",
+          "T1003.001"
+        ]
+      },
+      "case-17-scheduled-task-persistence": {
+        "rank": 1,
+        "top5": [
+          "T1053.005",
+          "T1053.005",
+          "T1053.005",
+          "T1650",
+          "T1592.004"
+        ]
+      },
+      "case-18-registry-run-key": {
+        "rank": 1,
+        "top5": [
+          "T1547.001",
+          "T1547.001",
+          "T1547.001",
+          "T1547.001",
+          "T1547.001"
+        ]
+      },
+      "case-19-linux-cron-backdoor": {
+        "rank": 1,
+        "top5": [
+          "T1053.003",
+          "T1650",
+          "T1592.004",
+          "T1592",
+          "T1590.001"
+        ]
+      },
+      "case-20-new-system-service": {
+        "rank": 1,
+        "top5": [
+          "T1543.003",
+          "T1543.003",
+          "T1543.003",
+          "T1592.004",
+          "T1592"
+        ]
+      },
+      "case-21-dns-data-tunneling": {
+        "rank": 1,
+        "top5": [
+          "T1048",
+          "T1048",
+          "T1071.004",
+          "T1071.004",
+          "T1650"
+        ]
+      },
+      "case-22-c2-beaconing-fixed-jitter": {
+        "rank": 1,
+        "top5": [
+          "T1071.001",
+          "T1650",
+          "T1592.004",
+          "T1592",
+          "T1683.001"
+        ]
+      },
+      "case-23-external-recon-portscan": {
+        "rank": 1,
+        "top5": [
+          "T1046",
+          "T1650",
+          "T1683.001",
+          "T1683",
+          "T1592.004"
+        ]
+      },
+      "case-24-unusual-outbound-rdp": {
+        "rank": 1,
+        "top5": [
+          "T1021.001",
+          "T1650",
+          "T1592.004",
+          "T1592",
+          "T1683.001"
+        ]
+      },
+      "case-25-staging-archive-7zip": {
+        "rank": 1,
+        "top5": [
+          "T1560.001",
+          "T1560.001",
+          "T1650",
+          "T1592.004",
+          "T1592"
+        ]
+      },
+      "case-26-cloud-mega-upload": {
+        "rank": 1,
+        "top5": [
+          "T1567.002",
+          "T1650",
+          "T1683",
+          "T1592.004",
+          "T1592"
+        ]
+      },
+      "case-27-unauthorized-scp-egress": {
+        "rank": 1,
+        "top5": [
+          "T1048.002",
+          "T1650",
+          "T1592.004",
+          "T1592",
+          "T1683"
+        ]
+      },
+      "case-28-clipboard-harvesting": {
+        "rank": 1,
+        "top5": [
+          "T1115",
+          "T1650",
+          "T1592.004",
+          "T1592",
+          "T1590.001"
+        ]
+      },
+      "case-29-log4shell-exploitation": {
+        "rank": 1,
+        "top5": [
+          "T1190",
+          "T1190",
+          "T1190",
+          "T1650",
+          "T1592.004"
+        ]
+      },
+      "case-30-webshell-jsp-drop": {
+        "rank": 1,
+        "top5": [
+          "T1190",
+          "T1190",
+          "T1190",
+          "T1505.003",
+          "T1650"
+        ]
+      },
+      "case-31-sqli-union-select": {
+        "rank": 1,
+        "top5": [
+          "T1190",
+          "T1190",
+          "T1190",
+          "T1650",
+          "T1592.004"
+        ]
+      },
+      "case-32-path-traversal-passwd": {
+        "rank": 1,
+        "top5": [
+          "T1190",
+          "T1190",
+          "T1190",
+          "T1650",
+          "T1592.004"
+        ]
+      },
+      "case-33-double-extension-exe": {
+        "rank": 1,
+        "top5": [
+          "T1036.007",
+          "T1036.007",
+          "T1036.007",
+          "T1650",
+          "T1683"
+        ]
+      },
+      "case-34-hidden-alternate-data-stream": {
+        "rank": 1,
+        "top5": [
+          "T1564.004",
+          "T1683",
+          "T1650",
+          "T1590.001",
+          "T1683.001"
+        ]
+      },
+      "case-35-unsigned-driver-load": {
+        "rank": 1,
+        "top5": [
+          "T1068",
+          "T1068",
+          "T1068",
+          "T1592.004",
+          "T1592"
+        ]
+      },
+      "case-36-sensitive-file-staging": {
+        "rank": 1,
+        "top5": [
+          "T1074.001",
+          "T1552.001",
+          "T1552.001",
+          "T1650",
+          "T1592.004"
+        ]
+      },
+      "case-37-authorized-nessus-scan": {
+        "rank": 1,
+        "top5": [
+          "T1046",
+          "T1650",
+          "T1683.001",
+          "T1683",
+          "T1592.004"
+        ]
+      },
+      "case-38-routine-backup-service": {
+        "rank": null,
+        "top5": [
+          "T1685.006",
+          "T1056.004",
+          "T1562.006",
+          "T1685.001",
+          "T1685.001"
+        ]
+      },
+      "case-39-developer-git-ssh-clone": {
+        "rank": null,
+        "top5": [
+          "T1685.006",
+          "T1070.002",
+          "T1685.003",
+          "T1072",
+          "T1052"
+        ]
+      },
+      "case-40-windows-update-powershell": {
+        "rank": null,
+        "top5": [
+          "T1086",
+          "T1504",
+          "T1060",
+          "T1086",
+          "T1060"
+        ]
+      }
+    }
+  }
+}

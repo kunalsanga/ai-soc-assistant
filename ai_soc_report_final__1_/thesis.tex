@@ -1,0 +1,50 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                         This is thesis.tex                    %
+%                   Written By Dr. Sohan Kumar Pande            %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\documentclass{vssutsohan}
+\input{format}
+\begin{document}
+%% Front page of thesis
+\input{frontpage}
+%% Main text
+% set page number starts from 1
+%% To ensure the equation counter works correctly
+\eqlabon
+\eqlaboff
+\clearpage
+\pagenumbering{arabic}
+\setcounter{page}{1}
+\include{chapter1}
+\include{chapter2}
+\include{chapter3}
+\include{chapter4}
+\include{chapter5}
+\include{chapter6}
+\include{chapter7}
+%%%%%%%%%%%%%%%%%%%% End of chapters
+
+\setcounter{equation}{0}
+\thispagestyle{plain}
+\renewcommand{\chaptermark}[1]{ \markboth{#1}{} }
+\renewcommand{\sectionmark}[1]{ \markright{#1} }
+\renewcommand{\headrulewidth}{0.4pt} % remove lines as well
+\renewcommand{\footrulewidth}{0.4pt}
+%\fancyhead[LE]{\textit{\nouppercase{}} }
+%\fancyhead[RO]{\textit{\nouppercase{}} }
+%\fancyfoot[RO,LE]{\thepage}
+
+
+\nocite{coursera_big_data}
+\cleardoublepage
+\phantomsection
+\addcontentsline{toc}{chapter}{\numberline{}References}
+\setstretch{1}
+\bibliographystyle{unsrt}
+\bibliography{reference}
+
+
+
+%%%%%%%%%%%%%%%%%%%
+
+\end{document}

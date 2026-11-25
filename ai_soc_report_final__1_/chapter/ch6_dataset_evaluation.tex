@@ -1,0 +1,109 @@
+%==============================================================================
+% Chapter 6: Dataset Curation and Experimental Setup
+%==============================================================================
+\chapter{Dataset Curation and Experimental Setup}
+\label{ch:experiments}
+\label{chap:dataset_experiments}
+
+\section{Dataset Design Principles and Research Provenance}
+\label{sec:dataset_design}
+Empirical evaluation of an AI-assisted SOC platform requires a benchmark reflecting operational enterprise complexity rather than toy queries. Real-world alerts contain dense JSON payloads, process paths, OS noise, and living-off-the-land commands. We curated \textbf{Dataset v2} (\texttt{backend/evaluation/dataset\_v2.json}) adhering to four core principles:
+\begin{enumerate}
+    \item \textbf{Tactical Completeness:} Scenarios span the complete cyber kill chain, from reconnaissance to data exfiltration.
+    \item \textbf{Negative Control Representation:} Incorporates benign administrative tasks to evaluate false-alarm suppression.
+    \item \textbf{Authoritative Ground Truth:} Mapped to MITRE ATT\&CK technique IDs and NIST NVD CVE records.
+    \item \textbf{Input Isolation:} Ground-truth tags are withheld from the model; only raw alert observables are provided.
+\end{enumerate}
+
+\section{Evolution from Dataset v1 to Dataset v2 and Data Integrity Fixes}
+\label{sec:dataset_evolution}
+During Stage 1 auditing, a critical data integrity defect was uncovered in the initial setup:
+\begin{quote}
+\itshape
+\textbf{The Milestone 1 Alert ID Collision Bug:} The evaluation harness reused historical database primary keys (\texttt{alert\_id} 1 to 40) across successive runs, causing Dataset v2 runs to inadvertently link to historical Dataset v1 payloads, distorting evaluation metrics.
+\end{quote}
+To resolve this defect and establish complete experimental integrity:
+\begin{itemize}
+    \item \textbf{Alembic Migration \texttt{c01\_datasource}:} Added an indexed \texttt{data\_source} column, strictly isolating \texttt{replay\_v2} records from interactive \texttt{demo} and \texttt{wazuh\_live} alerts.
+    \item \textbf{Strict Identifier Namespacing:} Scenarios were namespaced as \texttt{v2-eval-001} through \texttt{v2-eval-040}.
+    \item \textbf{Dedicated Test Suite:} Six automated integrity tests verify zero collisions and idempotent seeding.
+\end{itemize}
+
+\section{Dataset Composition and Category Distribution}
+\label{sec:dataset_composition}
+Dataset v2 comprises \textbf{40 curated, non-overlapping enterprise scenarios} structured across \textbf{10 uniform tactical categories} with exactly $N = 4$ scenarios each ($10 \times 4 = 40$ cases), summarized in Table \ref{tab:dataset_distribution}.
+
+\begin{table}[!htbp]
+\centering
+\caption{Dataset v2 composition and scenario category distribution.}
+\label{tab:dataset_distribution}
+\small
+\begin{tabularx}{\textwidth}{@{}l l c X@{}}
+\toprule
+\textbf{Category ID} & \textbf{Tactical Category} & \textbf{Count ($N$)} & \textbf{Representative Attack Scenarios / Activities} \\
+\midrule
+Cat-01 & Reconnaissance & 4 & Nmap SYN scan, active directory user enum, ping sweep. \\
+Cat-02 & Initial Access & 4 & Spearphishing doc, external RDP probe, web shell upload. \\
+Cat-03 & Execution & 4 & Encoded PowerShell script, CMD execution, WMI invocation. \\
+Cat-04 & Persistence & 4 & Scheduled task creation, registry Run key, service install. \\
+Cat-05 & Privilege Escalation & 4 & Sudo abuse, UAC bypass, token impersonation, setuid binary. \\
+Cat-06 & Defense Evasion & 4 & Event log wipe, process injection, masquerading in Temp. \\
+Cat-07 & Credential Access & 4 & LSASS memory dump, SSH brute force, /etc/shadow read. \\
+Cat-08 & Command and Control & 4 & Outbound RDP session, DNS tunneling, HTTPS beaconing. \\
+Cat-09 & Impact & 4 & Ransomware note drop, file encryption, database wipe. \\
+Cat-10 & Benign Negative Controls & 4 & Authorized Nessus scan, sysadmin backup, PowerShell update. \\
+\midrule
+\textbf{Total} & \textbf{10 Uniform Categories} & \textbf{40} & \textbf{36 Multi-Stage Attack Cases + 4 Benign Controls} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Experimental Execution Protocol}
+\label{sec:experimental_protocol}
+Benchmark evaluation was conducted using \texttt{backend/scripts/run\_evaluation.py} under strict controls:
+\begin{enumerate}
+    \item \textbf{Tri-Mode Space:} $40 \text{ Scenarios} \times 3 \text{ Modes} = \mathbf{120} \text{ Full Pipeline Evaluations}$.
+    \item \textbf{Zero Runtime Errors:} All 120 runs completed to 100\% execution without exceptions (run ID \texttt{20261109-185423-0f4cfd}).
+    \item \textbf{Deterministic Inference:} Qwen3:8B executed at $T = 0.0$ and \texttt{top\_p} = 1.0 for reproducible evaluation.
+    \item \textbf{Artifact Preservation:} Full capture of prompts, tokens, vector scores, and nanosecond timings.
+\end{enumerate}
+
+\section{Isolated Retrieval Ablation Protocol}
+\label{sec:ablation_protocol}
+A critical methodological distinction enforced in this work is separating retrieval evaluation from generation. Generation quirks can mask retrieval efficacy. We executed an isolated, headless \textbf{Retrieval Ablation} across all 40 scenarios against 1,762 vector chunks without an LLM:
+\begin{itemize}
+    \item Evaluated three retrieval configurations: Standard RAG (unanchored dense cosine), Evidence-Aware RAG (entity-anchored hybrid), and Token Hashing Baseline (offline lexical 2-gram hashing).
+    \item Evaluated candidate rankings at top-$k \in \{1, 5, 10\}$, computing Recall@1, Recall@5, MRR, and latency.
+\end{itemize}
+
+\section{Hardware and Host Execution Parameters}
+\label{sec:host_parameters}
+All 120 benchmark runs and 40 ablation runs executed locally under the configuration in Table \ref{tab:execution_parameters}.
+
+\begin{table}[!htbp]
+\centering
+\caption{Host experimental parameters and software configuration.}
+\label{tab:execution_parameters}
+\small
+\begin{tabularx}{\textwidth}{@{}l p{4.2cm} X@{}}
+\toprule
+\textbf{Category} & \textbf{Component} & \textbf{Configuration Value / Version} \\
+\midrule
+\textbf{Host Hardware} & Processor (CPU) & Intel Core i7-12700H (14 cores, 20 threads) \\
+                       & System Memory (RAM) & 32 GB DDR5 4800 MHz \\
+                       & Storage Subsystem & 1 TB NVMe PCIe 4.0 SSD \\
+                       & Graphics Accelerator & NVIDIA GeForce RTX 3060 Laptop GPU (6 GB VRAM) \\
+\midrule
+\textbf{Environment}   & Operating System & Windows 11 Pro 64-bit / WSL2 Ubuntu 22.04 \\
+                       & Container Engine & Docker Desktop 4.79.0 / Docker Engine 29.5.3 \\
+                       & Database Version & PostgreSQL 15.4 (Alpine container) \\
+                       & Vector Engine & Qdrant v1.18.2 (Official container) \\
+\midrule
+\textbf{Model Config}  & Reasoning Model & Qwen3:8B (\texttt{qwen3:8b} via Ollama v0.5.4) \\
+                       & Embedding Model & \texttt{sentence-transformers/\allowbreak all-MiniLM-L6-v2} (384-dim) \\
+                       & Lexical Baseline & HashingEmbeddingProvider (2-gram, 256-dim) \\
+                       & Decoding Temperature & $T = 0.0$ (Strict greedy decoding) \\
+                       & Context Window & 32,768 tokens (Prompt truncated at 1,000 completion tokens) \\
+\bottomrule
+\end{tabularx}
+\end{table}

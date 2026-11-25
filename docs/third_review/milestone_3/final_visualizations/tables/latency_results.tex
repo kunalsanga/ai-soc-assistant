@@ -1,0 +1,22 @@
+% Table 3: Latency Breakdown by Pipeline Stage
+\begin{table}[t]
+\centering
+\small
+\caption{Execution Latency Breakdown Across Two Distinct Regimes: Millisecond Knowledge Retrieval vs. Multi-Second LLM Generation ($N = 40$ Scenarios per Mode).}
+\label{tab:latency_results}
+\begin{tabular}{llccc}
+\toprule
+\textbf{Pipeline Stage} & \textbf{Method / Mode} & \textbf{Mean} & \textbf{Std Dev} & \textbf{Median} \\
+\midrule
+\multirow{3}{*}{\textbf{Stage 1: Retrieval (ms)}}
+    & Token Hashing (Lexical) & 38.9 ms & --- & --- \\
+    & Standard RAG (Dense) & 51.5 ms & --- & --- \\
+    & Evidence-Aware RAG (Anchored) & 240.2 ms & --- & --- \\
+\midrule
+\multirow{3}{*}{\textbf{Stage 2: End-to-End Triage (s)}}
+    & LLM-Only (Zero-Shot) & 24.0 s & 2.4 s & 23.9 s \\
+    & Standard RAG & 51.6 s & 7.9 s & 50.7 s \\
+    & Evidence-Aware RAG & 50.5 s & 13.1 s & 48.3 s \\
+\bottomrule
+\end{tabular}
+\end{table}
